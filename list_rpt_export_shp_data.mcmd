@@ -1,0 +1,194 @@
+<command>
+  <name>list rpt export shp data</name>
+  <description>list rpt export shp data</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+   and @+start_date
+   and @+end_date
+|
+[select pv.schbat,
+        rl.trknum,
+        rl.rcvkey,
+        pv.ordnum,
+        o.cponum,
+        adrmst.adrnam,
+        pv.srcloc,
+        pv.prtnum,
+        pdc.lngdsc,
+        dlytrn.revlvl,
+        pv.srcare,
+        pv.client_id,
+        pv.wh_id,
+        pv.oprcod,
+        ptv.stkuom,
+        pv.pck_mthd_id,
+        pv.pckqty pckqty,
+        pv.pck_catch_qty pck_catch_qty,
+        pv.appqty appqty,
+        pv.app_catch_qty app_catch_qty,
+        pv.pcksts,
+        pv.prt_client_id,
+        pv.invsts,
+        pv.invsts_prg,
+        pv.lodlvl,
+        pv.untcas,
+        pv.untpak,
+        pv.ftpcod,
+        pv.adddte,
+        pv.pckdte,
+        pv.min_shelf_hrs,
+        pv.list_grp_id,
+        pv.list_id,
+        pv.list_seqnum,
+        pv.last_pck_usr_id,
+        pv.ins_dt,
+        pv.last_upd_dt,
+        pv.ins_user_id,
+        pv.last_upd_user_id,
+        pv.wrkref_dtl,
+        pv.dtl_pckqty dtl_pckqty,
+        pv.dtl_pck_catch_qty dtl_pck_catch_qty,
+        pv.dtl_appqty dtl_appqty,
+        pv.dtl_app_catch_qty dtl_app_catch_qty,
+        pv.dtl_lodlvl,
+        pv.cmbcod,
+        pv.dstloc,
+        pv.dst_mov_zone_id,
+        pv.ship_line_id,
+        pv.ship_id,
+        pv.ordlin,
+        pv.ordsln,
+        pv.concod,
+        case when ptv.stkuom = ptv.dspuom then cast(decode(ptv.dspuom, null, sum(pv.pckqty), sum(pv.pckqty / prtftp_dtl.untqty)) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, ptv.stkuom, ptv.dspuom) as varchar(20))
+             else cast(decode(ptv.dspuom, null, sum(pv.pckqty), sum(pv.pckqty / prtftp_dtl.untqty)) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, ptv.stkuom, ptv.dspuom) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, cast(null as int), ptv.stkuom, cast(null as int), sum(mod(pv.pckqty, prtftp_dtl.untqty))) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, null, ptv.stkuom, null, ptv.stkuom) as varchar(20))
+        end as quantity_picked,
+        cast((select pdtl2.netwgt
+                from prtftp_dtl pdtl2
+               where pdtl2.ftpcod = max(prtftp_dtl.ftpcod)
+                 and pdtl2.prtnum = max(prtftp_dtl.prtnum)
+                 and pdtl2.prt_client_id = max(prtftp_dtl.prt_client_id)
+                 and pdtl2.wh_id = max(prtftp_dtl.wh_id)
+                 and pdtl2.uomcod = nvl(max(ptv.dspuom), max(ptv.stkuom))) / 35.274 * decode(max(ptv.dspuom), null, max(invdtl.untqty), max(invdtl.untqty) / max(prtftp_dtl.untqty)) as decimal(10, 2)) as carton_weight,
+        trlr.trlr_num,
+        trlr.carcod,
+        trlr.dispatch_dte,
+        dlytrn.lodnum
+   from pckwrk_view pv
+   join ord o
+     on o.ordnum = pv.ordnum
+   join prtmst_view ptv
+     on ptv.prtnum = pv.prtnum
+    and ptv.prt_client_id = pv.prt_client_id
+    and ptv.wh_id = pv.wh_id
+   join prtdsc pdc
+     on pdc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and pdc.colval = /*=varchar(*/ pv.prtnum || '|' || pv.prt_client_id || '|' || pv.wh_id /*=)*/
+    and pdc.locale_id = nvl(@locale_id, @@locale_id)
+   join all_inventory_view av
+     on av.ship_line_id = pv.ship_line_id
+   left
+   join rcvlin rl
+     on rl.rcvkey = av.rcvkey
+    and rl.prtnum = av.prtnum
+    and rl.prt_client_id = av.prt_client_id
+    and rl.wh_id = av.wh_id
+   join invdtl
+     on invdtl.dtlnum = av.dtlnum
+   join prtftp
+     on ptv.prtnum = prtftp.prtnum
+    and ptv.wh_id = prtftp.wh_id
+    and ptv.prt_client_id = prtftp.prt_client_id
+    and invdtl.ftpcod = prtftp.ftpcod
+     or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int))
+   join prtftp_dtl
+     on prtftp.prtnum = prtftp_dtl.prtnum
+    and prtftp.wh_id = prtftp_dtl.wh_id
+    and prtftp.prt_client_id = prtftp_dtl.prt_client_id
+    and prtftp.ftpcod = prtftp_dtl.ftpcod
+    and prtftp_dtl.uomcod = nvl(ptv.dspuom, ptv.stkuom)
+   join trlr
+     on trlr.trlr_id = av.stoloc
+   join cstmst
+     on cstmst.cstnum = pv.stcust
+   left
+   join adrmst
+     on adrmst.adr_id = cstmst.adr_id
+   join dlytrn
+     on dlytrn.dtlnum = av.dtlnum
+    and dlytrn.frstol = pv.srcloc
+    and dlytrn.actcod = 'LSTPCK'
+    and dlytrn.prtnum = ptv.prtnum
+    and dlytrn.prt_client_id = ptv.prt_client_id
+    and dlytrn.wh_id = ptv.wh_id
+  where @+pv.ordnum
+    and @+pv.client_id
+    and o.adddte between @start_date:date
+    and @end_date:date
+ /* and trlr.dispatch_dte between @start_date:date
+    and @end_date:date */
+  group by pv.schbat,
+        rl.trknum,
+        rl.rcvkey,
+        pv.ordnum,
+        o.cponum,
+        adrmst.adrnam,
+        pv.srcloc,
+        pv.prtnum,
+        pdc.lngdsc,
+        dlytrn.revlvl,
+        pv.srcare,
+        pv.client_id,
+        pv.wh_id,
+        pv.oprcod,
+        ptv.stkuom,
+        pv.pck_mthd_id,
+        pv.pckqty,
+        pv.pck_catch_qty,
+        pv.appqty,
+        pv.app_catch_qty,
+        pv.pcksts,
+        pv.prt_client_id,
+        pv.invsts,
+        pv.invsts_prg,
+        pv.lodlvl,
+        pv.untcas,
+        pv.untpak,
+        pv.ftpcod,
+        pv.adddte,
+        pv.pckdte,
+        pv.min_shelf_hrs,
+        pv.list_grp_id,
+        pv.list_id,
+        pv.list_seqnum,
+        pv.last_pck_usr_id,
+        pv.ins_dt,
+        pv.last_upd_dt,
+        pv.ins_user_id,
+        pv.last_upd_user_id,
+        pv.wrkref_dtl,
+        pv.dtl_pckqty,
+        pv.dtl_pck_catch_qty,
+        pv.dtl_appqty,
+        pv.dtl_app_catch_qty,
+        pv.dtl_lodlvl,
+        pv.cmbcod,
+        pv.dstloc,
+        pv.dst_mov_zone_id,
+        pv.ship_line_id,
+        pv.ship_id,
+        pv.ordlin,
+        pv.ordsln,
+        pv.concod,
+        trlr.trlr_num,
+        trlr.carcod,
+        trlr.dispatch_dte,
+        ptv.stkuom,
+        ptv.dspuom,
+        dlytrn.lodnum]
+]]>
+</local-syntax>
+</command>

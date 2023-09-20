@@ -1,0 +1,100 @@
+<command>
+  <name>list rpt export wave data</name>
+  <description>list rpt export wave data</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and @+wh_id
+   and @+client_id
+   and @+start_date
+   and @+end_date
+|
+[select pw.schbat WV#,
+        pw.client_id,
+        adrmst.adrnam as client_name,
+        pw.ordnum ORD#,
+        dt.lodnum LPN,
+        pw.prtnum SKU,
+        pd.lngdsc Description,
+        dt.revlvl Batch,
+        pw.pck_uom UOM,
+        pw.untcas Pack,
+        dt.frstol Picked_Location,
+        pw.tot_cas_cnt present_cnts,
+        CASE WHEN (pw.pck_uom = 'PC') THEN dt.trnqty
+             ELSE (pw.pckqty / pw.untcas)
+        END AS CTNS,
+        pw.pckdte,
+        pw.last_pck_usr_id,
+        d.dispatch_dte
+   from pckwrk_view pw
+   join dlytrn dt
+     on dt.ordnum = pw.ordnum
+    and dt.client_id = pw.client_id
+    and dt.wh_id = pw.wh_id
+    and dt.actcod = 'LSTPCK'
+    and dt.prtnum = pw.prtnum
+    and dt.trnqty = pw.pckqty
+    and dt.frstol = pw.srcloc
+   join prtmst p
+     on p.wh_id_tmpl = pw.wh_id
+    and p.prt_client_id = pw.client_id
+    and p.prtnum = pw.prtnum
+   join prtdsc pd
+     on pd.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and pd.colval = p.prtnum || '|' || p.prt_client_id || '|' || p.wh_id_tmpl
+    and pd.locale_id = 'US_ENGLISH'
+   join client
+     on client.client_id = pw.client_id
+   join adrmst
+     on adrmst.adr_id = client.adr_id
+   join (select t.dispatch_dte,
+                sl.ordnum,
+                sl.wh_id,
+                sl.client_id
+           from shipment_line sl
+           join shipment s
+             on s.ship_id = sl.ship_id
+            and s.wh_id = sl.wh_id
+           join stop st
+             on st.stop_id = s.stop_id
+           join car_move cm
+             on cm.car_move_id = st.car_move_id
+           join trlr t
+             on t.trlr_id = cm.trlr_id
+          where s.shpsts = 'C'
+          group by sl.ordnum,
+                t.dispatch_dte,
+                sl.wh_id,
+                sl.client_id) d
+     on d.ordnum = pw.ordnum
+    and d.wh_id = pw.wh_id
+    and d.client_id = pw.client_id
+  where pw.wh_id = @wh_id
+    and @+pw.client_id
+    and pw.pckdte > to_date(@start_date, 'YYYYMMDDHH24MISS')
+    and pw.pckdte < to_date(@end_date, 'YYYYMMDDHH24MISS')
+ /*and pw.ordnum = 'ORD000001D'
+    and pw.prtnum = '1040601002'*/
+  group by pw.schbat,
+        pw.client_id,
+        adrmst.adrnam,
+        pw.ordnum,
+        dt.lodnum,
+        pw.prtnum,
+        pd.lngdsc,
+        dt.revlvl,
+        pw.pck_uom,
+        pw.untcas,
+        dt.frstol,
+        pw.tot_cas_cnt,
+        CASE WHEN (pw.pck_uom = 'PC') THEN dt.trnqty
+             ELSE (pw.pckqty / pw.untcas) END,
+             pw.pckdte,
+             pw.last_pck_usr_id,
+             d.dispatch_dte]
+]]>
+</local-syntax>
+</command>

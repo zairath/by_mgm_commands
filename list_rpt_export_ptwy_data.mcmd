@@ -1,0 +1,67 @@
+<command>
+  <name>list rpt export ptwy data</name>
+  <description>list rpt export ptwy data</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and @+wh_id
+   and @+client_id
+   and @+start_date
+   and @+end_date
+|
+[select rt.trknum GR#,
+        rv.wh_id,
+        rv.client_id Cus_Code,
+        a.adrnam Customer,
+        t.trlr_num Container#,
+        rv.invnum Ref,
+        rv.invdte GR_Date,
+        rl.prtnum SKU,
+        pd.lngdsc,
+        '' size,
+        '' Color,
+        iv.revlvl Batch,
+        iv.lodnum LPN,
+        '' PO,
+        (iv.untqty / iv.untcas) CTNS,
+        untqty QTY,
+        p.stkuom,
+        iv.stoloc Putaway_Location,
+        iv.lst_usr_id Putaway_User,
+        iv.rcvdte Created_At,
+        iv.lst_usr_id Created_By
+   from rcvtrk rt
+   join rcvinv rv
+     on rv.trknum = rt.trknum
+    and rv.wh_id = rt.wh_id
+   join rcvlin rl
+     on rl.trknum = rv.trknum
+    and rl.invnum = rv.invnum
+    and rl.client_id = rv.client_id
+    and rl.wh_id = rv.wh_id
+   join adrmst a
+     on a.client_id = rv.client_id
+    and a.adrtyp = 'CLI'
+   join prtmst p
+     on p.prt_client_id = rl.prt_client_id
+    and p.prtnum = rl.prtnum
+    and p.wh_id_tmpl = rl.wh_id
+   join prtdsc pd
+     on pd.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and pd.colval = p.prtnum || '|' || p.prt_client_id || '|' || p.wh_id_tmpl
+   join trlr t
+     on t.trlr_id = rt.trlr_id
+   join inventory_view iv
+     on iv.rcvkey = rl.rcvkey
+    and iv.wh_id = rl.wh_id
+    and iv.prt_client_id = rl.prt_client_id
+  where iv.rcvdte > to_date(@start_date, 'YYYYMMDDHH24MISS')
+    and iv.rcvdte < to_date(@end_date, 'YYYYMMDDHH24MISS')
+    and @+iv.prt_client_id
+ -- and rt.trknum = 'MP/RCV/2023'
+]
+]]>
+</local-syntax>
+</command>

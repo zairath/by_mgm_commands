@@ -1,0 +1,228 @@
+<command>
+  <name>list rpt export evttrck data</name>
+  <description>list rpt export evttrck data</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and @+wh_id
+   and @+client_id
+   and @+start_date
+   and @+end_date
+|
+[select dl.trndte Transaction_Date,
+        dl.dlytrn_id Transaction_ID,
+        dl.ordnum outbound_order_number,
+        rcvlin.trknum inbound_shipment_number,
+        dl.lodnum LPN,
+        dl.prtnum Material,
+        pd.lngdsc Description,
+        'INV_LOC_TRANSFER' Transaction_Type,
+        dl.reacod,
+        dl.frstol From_Location,
+        dl.tostol To_Location,
+        dl.frinvs From_InventoryStatus,
+        inv_stat1.lngdsc as From_InventoryStatusDesc,
+        '' To_Inventorystatus,
+        '' To_InventoryStatusDesc,
+        dl.trnqty Transaction_Qty,
+        dl.uomcod,
+        '' From_REVLVL,
+        '' To_REVLVL,
+        dl.usr_id
+   from dlytrn dl
+   join prtmst p
+     on p.prtnum = dl.prtnum
+    and p.prt_client_id = dl.prt_client_id
+    and p.wh_id_tmpl = dl.wh_id
+   join prtdsc pd
+     on pd.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and pd.colval = p.prtnum || '|' || p.prt_client_id || '|' || p.wh_id_tmpl
+    and pd.locale_id = 'US_ENGLISH'
+   left
+   join dscmst inv_stat1
+     on inv_stat1.colnam = 'invsts'
+    and inv_stat1.colval = dl.frinvs
+   left
+   join invdtl
+     on invdtl.dtlnum = dl.dtlnum
+   left
+   join rcvlin
+     on rcvlin.rcvkey = invdtl.rcvkey
+  where dl.wh_id = @wh_id
+    and dl.trndte > to_date(@start_date, 'YYYYMMDDHH24MISS')
+    and dl.trndte < to_date(@end_date, 'YYYYMMDDHH24MISS')
+    and dl.actcod = 'FL_XFR'
+    and dl.movref = 'STKTRN'
+ -- and dl.prtnum = '1000086296'
+] &
+[select dl.trndte Transaction_Date,
+        dl.dlytrn_id Transaction_ID,
+        dl.ordnum outbound_order_number,
+        rcvlin.trknum inbound_shipment_number,
+        dl.lodnum LPN,
+        dl.prtnum Material,
+        pd.lngdsc Description,
+        'INV_ATTRREVLVL_CHANGE' Transaction_Type,
+        dl.reacod,
+        iv.stoloc From_Location,
+        '' To_Location,
+        dl.frinvs From_InventoryStatus,
+        inv_stat1.lngdsc as From_InventoryStatusDesc,
+        '' To_Inventorystatus,
+        '' To_InventoryStatusDesc,
+        dl.trnqty Transaction_Qty,
+        dl.uomcod,
+        dl.fr_value From_REVLVL,
+        dl.to_value To_REVLVL,
+        dl.usr_id
+   from dlytrn dl
+   join prtmst p
+     on p.prtnum = dl.prtnum
+    and p.prt_client_id = dl.prt_client_id
+    and p.wh_id_tmpl = dl.wh_id
+   join prtdsc pd
+     on pd.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and pd.colval = p.prtnum || '|' || p.prt_client_id || '|' || p.wh_id_tmpl
+    and pd.locale_id = 'US_ENGLISH'
+   join inventory_view iv
+     on iv.lodnum = dl.lodnum
+    and iv.subnum = dl.subnum
+    and iv.dtlnum = dl.dtlnum
+    and iv.wh_id = dl.wh_id
+    and iv.prt_client_id = dl.prt_client_id
+    and iv.prtnum = dl.prtnum
+   left
+   join dscmst inv_stat1
+     on inv_stat1.colnam = 'invsts'
+    and inv_stat1.colval = dl.frinvs
+   left
+   join invdtl
+     on invdtl.dtlnum = dl.dtlnum
+   left
+   join rcvlin
+     on rcvlin.rcvkey = invdtl.rcvkey
+  where dl.wh_id = @wh_id
+    and dl.trndte > to_date(@start_date, 'YYYYMMDDHH24MISS')
+    and dl.trndte < to_date(@end_date, 'YYYYMMDDHH24MISS')
+    and dl.actcod = 'INVATTCHG'
+    and dl.var_nam = 'revlvl'
+ -- and dl.prtnum = '1000086296'
+] &
+[select dl.trndte Transaction_Date,
+        dl.dlytrn_id Transaction_ID,
+        dl.ordnum outbound_order_number,
+        rcvlin.trknum inbound_shipment_number,
+        dl.lodnum LPN,
+        dl.prtnum Material,
+        pd.lngdsc Description,
+        'INV_STATUS_CHANGE' Transaction_Type,
+        dl.reacod,
+        dl.frstol From_Location,
+        '' To_Location,
+        dl.frinvs From_InventoryStatus,
+        inv_stat1.lngdsc as From_InventoryStatusDesc,
+        dl.toinvs To_Inventorystatus,
+        inv_stat2.lngdsc as To_InventoryStatusDesc,
+        dl.trnqty Transaction_Qty,
+        dl.uomcod,
+        dl.fr_value From_REVLVL,
+        '' To_REVLVL,
+        dl.usr_id
+   from dlytrn dl
+   join prtmst p
+     on p.prtnum = dl.prtnum
+    and p.prt_client_id = dl.prt_client_id
+    and p.wh_id_tmpl = dl.wh_id
+   join prtdsc pd
+     on pd.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and pd.colval = p.prtnum || '|' || p.prt_client_id || '|' || p.wh_id_tmpl
+    and pd.locale_id = 'US_ENGLISH'
+   left
+   join dscmst inv_stat1
+     on inv_stat1.colnam = 'invsts'
+    and inv_stat1.colval = dl.frinvs
+   left
+   join dscmst inv_stat2
+     on inv_stat2.colnam = 'invsts'
+    and inv_stat2.colval = dl.toinvs
+   left
+   join invdtl
+     on invdtl.dtlnum = dl.dtlnum
+   left
+   join rcvlin
+     on rcvlin.rcvkey = invdtl.rcvkey
+  where dl.wh_id = @wh_id
+    and dl.trndte > to_date(@start_date, 'YYYYMMDDHH24MISS')
+    and dl.trndte < to_date(@end_date, 'YYYYMMDDHH24MISS')
+    and dl.actcod = 'INVSTSCHG'
+    and dl.movref = 'STATUS_CHANGE'
+ --  and dl.prtnum = '1000086296'
+] &
+[select dl.trndte Transaction_Date,
+        dl.dlytrn_id Transaction_ID,
+        dl.ordnum outbound_order_number,
+        rcvlin.trknum inbound_shipment_number,
+        dl.lodnum LPN,
+        dl.prtnum Material,
+        pd.lngdsc Description,
+        case when dl.actcod = 'INVDEL' then 'INV_ADJUSTMENT_DEL'
+             else 'INV_ADJUSTMENT_ADD'
+        end Transaction_Type,
+        dl.reacod,
+        case when dl.actcod = 'INVDEL' then dl.frstol
+             else dl.tostol
+        end From_Location,
+        '' To_Location,
+        dl.frinvs From_InventoryStatus,
+        inv_stat1.lngdsc as From_InventoryStatusDesc,
+        dl.toinvs To_Inventorystatus,
+        inv_stat2.lngdsc as To_InventoryStatusDesc,
+        case when dl.actcod = 'INVDEL' then(-1 * dl.trnqty)
+             ELSE dl.trnqty
+        end Transaction_Qty,
+        dl.uomcod,
+        dl.fr_value From_REVLVL,
+        '' To_REVLVL,
+        dl.usr_id
+   from dlytrn dl
+   join prtmst p
+     on p.prtnum = dl.prtnum
+    and p.prt_client_id = dl.prt_client_id
+    and p.wh_id_tmpl = dl.wh_id
+   join prtdsc pd
+     on pd.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and pd.colval = p.prtnum || '|' || p.prt_client_id || '|' || p.wh_id_tmpl
+    and pd.locale_id = 'US_ENGLISH'
+   left
+   join inventory_view iv
+     on iv.lodnum = dl.lodnum
+    and iv.dtlnum = dl.dtlnum
+    and iv.subnum = dl.subnum
+    and iv.wh_id = dl.wh_id
+    and iv.prt_client_id = dl.prt_client_id
+   left
+   join dscmst inv_stat1
+     on inv_stat1.colnam = 'invsts'
+    and inv_stat1.colval = dl.frinvs
+   left
+   join dscmst inv_stat2
+     on inv_stat2.colnam = 'invsts'
+    and inv_stat2.colval = dl.toinvs
+   left
+   join invdtl
+     on invdtl.dtlnum = dl.dtlnum
+   left
+   join rcvlin
+     on rcvlin.rcvkey = invdtl.rcvkey
+  where dl.wh_id = @wh_id
+    and dl.trndte > to_date(@start_date, 'YYYYMMDDHH24MISS')
+    and dl.trndte < to_date(@end_date, 'YYYYMMDDHH24MISS')
+    and dl.actcod in ('IDNTFY_AJ', 'INVDEL')
+    and dl.oprcod = 'INVADJ'
+ -- and dl.prtnum = '1000086296'
+]
+]]>
+</local-syntax>
+</command>
