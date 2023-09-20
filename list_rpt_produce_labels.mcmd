@@ -1,0 +1,33 @@
+<command>
+  <name>list rpt produce labels</name>
+  <description>This command for print Sub-LPN</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+|
+[select rcvlin.trknum,
+        inventory_view.lodnum,
+        inventory_view.subnum,
+        inventory_view.expire_dte,
+        (cast(convert(varchar, inventory_view.expire_dte, 103) as varchar) + ' ' + cast(inventory_view.prtnum as varchar) + ' ' + cast(inventory_view.catch_qty as varchar)) as for_qr,
+        inventory_view.catch_qty,
+        adrmst.adrnam,
+        inventory_view.prtnum
+   from adrmst,
+        inventory_view
+   join rcvlin
+     on rcvlin.rcvkey = inventory_view.rcvkey
+    and rcvlin.wh_id = inventory_view.wh_id
+    and rcvlin.prtnum = inventory_view.prtnum
+    and rcvlin.prt_client_id = inventory_view.prt_client_id
+  where adrmst.client_id = rcvlin.client_id
+    and adrmst.adrtyp = 'CLI'
+    and rcvlin.trknum = @trknum
+    and rcvlin.prtnum = @prtnum
+    and rcvlin.wh_id = @wh_id];
+]]>
+</local-syntax>
+</command>

@@ -1,0 +1,203 @@
+<command>
+  <name>list rpt ba outbound delivery note2</name>
+  <description>This report is for BA purpose only</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+|
+[select distinct shipment_line.*,
+        d.adrnam as client_name,
+        ord.cponum,
+        ord.stcust,
+        ord.btcust,
+        ord.rtcust,
+        prtmst_view.stkuom,
+        prtdsc.lngdsc,
+        ord_line.sales_ordnum,
+        ord_line.sales_ordlin,
+        ord_line.cstprt,
+        decode(alcrule.field_name, 'lotnum', alcrule.value, null) requested_lotnum,
+        decode(alcrule.field_name, 'sup_lotnum', alcrule.value, null) requested_sup_lotnum,
+        decode(alcrule.field_name, 'orgcod', alcrule.value, null) requested_orgcod,
+        decode(alcrule.field_name, 'revlvl', alcrule.value, null) requested_revlvl,
+        decode(alcrule.field_name, 'mandte', alcrule.value, null) requested_mandte,
+        decode(alcrule.field_name, 'expire_dte', alcrule.value, null) requested_expire_dte,
+        decode(alcrule.field_name, 'inv_attr_str1', alcrule.value, null) requested_inv_attr_str1,
+        ord_line.invsts_prg requested_invsts_prg,
+        ord_line.invsts_prg invsts_prg,
+        ord_line.bckflg bckflg,
+        shipment.loddte,
+        inv.lotnum,
+        inv.sup_lotnum,
+        inv.revlvl,
+        inv.orgcod,
+        inv.mandte,
+        inv.expire_dte,
+        inv.inv_attr_str1,
+        inv.invsts,
+        nvl(inv.catch_qty, 0) as catch_qty,
+        prtmst_view.catch_unttyp,
+        nvl(inv.untqty, 0) untqty,
+        ord_line.ordqty ordqty,
+        ord_line.shpqty ord_shpqty,
+        decode(prtmst_view.dspuom, null, inv.untqty, inv.untqty / prtftp_dtl.untqty) dsp_untqty,
+        decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
+        decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), mod(inv.untqty, prtftp_dtl.untqty)) rem_untqty,
+        decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) rem_untqty_uom,
+        cast((select pdtl.netwgt
+                from prtftp_dtl pdtl
+               where pdtl.ftpcod = prtftp_dtl.ftpcod
+                 and pdtl.prtnum = prtftp_dtl.prtnum
+                 and pdtl.prt_client_id = prtftp_dtl.prt_client_id
+                 and pdtl.wh_id = prtftp_dtl.wh_id
+                 and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, inv.untqty, inv.untqty / prtftp_dtl.untqty) as decimal(10, 2)) as carton_weight,
+        (adrmst.adrln1 + adrmst.adrln2 + adrmst.adrln3) as alamat,
+        adrmst.adrcty,
+        adrmst.adrnam as nama_customer,
+        adrmst.adrpsz,
+        trlr.trlr_num,
+        trlr.driver_nam,
+        trlr.carcod,
+        trlr.trlr_seal2,
+        trlr.trlr_seal3,
+        b.adrnam as source_warehouse,
+        dsctrlr.lngdsc as truck_type,
+        (select top 1trndte
+           from trlract
+          where trlract.trlr_id = trlr.trlr_id
+            and trlract.trlr_stat = 'CI'
+            and trlract.trlr_cod = 'SHIP'
+            and trlract.actcod = 'TCHG'
+          order by trlract.trlract_id asc) as check_in_time,
+        (select top 1trndte
+           from trlract
+          where trlract.trlr_id = trlr.trlr_id
+            and trlract.trlr_stat = 'LDG'
+            and trlract.trlr_cod = 'SHIP'
+            and trlract.actcod = 'TCHG'
+          order by trlract.trlract_id asc) as loading_time,
+        (select top 1trndte
+           from trlract
+          where trlract.trlr_id = trlr.trlr_id
+            and trlract.trlr_stat = 'L'
+            and trlract.trlr_cod = 'SHIP'
+            and trlract.actcod = 'TCHG'
+          order by trlract.trlract_id asc) as loaded_time,
+        (select top 1trndte
+           from trlract
+          where trlract.trlr_id = trlr.trlr_id
+            and trlract.trlr_stat = 'C'
+            and trlract.trlr_cod = 'SHIP'
+            and trlract.actcod = 'TCHG'
+          order by trlract.trlract_id asc) as closed_time
+   from prtmst_view
+   join ord_line
+     on (prtmst_view.prt_client_id = ord_line.prt_client_id)
+    and (prtmst_view.prtnum = ord_line.prtnum)
+    and (prtmst_view.wh_id = ord_line.wh_id)
+   join prtmst_wh
+     on (prtmst_view.wh_id = prtmst_wh.wh_id)
+    and (prtmst_view.prtnum = prtmst_wh.prtnum)
+    and (prtmst_view.prt_client_id = prtmst_wh.prt_client_id)
+   join ord
+     on (ord.client_id = ord_line.client_id)
+    and (ord.ordnum = ord_line.ordnum)
+    and (ord.wh_id = ord_line.wh_id)
+   join shipment_line
+     on (ord_line.client_id = shipment_line.client_id)
+    and (ord_line.wh_id = shipment_line.wh_id)
+    and (ord_line.ordnum = shipment_line.ordnum)
+    and (ord_line.ordlin = shipment_line.ordlin)
+    and (ord_line.ordsln = shipment_line.ordsln)
+    and (shipment_line.linsts != 'B')
+   join prtftp_dtl
+     on prtftp_dtl.prtnum = prtmst_view.prtnum
+    and prtftp_dtl.prt_client_id = prtmst_view.prt_client_id
+    and prtftp_dtl.wh_id = prtmst_view.wh_id
+    and prtftp_dtl.cas_flg = 1
+   join adrmst
+     on adrmst.adr_id = ord.st_adr_id
+   join wh
+     on wh.wh_id = ord.wh_id
+   join adrmst b
+     on b.adr_id = wh.adr_id
+   join client c
+     on c.client_id = ord.client_id
+   join adrmst d
+     on d.adr_id = c.adr_id
+   join shipment
+     on shipment.ship_id = shipment_line.ship_id
+   join stop
+     on stop.stop_id = shipment.stop_id
+   join car_move
+     on car_move.car_move_id = stop.car_move_id
+   join trlr
+     on trlr.trlr_id = car_move.trlr_id
+   left
+   join dscmst dsctrlr
+     on dsctrlr.colnam = 'trlr_typ'
+    and dsctrlr.colval = trlr.trlr_typ
+   join prtdsc
+     on prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and prtdsc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/
+    and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
+   left outer
+   join (select shipment_line.ship_line_id,
+                inventory_view.orgcod,
+                inventory_view.lotnum,
+                inventory_view.sup_lotnum,
+                inventory_view.revlvl,
+                inventory_view.mandte,
+                inventory_view.expire_dte,
+                inventory_view.inv_attr_str1,
+                inventory_view.invsts,
+                sum(inventory_view.catch_qty) as catch_qty,
+                sum(inventory_view.untqty) as untqty
+           from all_inventory_view as inventory_view,
+                shipment_line
+          where shipment_line.ship_line_id = inventory_view.ship_line_id
+            and @+shipment_line.ship_id
+          group by shipment_line.ship_line_id,
+                inventory_view.orgcod,
+                inventory_view.lotnum,
+                inventory_view.sup_lotnum,
+                inventory_view.revlvl,
+                inventory_view.mandte,
+                inventory_view.expire_dte,
+                inventory_view.inv_attr_str1,
+                inventory_view.invsts) inv
+     on (shipment_line.ship_line_id = inv.ship_line_id)
+   left outer
+   join (select alloc_rule_hdr.wh_id,
+                alloc_rule_hdr.rule_nam,
+                alloc_rule_dtl.value,
+                alloc_rule_dtl.field_name
+           from alloc_rule_dtl,
+                alloc_rule_hdr
+          where alloc_rule_hdr.cplx_flg = 0
+            and alloc_rule_dtl.rule_nam = alloc_rule_hdr.rule_nam) alcrule
+     on (ord_line.rule_nam = alcrule.rule_nam)
+    and (alcrule.wh_id = ord.wh_id)
+  where ord_line.non_alc_flg = '0'
+    and @+shipment_line.ship_id
+    and @+shipment_line.ship_line_id
+    and @+shipment_line.client_id
+    and @+shipment_line.ordnum
+    and @+shipment_line.ordlin
+    and @+shipment_line.ordsln
+    and @+shipment_line.wh_id
+    and @+ord_line.entdte:date
+    and @+ord_line.early_shpdte:date
+    and @+ord_line.late_shpdte:date
+    and @+ord_line.early_dlvdte:date
+    and @+ord_line.late_dlvdte:date
+    and @+prtmst_wh.cntdte:date
+    and @+prtmst_view.moddte:date
+  order by shipment_line.ship_id,
+        shipment_line.ship_line_id]
+]]>
+</local-syntax>
+</command>

@@ -1,0 +1,38 @@
+<command>
+  <name>list rpt truck registered</name>
+  <description>truck registered report for MGM</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+|
+[select a.driver_lic_num as client_name,
+        b.carnam as carrier_name,
+        a.trlr_broker as phone_number,
+        a.trlr_seal1 as customer_order,
+        case when a.trlr_cod = 'RCV' then 'INBOUND'
+             when a.trlr_cod = 'SHIP' then 'OUTBOUND'
+        end as activity,
+        dcr.lngdsc as truck_type,
+        a.moddte as date,
+        a.trlr_num as license_plate,
+        a.driver_nam as driver_name,
+        a.trlr_ref as queue_number
+   from trlr a
+   left
+   join carhdr b
+     on b.carcod = a.carcod
+   left
+   join dscmst dcr
+     on dcr.colnam = 'trlr_typ'
+    and dcr.colval = a.trlr_typ
+  where a.trlr_stat <> 'D'
+    and @+a.trlr_num
+    and @+a.driver_nam
+    and @+a.trlr_cod
+    and @+a.stoloc_wh_id]
+]]>
+</local-syntax>
+</command>

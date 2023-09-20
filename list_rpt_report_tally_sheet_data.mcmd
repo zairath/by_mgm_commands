@@ -1,0 +1,46 @@
+<command>
+  <name>list rpt report tally sheet data</name>
+  <description>list rpt report tally sheet data</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+|
+[select iv.wh_id as warehouse,
+        c.client_id as client_id,
+        adr.adrnam as client_name,
+        iv.lodnum as lpn,
+        iv.subnum as 'sub-lpn',
+        iv.prtnum as item_number,
+        pdc.lngdsc as item_description,
+        iv.catch_qty as catch_weight,
+        pp.catch_unttyp as catch_type,
+        iv.expire_dte as expire_date,
+        iv.mandte as manufactured_date,
+        rl.trknum
+   from all_inventory_view iv
+   join prtdsc pdc
+     on pdc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and pdc.colval = /*=varchar(*/ iv.prtnum || '|' || iv.prt_client_id || '|' || iv.wh_id /*=)*/
+    and pdc.locale_id = nvl(@locale_id, @@locale_id)
+   join client c
+     on c.client_id = iv.prt_client_id
+   join adrmst adr
+     on adr.adr_id = c.adr_id
+   join locmst lms
+     on lms.stoloc = iv.stoloc
+    and lms.arecod not in ('DSPCH', 'SHIP')
+   join prtmst pp
+     on pp.prtnum = iv.prtnum
+    and pp.prt_client_id = iv.prt_client_id
+    and pp.wh_id_tmpl = iv.wh_id
+   join rcvlin rl
+     on rl.rcvkey = iv.rcvkey
+  where iv.prmflg <> 1
+    and @+rl.trknum
+    and @+rl.wh_id]
+]]>
+</local-syntax>
+</command>

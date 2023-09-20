@@ -1,0 +1,204 @@
+<command>
+  <name>list rpt ba inbound receiving slip2</name>
+  <description>This report is for BA purpose only</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+|
+[select rcvLineDtl.trknum as asn,
+        rcvLineDtl.client_id as customer,
+        rcvLineDtl.supnum,
+        rcvLineDtl.invnum as nomor_po,
+        rcvLineDtl.invlin,
+        rcvLineDtl.invsln,
+        rcvLineDtl.wh_id,
+        rcvLineDtl.prtnum,
+        rcvLineDtl.stkuom,
+        rcvLineDtl.prt_client_id,
+        rcvLineDtl.trlr_num as container,
+        rcvLineDtl.trlr_typ,
+        rcvLineDtl.driver_nam,
+        rcvLineDtl.driver_lic_num,
+        rcvLineDtl.po_num,
+        rcvLineDtl.invtyp,
+        sum(rcvLineDtl.expqty) expqty,
+        sum(rcvLineDtl.idnqty) idnqty,
+        sum(rcvLineDtl.rcvqty) rcvqty,
+        sum(rcvLineDtl.rptqty) rptqty,
+        nvl(sum(rcvLineDtl.exp_catch_qty), 0) exp_catch_qty,
+        nvl(sum(rcvLineDtl.idn_catch_qty), 0) idn_catch_qty,
+        nvl(sum(rcvLineDtl.rcv_catch_qty), 0) rcv_catch_qty,
+        decode(count(distinct rcvLineDtl.orgcod), 1, max(rcvLineDtl.orgcod), max(rcvLineOrg.orgcod)) orgcod,
+        decode(count(distinct rcvLineDtl.revlvl), 1, max(rcvLineDtl.revlvl), max(rcvLineOrg.revlvl)) revlvl,
+        decode(count(distinct rcvLineDtl.lotnum), 1, max(rcvLineDtl.lotnum), max(rcvLineOrg.lotnum)) lotnum,
+        rcvLineDtl.rcvsts,
+        decode(count(distinct rcvLineDtl.mandte), 0, '', 1, max(rcvLineDtl.mandte), max(rcvLineOrg.mandte)) mandte,
+        decode(count(distinct rcvLineDtl.expire_dte), 0, '', 1, max(rcvLineDtl.expire_dte), max(rcvLineOrg.expire_dte)) expire_dte,
+        decode(count(distinct rcvLineDtl.retcod), 0, '', 1, max(rcvLineDtl.retcod), max(rcvLineOrg.retcod)) retcod,
+        decode(count(distinct rcvLineDtl.cnsg_flg), 1, max(rcvLineDtl.cnsg_flg), max(rcvLineOrg.cnsg_flg)) cnsg_flg,
+        decode(count(distinct rcvLineDtl.catch_unttyp), 0, '', 1, max(rcvLineDtl.catch_unttyp), @mlsMultiple) catch_unttyp,
+        decode(count(distinct rcvLineDtl.short_dsc), 0, '', 1, max(rcvLineDtl.short_dsc), @mlsMultiple) short_dsc,
+        decode(count(distinct rcvLineDtl.lngdsc), 0, '', 1, max(rcvLineDtl.lngdsc), @mlsMultiple) lngdsc,
+        max(hot_flg) hot_flg,
+        max(expdte) expected_date,
+        max(completed_date) completed_date,
+        max(grswgt) * 0.0283495 * sum(rcvLineDtl.rcvqty) as gross_weight,
+        max(netwgt) * 0.0283495 * sum(rcvLineDtl.rcvqty) as netto_weight,
+        max(actual_pcs) * sum(rcvLineDtl.rcvqty) as actual_pcs,
+        floor(sum(rcvLineDtl.rcvqty) / max(actual_ctn)) as actual_carton,
+        floor(sum(rcvLineDtl.expqty) / max(actual_ctn)) as expected_carton,
+        max(inventory_status) as inventory_status,
+        max(truck_type) as truck_type,
+        max(transporter_name) as transporter_name,
+        (select top 1trndte
+           from trlract
+          where trlract.trlr_id = rcvLineDtl.trlr_id
+            and trlract.trlr_stat = 'CI'
+            and trlract.trlr_cod = 'RCV'
+            and trlract.actcod = 'TCHG'
+          order by trlract.trlract_id asc) as check_in_time,
+        (select top 1trndte
+           from trlract
+          where trlract.trlr_id = rcvLineDtl.trlr_id
+            and trlract.trlr_stat = 'R'
+            and trlract.trlr_cod = 'RCV'
+            and trlract.actcod = 'TCHG'
+          order by trlract.trlract_id asc) as start_receive_time,
+        (select top 1trndte
+           from trlract
+          where trlract.trlr_id = rcvLineDtl.trlr_id
+            and trlract.trlr_stat = 'C'
+            and trlract.trlr_cod = 'RCV'
+            and trlract.actcod = 'TCHG'
+          order by trlract.trlract_id asc) as finish_receive_time,
+        (select top 1trndte
+           from trlract
+          where trlract.trlr_id = rcvLineDtl.trlr_id
+            and trlract.trlr_stat = 'D'
+            and trlract.trlr_cod = 'RCV'
+            and trlract.actcod = 'TCHG'
+          order by trlract.trlract_id asc) as dispatch_time
+   from (select prtmst_view.catch_unttyp,
+                prtmst_view.stkuom,
+                prtdsc.short_dsc,
+                prtdsc.lngdsc,
+                rcvlin.*,
+                trlr.trlr_num,
+                trlr.carcod,
+                trlr.trlr_typ,
+                trlr.driver_nam,
+                trlr.driver_lic_num,
+                trlr.trlr_id,
+                rcvinv.po_num,
+                rcvinv.invtyp,
+                decode(trlr.hot_flg, 0, 0, decode((select count(rplwrk.rplref)
+                                                     from rplwrk
+                                                    where rplwrk.wh_id = rcvlin.wh_id
+                                                      and rplwrk.prtnum = rcvlin.prtnum
+                                                      and rplwrk.prt_client_id = rcvlin.prt_client_id), 0, 0, 1)) hot_flg,
+                rcvtrk.expdte,
+                rcvinv.completed_date,
+                pdt.grswgt,
+                pdt.netwgt,
+                pdt.untqty as actual_pcs,
+                pdt1.untqty as actual_ctn,
+                rcvtrk.rcvtrk_stat,
+                dscinv.lngdsc as inventory_status,
+                dsctrlr.lngdsc as truck_type,
+                carhdr.carnam as transporter_name
+           from prtdsc
+           join prtmst_view
+             on prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+            and prtdsc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/
+            and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
+           join rcvlin
+             on prtmst_view.prtnum = rcvlin.prtnum
+            and prtmst_view.prt_client_id = rcvlin.prt_client_id
+            and prtmst_view.wh_id = rcvlin.wh_id
+           join rcvtrk
+             on rcvlin.trknum = rcvtrk.trknum
+            and rcvlin.wh_id = rcvtrk.wh_id
+           join trlr
+             on rcvtrk.trlr_id = trlr.trlr_id
+           left outer
+           join rcvinv
+             on rcvlin.trknum = rcvinv.trknum
+            and rcvlin.supnum = rcvinv.supnum
+            and rcvlin.invnum = rcvinv.invnum
+            and rcvlin.wh_id = rcvinv.wh_id
+            and rcvlin.client_id = rcvinv.client_id
+           join prtftp_dtl pdt
+             on pdt.prtnum = prtmst_view.prtnum
+            and pdt.prt_client_id = prtmst_view.prt_client_id
+            and pdt.wh_id = prtmst_view.wh_id
+            and pdt.uomlvl = 0
+           join prtftp_dtl pdt1
+             on pdt1.prtnum = prtmst_view.prtnum
+            and pdt1.prt_client_id = prtmst_view.prt_client_id
+            and pdt1.wh_id = prtmst_view.wh_id
+            and pdt1.cas_flg = 1
+           join dscmst dscinv
+             on dscinv.colnam = 'invsts'
+            and dscinv.colval = rcvlin.rcvsts
+           join dscmst dsctrlr
+             on dsctrlr.colnam = 'trlr_typ'
+            and dsctrlr.colval = trlr.trlr_typ
+           join carhdr
+             on carhdr.carcod = trlr.carcod
+          where @+prtmst_view.prtnum
+            and @+rcvlin.mandte:date
+            and @+rcvlin.expire_dte:date
+            and @+rcvlin.moddte:date
+            and @+rcvlin.wh_id
+            and @+rcvlin.trknum
+            and @+trlr.trlr_id
+            and @+trlr.trlr_num
+            and @+trlr.carcod
+            and @+rcvlin.invnum
+            and @+rcvlin.prt_client_id
+            and @+rcvlin.rcvsts
+            and @+rcvtrk.crncy_code
+            and @*) rcvLineDtl
+   left outer
+   join rcvlin rcvLineOrg
+     on rcvLineOrg.trknum = rcvLineDtl.trknum
+    and rcvLineOrg.client_id = rcvLineDtl.client_id
+    and rcvLineOrg.supnum = rcvLineDtl.supnum
+    and rcvLineOrg.invnum = rcvLineDtl.invnum
+    and rcvLineOrg.invlin = rcvLineDtl.invlin
+    and rcvLineOrg.invsln = rcvLineDtl.invsln
+    and rcvLineOrg.wh_id = rcvLineDtl.wh_id
+    and rcvLineOrg.seqnum = 0
+  group by rcvLineDtl.trknum,
+        rcvLineDtl.client_id,
+        rcvLineDtl.supnum,
+        rcvLineDtl.invnum,
+        rcvLineDtl.invlin,
+        rcvLineDtl.invsln,
+        rcvLineDtl.wh_id,
+        rcvLineDtl.prtnum,
+        rcvLineDtl.stkuom,
+        rcvLineDtl.prt_client_id,
+        rcvLineDtl.trlr_num,
+        rcvLineDtl.trlr_typ,
+        rcvLineDtl.driver_nam,
+        rcvLineDtl.driver_lic_num,
+        rcvLineDtl.po_num,
+        rcvLineDtl.invtyp,
+        rcvLineDtl.expdte,
+        completed_date,
+        rcvLineDtl.rcvsts,
+        rcvLineDtl.trlr_id
+  order by rcvLineDtl.trknum,
+        rcvLineDtl.client_id,
+        rcvLineDtl.supnum,
+        rcvLineDtl.invnum,
+        rcvLineDtl.invlin,
+        rcvLineDtl.invsln,
+        rcvLineDtl.wh_id]
+]]>
+</local-syntax>
+</command>

@@ -1,0 +1,670 @@
+<command>
+  <name>list rpt pick list</name>
+  <description>Pick list reports</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+publish data
+ where date_from = @date_from
+   and date_to = @date_to
+   and oprcod = @oprcod
+|
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+|
+if (@oprcod = 'LPCK')
+{
+    if (@date_from is not null and @date_to is not null)
+    {
+        [select a.wh_id,
+                zm.bldg_id,
+                q1.lngdsc warehouse,
+                a.client_id,
+                a.ordnum,
+                a.list_id,
+                REPLACE(a.list_id, 'LST', 'TOID') as toid,
+                a.oprcod,
+                REPLACE(a.oprcod, 'LPCK', 'PICKING LIST') as pcktyp,
+                q.lngdsc ordtyp,
+                a.stcust,
+                a.schbat wave_number,
+                g.adrnam customer,
+                g.first_name as customer_name,
+                m.ftpcod,
+                g.adrln1 || ' ' || g.adrln2 || ' ' || g.adrln3 as customer_address,
+                g.phnnum as phone_number,
+                sum(a.pckqty / h.untqty) pick_qty,
+                (select sum(pckwrk_view.pckqty)
+                   from (select pckwrk_view.pckqty
+                           from pckwrk_view
+                           JOIN pcklst e
+                             on e.list_id = a.list_id
+                           JOIN ord d
+                             ON d.ordnum = a.ordnum
+                          where pckwrk_view.list_id = e.list_id
+                            and pckwrk_view.ordnum = d.ordnum) pckwrk_view) as total_picks,
+                b.prtfam item_family,
+                a.prtnum item_number,
+                c.lngdsc item_description,
+                b.stkuom,
+                (select count(pckwrk_view.prtnum)
+                   from (select pckwrk_view.prtnum
+                           from pckwrk_view
+                           JOIN pcklst e
+                             on e.list_id = a.list_id
+                           JOIN ord d
+                             ON d.ordnum = a.ordnum
+                          where pckwrk_view.list_id = e.list_id
+                            and pckwrk_view.ordnum = d.ordnum) pckwrk_view) total_item,
+                nvl((select lngdsc
+                       from dscmst
+                      where dscmst.colval = b.stkuom
+                        and dscmst.colnam = 'uomcod'
+                        and dscmst.locale_id = nvl(@locale_id, @@locale_id)), (select short_dsc
+                                                                                 from dscmst
+                                                                                where dscmst.colval = b.stkuom
+                                                                                  and dscmst.colnam = 'uomcod'
+                                                                                  and dscmst.locale_id = nvl(@locale_id, @@locale_id))) uom,
+                e.totvol as total_volume,
+                d.cponum as delivery_slot,
+                to_char(d.cpodte, 'DD/MM/YYYY') as order_date,
+                (select u.nottxt
+                   from ord_note u
+                   join pckwrk_view pck
+                     on pck.ordnum = u.ordnum
+                    and u.ordnum = a.ordnum
+                  where u.notlin = '0000'
+                  GROUP BY u.nottxt) as note1,
+                (select y.nottxt
+                   from ord_note y
+                   join pckwrk_view pckvr
+                     on pckvr.ordnum = y.ordnum
+                    and y.ordnum = a.ordnum
+                  where y.notlin = '0001'
+                  GROUP BY y.nottxt) as note2,
+                (select y.nottxt
+                   from ord_note y
+                   join pckwrk_view pckvr
+                     on pckvr.ordnum = y.ordnum
+                    and y.ordnum = a.ordnum
+                  where y.notlin = '0002'
+                  GROUP BY y.nottxt) as note3,
+                (select y.nottxt
+                   from ord_note y
+                   join pckwrk_view pckvr
+                     on pckvr.ordnum = y.ordnum
+                    and y.ordnum = a.ordnum
+                  where y.notlin = '0003'
+                    and y.nottyp = 'COD'
+                  GROUP BY y.nottxt) as cod_note,
+                (select y.nottxt
+                   from ord_note y
+                   join pckwrk_view pckvr
+                     on pckvr.ordnum = y.ordnum
+                    and y.ordnum = a.ordnum
+                  where y.notlin = '0004'
+                    and y.nottyp = 'DRV'
+                  GROUP BY y.nottxt) as driver_name,
+                (select y.nottxt
+                   from ord_note y
+                   join pckwrk_view pckvr
+                     on pckvr.ordnum = y.ordnum
+                    and y.ordnum = a.ordnum
+                  where y.notlin = '0005'
+                    and y.nottyp = 'ADDR'
+                  GROUP BY y.nottxt) as address_note1,
+                (select y.nottxt
+                   from ord_note y
+                   join pckwrk_view pckvr
+                     on pckvr.ordnum = y.ordnum
+                    and y.ordnum = a.ordnum
+                  where y.notlin = '0006'
+                    and y.nottyp = 'ADDR'
+                  GROUP BY y.nottxt) as address_note2,
+                (select ul.nottxt
+                   from ord_line_note ul
+                  where ul.notlin = '0000'
+                    and ul.ordlin = a.ordlin
+                    and ul.ordnum = a.ordnum
+                  GROUP BY ul.nottxt) as noteline1,
+                (select ux.nottxt
+                   from ord_line_note ux
+                  where ux.notlin = '0001'
+                    and ux.ordlin = a.ordlin
+                    and ux.ordnum = a.ordnum
+                  GROUP BY ux.nottxt) as noteline2,
+                d.cponum as return_text,
+                d.dlvnum as grab_id,
+                d.adddte,
+                a.pcksts,
+                a.srcloc,
+                a.revlvl,
+                zm.wrkzon,
+                a.pck_uom
+           from pckwrk_view a
+           LEFT
+           JOIN dscmst f
+             ON f.colval = a.res_uom
+            AND f.colnam = 'uomcod'
+           JOIN pcklst e
+             on e.list_id = a.list_id
+           JOIN prtmst b
+             ON b.prtnum = a.prtnum
+            and b.wh_id_tmpl = a.wh_id
+            and b.prt_client_id = a.prt_client_id
+           JOIN prtftp_dtl h
+             ON h.prtnum = a.prtnum
+            and h.wh_id = a.wh_id
+            and h.ftpcod = a.ftpcod
+            and h.prt_client_id = a.prt_client_id
+            and h.uomcod = a.pck_uom
+           JOIN ord d
+             ON d.ordnum = a.ordnum
+            and d.wh_id = a.wh_id
+           left
+           Join ord_line_note j
+             on j.ordnum = a.ordnum
+            and j.ordlin = a.ordlin
+            and j.wh_id = a.wh_id
+           JOIN adrmst g
+             ON g.adr_id = d.st_adr_id
+           JOIN prtdsc c
+             ON c.colval = /*=varchar(*/ a.prtnum || '|' || b.prt_client_id || '|' || b.wh_id_tmpl /*=)*/
+            AND c.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+            AND c.locale_id = nvl(@locale_id, @@locale_id)
+           JOIN prtftp m
+             ON m.prtnum = a.prtnum
+            and m.wh_id = a.wh_id
+            and m.ftpcod = a.ftpcod
+            and m.prt_client_id = a.prt_client_id
+           LEFT
+           JOIN dscmst q
+             ON q.colval = d.ordtyp || '|' || d.wh_id
+            and q.colnam = 'ordtyp|wh_id'
+           join dscmst q1
+             on q1.colval = a.wh_id
+            and q1.colnam = 'wh_id'
+           join zonmst zm
+             on zm.wrk_zone_id = a.src_wrk_zone_id
+          where a.list_id is not null
+            and m.defftp_flg = '1'
+            and @+d.ordnum
+            and @+e.list_id
+            and @+d.wh_id
+            and @+a.pcksts
+            and d.adddte between @date_from:date
+            and @date_to:date
+            and a.wrktyp = 'P'
+            and a.oprcod = 'LPCK'
+            and @*
+          group by a.wh_id,
+                zm.bldg_id,
+                a.ordnum,
+                a.ordlin,
+                a.prtnum,
+                a.stcust,
+                a.client_id,
+                a.list_id,
+                a.oprcod,
+                q.lngdsc,
+                a.schbat,
+                b.prtfam,
+                c.lngdsc,
+                f.lngdsc,
+                g.adrnam,
+                g.adrln1,
+                m.ftpcod,
+                g.adrln2,
+                g.adrln3,
+                g.phnnum,
+                b.stkuom,
+                e.totvol,
+                d.cponum,
+                d.cpodte,
+                q1.lngdsc,
+                d.cponum,
+                d.dlvnum,
+                g.first_name,
+                d.adddte,
+                a.pcksts,
+                a.srcloc,
+                a.revlvl,
+                zm.wrkzon,
+                a.pck_uom
+          order by a.list_id,
+                b.prtfam]
+    }
+    else
+    {
+        [select a.wh_id,
+                zm.bldg_id,
+                q1.lngdsc warehouse,
+                a.client_id,
+                a.ordnum,
+                a.list_id,
+                REPLACE(a.list_id, 'LST', 'TOID') as toid,
+                a.oprcod,
+                REPLACE(a.oprcod, 'LPCK', 'PICKING LIST') as pcktyp,
+                q.lngdsc ordtyp,
+                a.stcust,
+                a.schbat wave_number,
+                g.adrnam customer,
+                g.first_name as customer_name,
+                m.ftpcod,
+                g.adrln1 || ' ' || g.adrln2 || ' ' || g.adrln3 as customer_address,
+                g.phnnum as phone_number,
+                sum(a.pckqty / h.untqty) pick_qty,
+                (select sum(pckwrk_view.pckqty)
+                   from (select pckwrk_view.pckqty
+                           from pckwrk_view
+                           JOIN pcklst e
+                             on e.list_id = a.list_id
+                           JOIN ord d
+                             ON d.ordnum = a.ordnum
+                          where pckwrk_view.list_id = e.list_id
+                            and pckwrk_view.ordnum = d.ordnum) pckwrk_view) as total_picks,
+                b.prtfam item_family,
+                a.prtnum item_number,
+                c.lngdsc item_description,
+                b.stkuom,
+                (select count(pckwrk_view.prtnum)
+                   from (select pckwrk_view.prtnum
+                           from pckwrk_view
+                           JOIN pcklst e
+                             on e.list_id = a.list_id
+                           JOIN ord d
+                             ON d.ordnum = a.ordnum
+                          where pckwrk_view.list_id = e.list_id
+                            and pckwrk_view.ordnum = d.ordnum) pckwrk_view) total_item,
+                nvl((select lngdsc
+                       from dscmst
+                      where dscmst.colval = b.stkuom
+                        and dscmst.colnam = 'uomcod'
+                        and dscmst.locale_id = nvl(@locale_id, @@locale_id)), (select short_dsc
+                                                                                 from dscmst
+                                                                                where dscmst.colval = b.stkuom
+                                                                                  and dscmst.colnam = 'uomcod'
+                                                                                  and dscmst.locale_id = nvl(@locale_id, @@locale_id))) uom,
+                e.totvol as total_volume,
+                d.cponum as delivery_slot,
+                to_char(d.cpodte, 'DD/MM/YYYY') as order_date,
+                (select u.nottxt
+                   from ord_note u
+                   join pckwrk_view pck
+                     on pck.ordnum = u.ordnum
+                    and u.ordnum = a.ordnum
+                  where u.notlin = '0000'
+                  GROUP BY u.nottxt) as note1,
+                (select y.nottxt
+                   from ord_note y
+                   join pckwrk_view pckvr
+                     on pckvr.ordnum = y.ordnum
+                    and y.ordnum = a.ordnum
+                  where y.notlin = '0001'
+                  GROUP BY y.nottxt) as note2,
+                (select y.nottxt
+                   from ord_note y
+                   join pckwrk_view pckvr
+                     on pckvr.ordnum = y.ordnum
+                    and y.ordnum = a.ordnum
+                  where y.notlin = '0002'
+                  GROUP BY y.nottxt) as note3,
+                (select y.nottxt
+                   from ord_note y
+                   join pckwrk_view pckvr
+                     on pckvr.ordnum = y.ordnum
+                    and y.ordnum = a.ordnum
+                  where y.notlin = '0003'
+                    and y.nottyp = 'COD'
+                  GROUP BY y.nottxt) as cod_note,
+                (select y.nottxt
+                   from ord_note y
+                   join pckwrk_view pckvr
+                     on pckvr.ordnum = y.ordnum
+                    and y.ordnum = a.ordnum
+                  where y.notlin = '0004'
+                    and y.nottyp = 'DRV'
+                  GROUP BY y.nottxt) as driver_name,
+                (select y.nottxt
+                   from ord_note y
+                   join pckwrk_view pckvr
+                     on pckvr.ordnum = y.ordnum
+                    and y.ordnum = a.ordnum
+                  where y.notlin = '0005'
+                    and y.nottyp = 'ADDR'
+                  GROUP BY y.nottxt) as address_note1,
+                (select y.nottxt
+                   from ord_note y
+                   join pckwrk_view pckvr
+                     on pckvr.ordnum = y.ordnum
+                    and y.ordnum = a.ordnum
+                  where y.notlin = '0006'
+                    and y.nottyp = 'ADDR'
+                  GROUP BY y.nottxt) as address_note2,
+                (select ul.nottxt
+                   from ord_line_note ul
+                  where ul.notlin = '0000'
+                    and ul.ordlin = a.ordlin
+                    and ul.ordnum = a.ordnum
+                  GROUP BY ul.nottxt) as noteline1,
+                (select ux.nottxt
+                   from ord_line_note ux
+                  where ux.notlin = '0001'
+                    and ux.ordlin = a.ordlin
+                    and ux.ordnum = a.ordnum
+                  GROUP BY ux.nottxt) as noteline2,
+                d.cponum as return_text,
+                d.dlvnum as grab_id,
+                d.adddte,
+                a.pcksts,
+                a.srcloc,
+                a.revlvl,
+                zm.wrkzon,
+                a.pck_uom
+           from pckwrk_view a
+           LEFT
+           JOIN dscmst f
+             ON f.colval = a.res_uom
+            AND f.colnam = 'uomcod'
+           JOIN pcklst e
+             on e.list_id = a.list_id
+           JOIN prtmst b
+             ON b.prtnum = a.prtnum
+            and b.wh_id_tmpl = a.wh_id
+            and b.prt_client_id = a.prt_client_id
+           JOIN prtftp_dtl h
+             ON h.prtnum = a.prtnum
+            and h.wh_id = a.wh_id
+            and h.ftpcod = a.ftpcod
+            and h.prt_client_id = a.prt_client_id
+            and h.uomcod = a.pck_uom
+           JOIN ord d
+             ON d.ordnum = a.ordnum
+            and d.wh_id = a.wh_id
+           left
+           Join ord_line_note j
+             on j.ordnum = a.ordnum
+            and j.ordlin = a.ordlin
+            and j.wh_id = a.wh_id
+           JOIN adrmst g
+             ON g.adr_id = d.st_adr_id
+           JOIN prtdsc c
+             ON c.colval = /*=varchar(*/ a.prtnum || '|' || b.prt_client_id || '|' || b.wh_id_tmpl /*=)*/
+            AND c.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+            AND c.locale_id = nvl(@locale_id, @@locale_id)
+           JOIN prtftp m
+             ON m.prtnum = a.prtnum
+            and m.wh_id = a.wh_id
+            and m.ftpcod = a.ftpcod
+            and m.prt_client_id = a.prt_client_id
+           LEFT
+           JOIN dscmst q
+             ON q.colval = d.ordtyp || '|' || d.wh_id
+            and q.colnam = 'ordtyp|wh_id'
+           join dscmst q1
+             on q1.colval = a.wh_id
+            and q1.colnam = 'wh_id'
+           join zonmst zm
+             on zm.wrk_zone_id = a.src_wrk_zone_id
+          where a.list_id is not null
+            and m.defftp_flg = '1'
+            and @+d.ordnum
+            and @+e.list_id
+            and @+d.wh_id
+            and @+a.pcksts
+            and a.wrktyp = 'P'
+            and a.oprcod = 'LPCK'
+            and a.pcksts = 'R'
+            and @*
+          group by a.wh_id,
+                zm.bldg_id,
+                a.ordnum,
+                a.ordlin,
+                a.prtnum,
+                a.stcust,
+                a.client_id,
+                a.list_id,
+                a.oprcod,
+                q.lngdsc,
+                a.schbat,
+                b.prtfam,
+                c.lngdsc,
+                f.lngdsc,
+                g.adrnam,
+                g.adrln1,
+                m.ftpcod,
+                g.adrln2,
+                g.adrln3,
+                g.phnnum,
+                b.stkuom,
+                e.totvol,
+                h.len,
+                h.wid,
+                h.hgt,
+                d.cponum,
+                d.cpodte,
+                q1.lngdsc,
+                d.cponum,
+                d.dlvnum,
+                g.first_name,
+                d.adddte,
+                a.pcksts,
+                a.srcloc,
+                a.revlvl,
+                zm.wrkzon,
+                a.pck_uom
+          order by a.list_id,
+                b.prtfam]
+    }
+}
+else if (@oprcod = 'LPCKRPL')
+{
+    if (@date_from is not null and @date_to is not null)
+    {
+        [select a.wh_id,
+                zm.bldg_id,
+                q1.lngdsc warehouse,
+                a.client_id,
+                a.ordnum,
+                ' ' as stcust,
+                a.list_id,
+                REPLACE(a.list_id, 'LST', 'RID') as toid,
+                a.oprcod,
+                REPLACE(a.oprcod, 'LPCKRPL', 'TOP-OFF/TRIGGERED REPLENISHMENT') as pcktyp,
+                a.stcust,
+                a.schbat wave_number,
+                a.pcksts,
+                m.ftpcod,
+                sum(a.pckqty / h.untqty) pick_qty,
+                b.prtfam item_family,
+                a.prtnum item_number,
+                c.lngdsc item_description,
+                b.stkuom,
+                nvl((select lngdsc
+                       from dscmst
+                      where dscmst.colval = b.stkuom
+                        and dscmst.colnam = 'uomcod'
+                        and dscmst.locale_id = nvl(@locale_id, @@locale_id)), (select short_dsc
+                                                                                 from dscmst
+                                                                                where dscmst.colval = b.stkuom
+                                                                                  and dscmst.colnam = 'uomcod'
+                                                                                  and dscmst.locale_id = nvl(@locale_id, @@locale_id))) uom,
+                e.totvol as total_volume,
+                a.pcksts,
+                a.srcloc,
+                a.revlvl,
+                zm.wrkzon,
+                a.pck_uom
+           from pckwrk_view a
+           LEFT
+           JOIN dscmst f
+             ON f.colval = a.res_uom
+            AND f.colnam = 'uomcod'
+           JOIN pcklst e
+             on e.list_id = a.list_id
+           JOIN prtmst b
+             ON b.prtnum = a.prtnum
+            and b.wh_id_tmpl = a.wh_id
+            and b.prt_client_id = a.prt_client_id
+           JOIN prtftp_dtl h
+             ON h.prtnum = a.prtnum
+            and h.wh_id = a.wh_id
+            and h.ftpcod = a.ftpcod
+            and h.prt_client_id = a.prt_client_id
+            and h.uomcod = a.pck_uom
+           JOIN prtdsc c
+             ON c.colval = /*=varchar(*/ a.prtnum || '|' || b.prt_client_id || '|' || b.wh_id_tmpl /*=)*/
+            AND c.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+            AND c.locale_id = nvl(@locale_id, @@locale_id)
+           JOIN prtftp m
+             ON m.prtnum = a.prtnum
+            and m.wh_id = a.wh_id
+            and m.ftpcod = a.ftpcod
+            and m.prt_client_id = a.prt_client_id
+           join dscmst q1
+             on q1.colval = a.wh_id
+            and q1.colnam = 'wh_id'
+           join zonmst zm
+             on zm.wrk_zone_id = a.src_wrk_zone_id
+          where a.list_id is not null
+            and m.defftp_flg = '1'
+            and @+a.ordnum
+            and @+e.list_id
+            and @+a.wh_id
+            and a.adddte between @date_from:date
+            and @date_to:date
+            and a.wrktyp in ('T', 'D')
+            and a.oprcod = 'LPCKRPL'
+            and @*
+          group by a.wh_id,
+                zm.bldg_id,
+                a.ordnum,
+                a.ordlin,
+                a.prtnum,
+                a.stcust,
+                a.client_id,
+                a.list_id,
+                a.oprcod,
+                a.pcksts,
+                a.schbat,
+                b.prtfam,
+                c.lngdsc,
+                f.lngdsc,
+                m.ftpcod,
+                b.stkuom,
+                e.totvol,
+                q1.lngdsc,
+                a.pcksts,
+                a.srcloc,
+                a.revlvl,
+                zm.wrkzon,
+                a.pck_uom
+          order by a. list_id,
+                b.prtfam]
+    }
+    else
+    {
+        [select a.wh_id,
+                zm.bldg_id,
+                q1.lngdsc warehouse,
+                a.client_id,
+                a.ordnum,
+                ' ' as stcust,
+                a.list_id,
+                REPLACE(a.list_id, 'LST', 'RID') as toid,
+                a.oprcod,
+                REPLACE(a.oprcod, 'LPCKRPL', 'TOP-OFF/TRIGGERED REPLENISHMENT') as pcktyp,
+                a.stcust,
+                a.schbat wave_number,
+                a.pcksts,
+                m.ftpcod,
+                sum(a.pckqty / h.untqty) pick_qty,
+                b.prtfam item_family,
+                a.prtnum item_number,
+                c.lngdsc item_description,
+                b.stkuom,
+                nvl((select lngdsc
+                       from dscmst
+                      where dscmst.colval = b.stkuom
+                        and dscmst.colnam = 'uomcod'
+                        and dscmst.locale_id = nvl(@locale_id, @@locale_id)), (select short_dsc
+                                                                                 from dscmst
+                                                                                where dscmst.colval = b.stkuom
+                                                                                  and dscmst.colnam = 'uomcod'
+                                                                                  and dscmst.locale_id = nvl(@locale_id, @@locale_id))) uom,
+                e.totvol as total_volume,
+                a.pcksts,
+                a.srcloc,
+                a.revlvl,
+                zm.wrkzon,
+                a.pck_uom
+           from pckwrk_view a
+           LEFT
+           JOIN dscmst f
+             ON f.colval = a.res_uom
+            AND f.colnam = 'uomcod'
+           JOIN pcklst e
+             on e.list_id = a.list_id
+           JOIN prtmst b
+             ON b.prtnum = a.prtnum
+            and b.wh_id_tmpl = a.wh_id
+            and b.prt_client_id = a.prt_client_id
+           JOIN prtftp_dtl h
+             ON h.prtnum = a.prtnum
+            and h.wh_id = a.wh_id
+            and h.ftpcod = a.ftpcod
+            and h.prt_client_id = a.prt_client_id
+            and h.uomcod = a.pck_uom
+           JOIN prtdsc c
+             ON c.colval = /*=varchar(*/ a.prtnum || '|' || b.prt_client_id || '|' || b.wh_id_tmpl /*=)*/
+            AND c.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+            AND c.locale_id = nvl(@locale_id, @@locale_id)
+           JOIN prtftp m
+             ON m.prtnum = a.prtnum
+            and m.wh_id = a.wh_id
+            and m.ftpcod = a.ftpcod
+            and m.prt_client_id = a.prt_client_id
+           join dscmst q1
+             on q1.colval = a.wh_id
+            and q1.colnam = 'wh_id'
+           join zonmst zm
+             on zm.wrk_zone_id = a.src_wrk_zone_id
+          where a.list_id is not null
+            and m.defftp_flg = '1'
+            and @+a.ordnum
+            and @+e.list_id
+            and @+a.wh_id
+            and a.wrktyp in ('T', 'D')
+            and a.oprcod = 'LPCKRPL'
+            and @*
+          group by a.wh_id,
+                zm.bldg_id,
+                a.ordnum,
+                a.ordlin,
+                a.prtnum,
+                a.stcust,
+                a.client_id,
+                a.list_id,
+                a.oprcod,
+                a.schbat,
+                a.pcksts,
+                b.prtfam,
+                c.lngdsc,
+                f.lngdsc,
+                m.ftpcod,
+                b.stkuom,
+                e.totvol,
+                q1.lngdsc,
+                a.pcksts,
+                a.srcloc,
+                a.revlvl,
+                zm.wrkzon,
+                a.pck_uom
+          order by a. list_id,
+                b.prtfam]
+    }
+}
+]]>
+</local-syntax>
+</command>

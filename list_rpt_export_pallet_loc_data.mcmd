@@ -1,0 +1,114 @@
+<command>
+  <name>list rpt export pallet loc data</name>
+  <description>list rpt export pallet loc data</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+|
+[select distinct locmst.stoloc,
+        locmst.aisle_id,
+        locmst.arecod,
+        adr.adrnam,
+        iv.prt_client_id,
+        iv.lodnum,
+        iv.subnum,
+        iv.prtnum,
+        pv.prtfam,
+        c.lngdsc,
+        iv.revlvl,
+        iv.untqty,
+        iv.untcas,
+        decode(pv.dspuom, null, iv.untqty, iv.untqty / prtftp_dtl.untqty) dsp_untqty,
+        decode(pv.dspuom, null, pv.stkuom, pv.dspuom) dsp_untqty_uom,
+        iv.catch_qty,
+        p.catch_unttyp,
+        iv.invsts,
+        inv_stat.lngdsc as invsts_desc,
+        p.stkuom,
+        iv.mandte,
+        iv.expire_dte,
+        iv.rcvdte,
+        rcvtrk.mod_usr_id as create_user,
+        r.mod_usr_id as gr_user,
+        r.trknum,
+        trlr.trlr_num,
+        sz_desc.lngdsc as storage_zone,
+        iv.inv_attr_str1 as batch_code,
+        iv.inv_attr_str2 as reference_1,
+        dlytrn.usr_id as putaway_user
+   from locmst
+   left
+   join inventory_view iv
+     on iv.stoloc = locmst.stoloc
+   left
+   join prtmst_view pv
+     on pv.prtnum = iv.prtnum
+    and pv.prt_client_id = iv.prt_client_id
+    and pv.wh_id = iv.wh_id
+   left
+   join prtdsc c
+     on c.colval = /*=varchar(*/ iv.prtnum || '|' || iv.prt_client_id || '|' || iv.wh_id /*=)*/
+    and c.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and c.locale_id = nvl(@locale_id, @@locale_id)
+   left
+   join prtmst p
+     on p.prtnum = iv.prtnum
+    and p.prt_client_id = iv.prt_client_id
+    and p.wh_id_tmpl = iv.wh_id
+   left
+   join prtftp
+     on pv.prtnum = prtftp.prtnum
+    and pv.wh_id = prtftp.wh_id
+    and pv.prt_client_id = prtftp.prt_client_id
+    and iv.ftpcod = prtftp.ftpcod
+     or prtftp.defftp_flg = decode(iv.ftpcod, NULL, 1, cast(null as int))
+   left
+   join prtftp_dtl
+     on prtftp.prtnum = prtftp_dtl.prtnum
+    and prtftp.wh_id = prtftp_dtl.wh_id
+    and prtftp.prt_client_id = prtftp_dtl.prt_client_id
+    and prtftp.ftpcod = prtftp_dtl.ftpcod
+    and prtftp_dtl.uomcod = nvl(pv.dspuom, pv.stkuom)
+   left
+   join rcvlin r
+     on r.rcvkey = iv.rcvkey
+   left
+   join dscmst inv_stat
+     on inv_stat.colnam = 'invsts'
+    and inv_stat.colval = iv.invsts
+   left
+   join sto_zone sz
+     on sz.sto_zone_id = locmst.sto_zone_id
+   left
+   join dscmst sz_desc
+     on sz_desc.colnam = 'sto_zone_cod|wh_id'
+    and sz_desc.colval = sz.sto_zone_cod || '|' || locmst.wh_id
+   left
+   join client cli
+     on cli.client_id = iv.prt_client_id
+   left
+   join adrmst adr
+     on adr.adr_id = cli.adr_id
+   left
+   join rcvtrk
+     on rcvtrk.trknum = r.trknum
+   left
+   join trlr
+     on trlr.trlr_id = rcvtrk.trlr_id
+   left
+   join dlytrn
+     on iv.lodnum = dlytrn.lodnum
+    and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY')
+    and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN')
+    and dlytrn.tostol not like '%CHAMBER%'
+  where locmst.loc_typ_id in ('10019', '10020', '10022')
+    and @+locmst.wh_id
+    and @+p.prtnum
+    and @+iv.lodnum
+    and @+iv.prt_client_id]
+]]>
+</local-syntax>
+</command>
