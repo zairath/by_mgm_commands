@@ -13,6 +13,8 @@
         sidt.stock as 'init_stock',
         sidt.trn_in as 'init_trn_in',
         sidt.trn_out as 'init_trn_out',
+        sidt.catch_weight as 'init_catch_weight',
+        sidt.carton_weight as 'init_carton_weight',
         case when prtmst_view.stkuom = prtmst_view.dspuom then cast(decode(prtmst_view.dspuom, null, sum(id.untqty), sum(id.untqty / prtftp_dtl.untqty)) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) as varchar(12))
              else cast(decode(prtmst_view.dspuom, null, sum(id.untqty), sum(id.untqty / prtftp_dtl.untqty)) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), sum(mod(id.untqty, prtftp_dtl.untqty))) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) as varchar(12))
         end as 'stock',
@@ -41,7 +43,7 @@
                  and pdtl.prtnum = prtftp_dtl.prtnum
                  and pdtl.prt_client_id = prtftp_dtl.prt_client_id
                  and pdtl.wh_id = prtftp_dtl.wh_id
-                 and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, sum(id.untqty), sum(id.untqty / prtftp_dtl.untqty)) as decimal(10, 4)) as carton_weight
+                 and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, sum(id.untqty), sum(id.untqty / prtftp_dtl.untqty)) as numeric(15, 4)) as carton_weight
    from prtmst_view
    join prtdsc pdc
      on pdc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
@@ -69,12 +71,28 @@
     and prtftp.ftpcod = prtftp_dtl.ftpcod
     and prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)
    left
-   join soh_item_daily_tran sidt
+   join (select stock,
+                trn_in,
+                trn_out,
+                catch_weight,
+                carton_weight,
+                prtnum,
+                prt_client_id,
+                wh_id
+           from soh_item_daily_tran
+          where date_printed between sysdate -1
+            and sysdate
+          group by stock,
+                trn_in,
+                trn_out,
+                catch_weight,
+                carton_weight,
+                prtnum,
+                prt_client_id,
+                wh_id) sidt
      on sidt.prtnum = prtmst_view.prtnum
     and sidt.prt_client_id = prtmst_view.prt_client_id
     and sidt.wh_id = prtmst_view.wh_id
-    and sidt.date_printed between sysdate -1
-    and sysdate
   group by id.prtnum,
         id.prt_client_id,
         il.wh_id,
@@ -88,7 +106,9 @@
         prtftp_dtl.wh_id,
         sidt.stock,
         sidt.trn_in,
-        sidt.trn_out
+        sidt.trn_out,
+        sidt.catch_weight,
+        sidt.carton_weight
   order by id.prtnum asc]
 |
 create record
