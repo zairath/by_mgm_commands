@@ -1,0 +1,139 @@
+<command>
+  <name>list rpt export soh by lpn auto</name>
+  <description>list rpt export soh by lpn auto</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+[select sysdate as date_printed,
+        il.wh_id,
+        il.stoloc,
+        il.lodnum,
+        id.prtnum,
+        id.prt_client_id,
+        id.revlvl,
+        id.inv_attr_str1 as batch_code,
+        id.inv_attr_str2 as reference_1,
+        pdc.lngdsc,
+        id.expire_dte,
+        id.untcas,
+        sldt.stock as 'init_stock',
+        sldt.trn_in as 'init_trn_in',
+        sldt.trn_out as 'init_trn_out',
+        sldt.catch_weight as 'init_catch_weight',
+        sldt.carton_weight as 'init_carton_weight',
+        case when prtmst_view.stkuom = prtmst_view.dspuom then cast(decode(prtmst_view.dspuom, null, sum(id.untqty), sum(id.untqty / prtftp_dtl.untqty)) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) as varchar(12))
+             else cast(decode(prtmst_view.dspuom, null, sum(id.untqty), sum(id.untqty / prtftp_dtl.untqty)) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), sum(mod(id.untqty, prtftp_dtl.untqty))) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) as varchar(12))
+        end as 'stock',
+        (select sum(dt_in.trnqty)
+           from dlytrn dt_in
+          where dt_in.prtnum = id.prtnum
+            and dt_in.prt_client_id = id.prt_client_id
+            and dt_in.wh_id = il.wh_id
+            and dt_in.actcod = 'RCV'
+            and dt_in.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
+            and dt_in.trndte between sysdate -1
+            and sysdate) as trn_in,
+        (select sum(dt_out.trnqty)
+           from dlytrn dt_out
+          where dt_out.prtnum = id.prtnum
+            and dt_out.prt_client_id = id.prt_client_id
+            and dt_out.wh_id = il.wh_id
+            and dt_out.actcod = 'LSTPCK'
+            and dt_out.to_arecod = 'SHIP'
+            and dt_out.trndte between sysdate -1
+            and sysdate) as trn_out,
+        sum(id.catch_qty) as catch_weight,
+        cast((select pdtl.netwgt
+                from prtftp_dtl pdtl
+               where pdtl.ftpcod = prtftp_dtl.ftpcod
+                 and pdtl.prtnum = prtftp_dtl.prtnum
+                 and pdtl.prt_client_id = prtftp_dtl.prt_client_id
+                 and pdtl.wh_id = prtftp_dtl.wh_id
+                 and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, sum(id.untqty), sum(id.untqty / prtftp_dtl.untqty)) as decimal(15, 4)) as carton_weight
+   from prtmst_view
+   join prtdsc pdc
+     on pdc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and pdc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/
+    and pdc.locale_id = nvl(@locale_id, @@locale_id)
+   join invdtl id
+     on id.prtnum = prtmst_view.prtnum
+    and id.prt_client_id = prtmst_view.prt_client_id
+   join invsub ivs
+     on ivs.subnum = id.subnum
+    and ivs.prmflg = 0
+   join invlod il
+     on il.lodnum = ivs.lodnum
+    and il.wh_id = prtmst_view.wh_id_tmpl
+   join prtftp
+     on prtmst_view.prtnum = prtftp.prtnum
+    and prtmst_view.wh_id = prtftp.wh_id
+    and prtmst_view.prt_client_id = prtftp.prt_client_id
+    and id.ftpcod = prtftp.ftpcod
+     or prtftp.defftp_flg = decode(id.ftpcod, NULL, 1, cast(null as int))
+   join prtftp_dtl
+     on prtftp.prtnum = prtftp_dtl.prtnum
+    and prtftp.wh_id = prtftp_dtl.wh_id
+    and prtftp.prt_client_id = prtftp_dtl.prt_client_id
+    and prtftp.ftpcod = prtftp_dtl.ftpcod
+    and prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)
+   left
+   join (select stock,
+                trn_in,
+                trn_out,
+                catch_weight,
+                carton_weight,
+                prtnum,
+                lodnum,
+                revlvl,
+                prt_client_id,
+                wh_id
+           from soh_lpn_daily_tran
+          where date_printed between sysdate -1
+            and sysdate
+          group by stock,
+                trn_in,
+                trn_out,
+                catch_weight,
+                carton_weight,
+                prtnum,
+                lodnum,
+                revlvl,
+                prt_client_id,
+                wh_id) sldt
+     on sldt.prtnum = prtmst_view.prtnum
+    and sldt.prt_client_id = prtmst_view.prt_client_id
+    and sldt.wh_id = prtmst_view.wh_id
+    and sldt.lodnum = il.lodnum
+    and sldt.revlvl = id.revlvl
+  where @+prtmst_view.prt_client_id
+    and @+prtmst_view.wh_id
+  group by il.wh_id,
+        il.stoloc,
+        il.lodnum,
+        id.prtnum,
+        id.prt_client_id,
+        id.revlvl,
+        id.inv_attr_str1,
+        id.inv_attr_str2,
+        pdc.lngdsc,
+        id.expire_dte,
+        id.untcas,
+        prtmst_view.dspuom,
+        prtmst_view.stkuom,
+        prtftp_dtl.ftpcod,
+        prtftp_dtl.prtnum,
+        prtftp_dtl.prt_client_id,
+        prtftp_dtl.wh_id,
+        sldt.stock,
+        sldt.trn_in,
+        sldt.trn_out,
+        sldt.catch_weight,
+        sldt.carton_weight
+  order by id.prtnum,
+        il.lodnum asc]
+|
+create record
+ where table_name = 'soh_lpn_daily_tran'
+]]>
+</local-syntax>
+</command>
