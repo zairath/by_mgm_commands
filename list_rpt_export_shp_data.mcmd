@@ -16,10 +16,13 @@ get client in clause for user
         pv.ordnum,
         o.cponum,
         adrmst.adrnam,
+        adr_clt.adrnam as client_name,
         pv.srcloc,
         pv.prtnum,
         pdc.lngdsc,
         dlytrn.revlvl,
+        dlytrn.inv_attr_str1 as batch_code,
+        dlytrn.inv_attr_str2 as reference_1,
         pv.srcare,
         pv.client_id,
         pv.wh_id,
@@ -75,8 +78,11 @@ get client in clause for user
                  and pdtl2.uomcod = nvl(max(ptv.dspuom), max(ptv.stkuom))) / 35.274 * decode(max(ptv.dspuom), null, max(invdtl.untqty), max(invdtl.untqty) / max(prtftp_dtl.untqty)) as decimal(10, 2)) as carton_weight,
         trlr.trlr_num,
         trlr.carcod,
+        trlr.close_dte as loaded_date,
         trlr.dispatch_dte,
-        dlytrn.lodnum
+        dlytrn.lodnum,
+        stop.car_move_id,
+        ptv.catch_unttyp
    from pckwrk_view pv
    join ord o
      on o.ordnum = pv.ordnum
@@ -114,9 +120,18 @@ get client in clause for user
      on trlr.trlr_id = av.stoloc
    join cstmst
      on cstmst.cstnum = pv.stcust
+   join shipment
+     on shipment.ship_id = pv.ship_id
+   join stop
+     on stop.stop_id = shipment.stop_id
    left
    join adrmst
      on adrmst.adr_id = cstmst.adr_id
+   join client
+     on client.client_id = pv.client_id
+   left
+   join adrmst adr_clt
+     on adr_clt.adr_id = client.adr_id
    join dlytrn
      on dlytrn.dtlnum = av.dtlnum
     and dlytrn.frstol = pv.srcloc
@@ -136,10 +151,13 @@ get client in clause for user
         pv.ordnum,
         o.cponum,
         adrmst.adrnam,
+        adr_clt.adrnam,
         pv.srcloc,
         pv.prtnum,
         pdc.lngdsc,
         dlytrn.revlvl,
+        dlytrn.inv_attr_str1,
+        dlytrn.inv_attr_str2,
         pv.srcare,
         pv.client_id,
         pv.wh_id,
@@ -185,10 +203,13 @@ get client in clause for user
         pv.concod,
         trlr.trlr_num,
         trlr.carcod,
+        trlr.close_dte,
         trlr.dispatch_dte,
         ptv.stkuom,
         ptv.dspuom,
-        dlytrn.lodnum]
+        dlytrn.lodnum,
+        stop.car_move_id,
+        ptv.catch_unttyp]
 ]]>
 </local-syntax>
 </command>
