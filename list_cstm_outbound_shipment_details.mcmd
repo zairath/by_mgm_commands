@@ -11,94 +11,15 @@ get client in clause for user
    and @+end_date
 |
 [/*#api-query*/
- select distinct shipment_line.ship_line_id,
-        shipment_line.ship_id,
-        shipment_line.wh_id,
+ select distinct shipment_line.wh_id,
         shipment_line.client_id,
-        shipment_line.ordnum,
-        shipment_line.ordlin,
-        shipment_line.ordsln,
-        shipment_line.cons_batch,
-        /*shipment_line.shpwth,*/
-        shipment_line.linsts,
-        shipment_line.prcpri,
-        /*shipment_line.pckgr1,
-           shipment_line.pckgr2,
-           shipment_line.pckgr3,
-           shipment_line.pckgr4,*/
-        shipment_line.schbat,
-        shipment_line.pckqty,
-        shipment_line.inpqty,
-        shipment_line.stgqty,
-        shipment_line.shpqty,
-        shipment_line.oviqty,
-        shipment_line.ovramt,
-        shipment_line.ovrcod,
-        /*shipment_line.edtflg,
-           shipment_line.tot_pln_cas_qty,
-           shipment_line.tot_pln_misc2_qty,
-           shipment_line.tot_pln_wgt,
-           shipment_line.tot_pln_cube,
-           shipment_line.tot_pln_misc_qty,
-           shipment_line.tot_pln_pal_qty,
-           shipment_line.tot_pln_qty,
-           shipment_line.unt_ins_val,
-           shipment_line.rel_val,
-           shipment_line.rel_val_unt_typ,
-           shipment_line.wkonum,
-           shipment_line.wkorev,*/
-        shipment_line.moddte,
-        shipment_line.mod_usr_id,
-        /*shipment_line.dstr_qty,*/
-        shipment_line.prt_client_id,
         shipment_line.prtnum,
-        /*shipment_line.est_time,*/
-        shipment_line.picked_qty,
-        shipment_line.instgqty,
-        shipment_line.inloadqty,
-        /*shipment_line.ftpcod,
-           shipment_line.untpal,
-           shipment_line.tms_ship_id,
-           shipment_line.tms_ship_line_id,
-           shipment_line.tms_load_id,
-           shipment_line.is_purged,*/
-        ord.cponum,
-        ord.stcust,
-        ord.btcust,
-        ord.rtcust,
+        sum(nvl(inv.untqty, 0)) untqty,
         prtmst_view.stkuom,
+        sum(floor(shipment_line.picked_qty / prtftp_dtl.untqty)) as dspuom_qty,
         prtmst_view.dspuom,
-        /*ord_line.sales_ordnum,
-           ord_line.sales_ordlin,
-           ord_line.cstprt,
-           decode(alcrule.field_name, 'lotnum', alcrule.value, null) requested_lotnum,
-           decode(alcrule.field_name, 'sup_lotnum', alcrule.value, null) requested_sup_lotnum,
-           decode(alcrule.field_name, 'orgcod', alcrule.value, null) requested_orgcod,
-           decode(alcrule.field_name, 'revlvl', alcrule.value, null) requested_revlvl,
-           decode(alcrule.field_name, 'mandte', alcrule.value, null) requested_mandte,
-           decode(alcrule.field_name, 'expire_dte', alcrule.value, null) requested_expire_dte,
-           decode(alcrule.field_name, 'inv_attr_str1', alcrule.value, null) requested_inv_attr_str1,*/
-        ord_line.invsts_prg requested_invsts_prg,
-        ord_line.invsts_prg invsts_prg,
-        /*ord_line.bckflg bckflg,*/
-        inv.lotnum,
-        /*inv.sup_lotnum,*/
-        inv.revlvl,
-        inv.orgcod,
-        inv.mandte,
-        inv.expire_dte,
-        prtfam.prtfamgrp,
-        inv.inv_attr_str1,
-        inv.inv_attr_str2,
-        inv.invsts,
-        nvl(inv.untqty, 0) untqty,
-        ord_line.ordqty ordqty,
-        ord_line.shpqty ord_shpqty,
-        FLOOR(shipment_line.picked_qty / prtftp_dtl.untqty) as qty_carton,
-        cast(prtftp_dtl.netwgt / 35.274 * FLOOR(shipment_line.picked_qty / prtftp_dtl.untqty) as decimal(10, 2)) as carton_weight,
-        pvw.pckqty as pick_qty_per_location,
-        pvw.pck_uom as pick_uom_per_location,
-        pvw.srcloc as source_location_per_item
+        sum(cast(prtftp_dtl.netwgt / 35.274 * floor(shipment_line.picked_qty / prtftp_dtl.untqty) as decimal(10, 2))) as carton_weight,
+        count(inv.revlvl) as qty_of_pallets
    from prtmst_view
    join ord_line
      on (prtmst_view.prt_client_id = ord_line.prt_client_id)
@@ -192,8 +113,14 @@ get client in clause for user
     and @+prtmst_view.moddte:date
     and ord_line.entdte between @start_date:date
     and @end_date:date
-  order by shipment_line.ship_id,
-        shipment_line.ship_line_id]
+  group by shipment_line.wh_id,
+        shipment_line.client_id,
+        shipment_line.prtnum,
+        prtmst_view.dspuom,
+        prtmst_view.stkuom
+  order by shipment_line.wh_id,
+        shipment_line.client_id,
+        shipment_line.prtnum]
 ]]>
 </local-syntax>
 </command>

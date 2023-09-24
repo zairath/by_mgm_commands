@@ -35,81 +35,21 @@ if (@invtid)
 |
 [/*#limit=@offset,@limit,false*/
  select invlod.wh_id,
-        invlod.stoloc,
-        /* invlod.asset_typ, */
-        invlod.lodnum,
-        /* invsub.asset_typ sub_asset_typ, */
-        invdtl.dtlnum,
-        invdtl.subnum,
-        /*invdtl.phdflg,*/
-        invdtl.prtnum,
         invdtl.prt_client_id,
-        prtfam.prtfamgrp,
-        invdtl.orgcod,
-        invdtl.revlvl,
-        invdtl.lotnum,
-        /*invdtl.sup_lotnum,*/
-        invdtl.invsts,
-        invdtl.supnum,
-        /*invdtl.cnsg_flg,*/
-        invdtl.age_pflnam,
-        invdtl.fifdte,
-        invdtl.mandte,
-        invdtl.expire_dte,
-        invdtl.untqty,
-        decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) dsp_untqty,
+        invdtl.prtnum,
+        sum(invdtl.untqty) as untqty,
+        sum(decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty)) dsp_untqty,
+        decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
+        prtmst_view.stkuom,
         cast((select pdtl.netwgt
                 from prtftp_dtl pdtl
                where pdtl.ftpcod = prtftp_dtl.ftpcod
                  and pdtl.prtnum = prtftp_dtl.prtnum
                  and pdtl.prt_client_id = prtftp_dtl.prt_client_id
                  and pdtl.wh_id = prtftp_dtl.wh_id
-                 and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) as decimal(10, 2)) as carton_weight,
-        prtmst_view.stkuom,
-        decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
-        invdtl.untcas,
-        invdtl.untpak,
-        invdtl.ftpcod,
-        invdtl.rcvkey,
-        /*invdtl.ship_line_id,
-           invdtl.wrkref,
-           invdtl.wrkref_dtl,*/
-        invdtl.adddte,
-        invdtl.rcvdte,
-        /*invdtl.lstmov,
-           invdtl.lstdte,
-           invdtl.lstcod,*/
-        invdtl.lst_usr_id,
-        /*invdtl.cmpkey,
-           invdtl.alcflg,*/
-        invdtl.catch_qty,
-        invdtl.lst_mov_zone_id,
-        /*invdtl.bill_through_dte,
-           invdtl.condcod,
-           invdtl.distro_id,
-           invdtl.distro_flg,
-           invdtl.hld_flg,*/
-        invdtl.inv_attr_str1,
-        invdtl.inv_attr_str2,
-        /*invdtl.cstms_cnsgnmnt_id,
-           invdtl.rttn_id,
-           invdtl.cstms_bond_flg,
-           invdtl.dty_stmp_flg,
-           invdtl.u_version,
-           invdtl.ins_dt,
-           invdtl.last_upd_dt,
-           invdtl.ins_user_id,
-           invdtl.last_upd_user_id,*/
-        /*invdtl.asnflg,
-           invdtl.cstms_typ,
-           invdtl.cstms_crncy,
-           invdtl.dflt_orgcod,
-           invdtl.cstms_vat_cod,
-           invdtl.dty_stmp_trk_flg,
-           invdtl.cstms_cst,
-           invdtl.cstms_cmmdty_cod,
-           loc_typ.fwiflg,*/
-        invdtl.rcv_catch_qty
+                 and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, sum(invdtl.untqty), sum(invdtl.untqty / prtftp_dtl.untqty)) as decimal(15, 4)) as carton_weight,
+        sum(invdtl.rcv_catch_qty) as rcv_catch_qty,
+        count(distinct invlod.lodnum) as qty_of_pallets
    from invdtl
    join invsub
      on invsub.subnum = invdtl.subnum
@@ -131,16 +71,17 @@ if (@invtid)
    join prtfam
      on prtfam.prtfam = prtmst_view.prtfam
    join prtftp
-     on (prtmst_view.prtnum = prtftp.prtnum)
-    and (prtmst_view.wh_id = prtftp.wh_id)
-    and (prtmst_view.prt_client_id = prtftp.prt_client_id)
-    and (invdtl.ftpcod = prtftp.ftpcod or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int)))
+     on prtmst_view.prtnum = prtftp.prtnum
+    and prtmst_view.wh_id = prtftp.wh_id
+    and prtmst_view.prt_client_id = prtftp.prt_client_id
+    and invdtl.ftpcod = prtftp.ftpcod
+     or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int))
    join prtftp_dtl
-     on (prtftp.prtnum = prtftp_dtl.prtnum)
-    and (prtftp.wh_id = prtftp_dtl.wh_id)
-    and (prtftp.prt_client_id = prtftp_dtl.prt_client_id)
-    and (prtftp.ftpcod = prtftp_dtl.ftpcod)
-    and (prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom))
+     on prtftp.prtnum = prtftp_dtl.prtnum
+    and prtftp.wh_id = prtftp_dtl.wh_id
+    and prtftp.prt_client_id = prtftp_dtl.prt_client_id
+    and prtftp.ftpcod = prtftp_dtl.ftpcod
+    and prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)
   where @client_in_clause:raw
     and @+invlod.lodnum
     and @+invsub.subnum
@@ -161,9 +102,18 @@ if (@invtid)
     and @+invdtl.ship_line_id
     and @+invdtl.inv_attr_str1
     and @+loc_typ.fwiflg
-  order by invlod.lodnum,
-        invsub.subnum,
-        invdtl.dtlnum]
+  group by invlod.wh_id,
+        invdtl.prt_client_id,
+        invdtl.prtnum,
+        prtmst_view.stkuom,
+        prtmst_view.dspuom,
+        prtftp_dtl.ftpcod,
+        prtftp_dtl.prtnum,
+        prtftp_dtl.prt_client_id,
+        prtftp_dtl.wh_id
+  order by invlod.wh_id,
+        invdtl.prt_client_id,
+        invdtl.prtnum]
 ]]>
 </local-syntax>
 </command>

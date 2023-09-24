@@ -10,22 +10,14 @@ get client in clause for user
    and @+start_date
    and @+end_date
 |
-[select evt.warehouse_id,
-        evt.event_id,
-        evt.activity,
-        evt.date,
-        evt.time,
-        evt.fr_lpn,
-        evt.fr_sub_lpn,
-        evt.to_lpn,
-        evt.to_sub_lpn,
-        evt.fr_loc,
-        evt.to_loc,
-        evt.prtnum,
+[select evt.date,
+        evt.warehouse_id,
         evt.prt_client_id,
-        evt.trnqty,
-        evt.qty_karton,
-        evt.qty_pallet
+        evt.prtnum,
+        evt.activity,
+        sum(evt.trnqty) as trnqty,
+        sum(evt.qty_karton) as qty_karton,
+        sum(evt.qty_pallet) as qty_pallet
    from (select dlytrn.wh_id as warehouse_id,
                 dlytrn.dlytrn_id as event_id,
                 'Partial Move' as activity,
@@ -230,7 +222,15 @@ get client in clause for user
             and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
             and @+dlytrn.wh_id
             and @+dlytrn.prtnum) as evt
-  order by evt.event_id desc]
+  group by evt.date,
+        evt.warehouse_id,
+        evt.prt_client_id,
+        evt.prtnum,
+        evt.activity
+  order by evt.date,
+        evt.warehouse_id,
+        evt.prt_client_id,
+        evt.prtnum]
 ]]>
 </local-syntax>
 </command>
