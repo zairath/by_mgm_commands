@@ -13,13 +13,12 @@ get client in clause for user
 [/*#api-query*/
  select distinct shipment_line.wh_id,
         shipment_line.client_id,
-        shipment_line.prtnum,
         sum(nvl(inv.untqty, 0)) untqty,
         prtmst_view.stkuom,
         sum(floor(shipment_line.picked_qty / prtftp_dtl.untqty)) as dspuom_qty,
         prtmst_view.dspuom,
         sum(cast(prtftp_dtl.netwgt / 35.274 * floor(shipment_line.picked_qty / prtftp_dtl.untqty) as decimal(10, 2))) as carton_weight,
-        count(inv.revlvl) as qty_of_pallets
+        count(distinct inv.revlvl) as qty_of_pallets
    from prtmst_view
    join ord_line
      on (prtmst_view.prt_client_id = ord_line.prt_client_id)
@@ -115,12 +114,10 @@ get client in clause for user
     and @end_date:date
   group by shipment_line.wh_id,
         shipment_line.client_id,
-        shipment_line.prtnum,
         prtmst_view.dspuom,
         prtmst_view.stkuom
   order by shipment_line.wh_id,
-        shipment_line.client_id,
-        shipment_line.prtnum]
+        shipment_line.client_id]
 ]]>
 </local-syntax>
 </command>
