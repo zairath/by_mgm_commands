@@ -167,8 +167,10 @@ if (@oprcod = 'LPCK')
              on j.ordnum = a.ordnum
             and j.ordlin = a.ordlin
             and j.wh_id = a.wh_id
+           JOIN client
+             on client.client_id = ord.client_id
            JOIN adrmst g
-             ON g.adr_id = d.st_adr_id
+             ON g.adr_id = client.adr_id
            JOIN prtdsc c
              ON c.colval = /*=varchar(*/ a.prtnum || '|' || b.prt_client_id || '|' || b.wh_id_tmpl /*=)*/
             AND c.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
@@ -387,8 +389,10 @@ if (@oprcod = 'LPCK')
              on j.ordnum = a.ordnum
             and j.ordlin = a.ordlin
             and j.wh_id = a.wh_id
+           JOIN client
+             on client.client_id = ord.client_id
            JOIN adrmst g
-             ON g.adr_id = d.st_adr_id
+             ON g.adr_id = client.adr_id
            JOIN prtdsc c
              ON c.colval = /*=varchar(*/ a.prtnum || '|' || b.prt_client_id || '|' || b.wh_id_tmpl /*=)*/
             AND c.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
