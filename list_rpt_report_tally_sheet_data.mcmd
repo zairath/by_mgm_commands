@@ -19,7 +19,8 @@ get client in clause for user
         pp.catch_unttyp as catch_type,
         iv.expire_dte as expire_date,
         iv.mandte as manufactured_date,
-        rl.trknum
+        rl.trknum,
+        rl.init_rcv_dte
    from all_inventory_view iv
    join prtdsc pdc
      on pdc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
