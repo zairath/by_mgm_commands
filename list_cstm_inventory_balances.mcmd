@@ -36,16 +36,19 @@ if (@invtid)
 [/*#limit=@offset,@limit,false*/
  select invlod.wh_id,
         invdtl.prt_client_id,
+        sysdate as datetime,
+        prtfam.prtfamgrp as 'temp',
+        invdtl.prtnum,
+        sum(invdtl.untqty) as untqty,
         sum(decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty)) dsp_untqty,
-        sum(decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), mod(invdtl.untqty, prtftp_dtl.untqty))) stk_untqty,
         decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
         prtmst_view.stkuom,
-        cast((select sum(pdtl.netwgt)
+        cast((select pdtl.netwgt
                 from prtftp_dtl pdtl
-               where pdtl.ftpcod = max(prtftp_dtl.ftpcod)
-                 and pdtl.prtnum = max(prtftp_dtl.prtnum)
-                 and pdtl.prt_client_id = max(prtftp_dtl.prt_client_id)
-                 and pdtl.wh_id = max(prtftp_dtl.wh_id)
+               where pdtl.ftpcod = prtftp_dtl.ftpcod
+                 and pdtl.prtnum = prtftp_dtl.prtnum
+                 and pdtl.prt_client_id = prtftp_dtl.prt_client_id
+                 and pdtl.wh_id = prtftp_dtl.wh_id
                  and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, sum(invdtl.untqty), sum(invdtl.untqty / prtftp_dtl.untqty)) as decimal(15, 4)) as carton_weight,
         sum(invdtl.rcv_catch_qty) as rcv_catch_qty,
         count(distinct invlod.lodnum) as qty_of_pallets
@@ -103,10 +106,17 @@ if (@invtid)
     and @+loc_typ.fwiflg
   group by invlod.wh_id,
         invdtl.prt_client_id,
+        prtfam.prtfamgrp,
+        invdtl.prtnum,
         prtmst_view.stkuom,
-        prtmst_view.dspuom
+        prtmst_view.dspuom,
+        prtftp_dtl.ftpcod,
+        prtftp_dtl.prtnum,
+        prtftp_dtl.prt_client_id,
+        prtftp_dtl.wh_id
   order by invlod.wh_id,
-        invdtl.prt_client_id]
+        invdtl.prt_client_id,
+        invdtl.prtnum]
 ]]>
 </local-syntax>
 </command>

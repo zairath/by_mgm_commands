@@ -10,9 +10,10 @@ get client in clause for user
    and @+start_date
    and @+end_date
 |
-[select evt.date,
+[select evt.date || ' ' || evt.time as datetime,
         evt.warehouse_id,
         evt.prt_client_id,
+        evt.prtnum,
         evt.activity,
         sum(evt.trnqty) as trnqty,
         sum(evt.qty_karton) as qty_karton,
@@ -222,12 +223,15 @@ get client in clause for user
             and @+dlytrn.wh_id
             and @+dlytrn.prtnum) as evt
   group by evt.date,
+        evt.time,
         evt.warehouse_id,
         evt.prt_client_id,
+        evt.prtnum,
         evt.activity
   order by evt.date,
         evt.warehouse_id,
-        evt.prt_client_id]
+        evt.prt_client_id,
+        evt.prtnum]
 ]]>
 </local-syntax>
 </command>

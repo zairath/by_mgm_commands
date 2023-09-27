@@ -17,6 +17,10 @@ get client in clause for user
 [/*#api-query*/
  select inventory.wh_id,
         inventory.prt_client_id,
+        inventory.rcvdte as datetime,
+        inventory.prtfamgrp as 'temp',
+        inventory.prtnum,
+        inventory.lngdsc,
         sum(inventory.untqty) as untqty,
         sum(inventory.catch_qty) as catch_qty,
         sum(inventory.carton_weight) as carton_weight,
@@ -394,10 +398,15 @@ get client in clause for user
          */
   group by inventory.wh_id,
         inventory.prt_client_id,
+        inventory.rcvdte,
+        inventory.prtfamgrp,
+        inventory.prtnum,
+        inventory.lngdsc,
         inventory.dsp_untqty_uom,
         inventory.rem_untqty_uom
   order by inventory.wh_id,
-        inventory.prt_client_id]
+        inventory.prt_client_id,
+        inventory.prtnum]
 ]]>
 </local-syntax>
 </command>
