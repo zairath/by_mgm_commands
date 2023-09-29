@@ -12,7 +12,10 @@ get client in clause for user
    and @+end_date
 |
 [select rt.trknum GR#,
+        iv.inv_attr_str1 Batch_code,
+        iv.inv_attr_str2 Refrence_1,
         rv.wh_id,
+        iv.subnum,
         rv.client_id Cus_Code,
         a.adrnam Customer,
         t.trlr_num Container#,
@@ -20,18 +23,23 @@ get client in clause for user
         rv.invdte GR_Date,
         rl.prtnum SKU,
         pd.lngdsc,
-        '' size,
-        '' Color,
         iv.revlvl Batch,
         iv.lodnum LPN,
-        '' PO,
-        (iv.untqty / iv.untcas) CTNS,
+        rv.po_num PO,
+        (iv.untqty / iv.untcas) unit_ctn,
         untqty QTY,
         p.stkuom,
+        iv.untcas uom_cas,
+        rl.rcv_catch_qty weight_rcv,
+        p.catch_untwgt,
+        p.catch_unttyp,
         iv.stoloc Putaway_Location,
         iv.lst_usr_id Putaway_User,
+        iv.expire_dte,
+        iv.mandte manfac_dte,
         iv.rcvdte Created_At,
-        iv.lst_usr_id Created_By
+        iv.lst_usr_id Created_By,
+        rt.mod_usr_id gr_usr
    from rcvtrk rt
    join rcvinv rv
      on rv.trknum = rt.trknum
