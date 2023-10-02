@@ -168,7 +168,7 @@ if (@oprcod = 'LPCK')
             and j.ordlin = a.ordlin
             and j.wh_id = a.wh_id
            JOIN client
-             on client.client_id = ord.client_id
+             on client.client_id = d.client_id
            JOIN adrmst g
              ON g.adr_id = client.adr_id
            JOIN prtdsc c
