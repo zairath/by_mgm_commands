@@ -1,0 +1,236 @@
+<command>
+  <name>list cstm inventory movements dtl</name>
+  <description>list cstm inventory movements dtl</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and @+wh_id
+   and @+start_date
+   and @+end_date
+|
+[select evt.warehouse_id,
+        evt.event_id,
+        evt.activity,
+        evt.date,
+        evt.time,
+        evt.fr_lpn,
+        evt.fr_sub_lpn,
+        evt.to_lpn,
+        evt.to_sub_lpn,
+        evt.fr_loc,
+        evt.to_loc,
+        evt.prtnum,
+        evt.prt_client_id,
+        evt.trnqty,
+        evt.qty_karton,
+        evt.qty_pallet
+   from (select dlytrn.wh_id as warehouse_id,
+                dlytrn.dlytrn_id as event_id,
+                'Partial Move' as activity,
+                convert(varchar, trndte, 111) as date,
+                convert(varchar, trndte, 24) as time,
+                dlytrn.lodnum as fr_lpn,
+                dlytrn.subnum as fr_sub_lpn,
+                dlytrn.to_lodnum as to_lpn,
+                dlytrn.to_subnum as to_sub_lpn,
+                dlytrn.frstol as fr_loc,
+                dlytrn.tostol as to_loc,
+                dlytrn.prtnum,
+                dlytrn.prt_client_id,
+                dlytrn.trnqty,
+                dlytrn.trndte,
+                (dlytrn.trnqty / pdt1.untqty) as qty_karton,
+                FLOOR((dlytrn.trnqty / pdt1.untqty) / pdt2.untqty) as qty_pallet
+           from dlytrn
+           join prtftp
+             on prtftp.prtnum = dlytrn.prtnum
+            and prtftp.prt_client_id = dlytrn.prt_client_id
+            and prtftp.wh_id = dlytrn.wh_id
+           join prtftp_dtl pdt1
+             on pdt1.prtnum = dlytrn.prtnum
+            and pdt1.prt_client_id = dlytrn.prt_client_id
+            and pdt1.wh_id = dlytrn.wh_id
+            and pdt1.ftpcod = prtftp.ftpcod
+            and pdt1.cas_flg = 1
+           join prtftp_dtl pdt2
+             on pdt2.prtnum = dlytrn.prtnum
+            and pdt2.prt_client_id = dlytrn.prt_client_id
+            and pdt2.wh_id = dlytrn.wh_id
+            and pdt2.ftpcod = prtftp.ftpcod
+            and pdt2.pal_flg = 1
+          where dlytrn.trndte between @start_date:date
+            and @end_date:date
+            and dlytrn.actcod = 'PL_XFR'
+            and @+dlytrn.wh_id
+            and @+dlytrn.prtnum
+         union all
+         select dlytrn.wh_id as warehouse_id,
+                dlytrn.dlytrn_id as event_id,
+                'Full Move' as activity,
+                convert(varchar, trndte, 111) as date,
+                convert(varchar, trndte, 24) as time,
+                dlytrn.lodnum as fr_lpn,
+                dlytrn.subnum as fr_sub_lpn,
+                dlytrn.to_lodnum as to_lpn,
+                dlytrn.to_subnum as to_sub_lpn,
+                dlytrn.frstol as fr_loc,
+                dlytrn.tostol as to_loc,
+                dlytrn.prtnum,
+                dlytrn.prt_client_id,
+                dlytrn.trnqty,
+                dlytrn.trndte,
+                (dlytrn.trnqty / pdt1.untqty) as qty_karton,
+                FLOOR((dlytrn.trnqty / pdt1.untqty) / pdt2.untqty) as qty_pallet
+           from dlytrn
+           join prtftp
+             on prtftp.prtnum = dlytrn.prtnum
+            and prtftp.prt_client_id = dlytrn.prt_client_id
+            and prtftp.wh_id = dlytrn.wh_id
+           join prtftp_dtl pdt1
+             on pdt1.prtnum = dlytrn.prtnum
+            and pdt1.prt_client_id = dlytrn.prt_client_id
+            and pdt1.wh_id = dlytrn.wh_id
+            and pdt1.ftpcod = prtftp.ftpcod
+            and pdt1.cas_flg = 1
+           join prtftp_dtl pdt2
+             on pdt2.prtnum = dlytrn.prtnum
+            and pdt2.prt_client_id = dlytrn.prt_client_id
+            and pdt2.wh_id = dlytrn.wh_id
+            and pdt2.ftpcod = prtftp.ftpcod
+            and pdt2.pal_flg = 1
+          where dlytrn.trndte between @start_date:date
+            and @end_date:date
+            and dlytrn.actcod = 'FL_XFR'
+            and @+dlytrn.wh_id
+            and @+dlytrn.prtnum
+         union all
+         select dlytrn.wh_id as warehouse_id,
+                dlytrn.dlytrn_id as event_id,
+                'Add Inventory' as activity,
+                convert(varchar, trndte, 111) as date,
+                convert(varchar, trndte, 24) as time,
+                dlytrn.lodnum as fr_lpn,
+                dlytrn.subnum as fr_sub_lpn,
+                dlytrn.to_lodnum as to_lpn,
+                dlytrn.to_subnum as to_sub_lpn,
+                dlytrn.frstol as fr_loc,
+                dlytrn.tostol as to_loc,
+                dlytrn.prtnum,
+                dlytrn.prt_client_id,
+                dlytrn.trnqty,
+                dlytrn.trndte,
+                (dlytrn.trnqty / pdt1.untqty) as qty_karton,
+                FLOOR((dlytrn.trnqty / pdt1.untqty) / pdt2.untqty) as qty_pallet
+           from dlytrn
+           join prtftp
+             on prtftp.prtnum = dlytrn.prtnum
+            and prtftp.prt_client_id = dlytrn.prt_client_id
+            and prtftp.wh_id = dlytrn.wh_id
+           join prtftp_dtl pdt1
+             on pdt1.prtnum = dlytrn.prtnum
+            and pdt1.prt_client_id = dlytrn.prt_client_id
+            and pdt1.wh_id = dlytrn.wh_id
+            and pdt1.ftpcod = prtftp.ftpcod
+            and pdt1.cas_flg = 1
+           join prtftp_dtl pdt2
+             on pdt2.prtnum = dlytrn.prtnum
+            and pdt2.prt_client_id = dlytrn.prt_client_id
+            and pdt2.wh_id = dlytrn.wh_id
+            and pdt2.ftpcod = prtftp.ftpcod
+            and pdt2.pal_flg = 1
+          where dlytrn.trndte between @start_date:date
+            and @end_date:date
+            and dlytrn.actcod = 'IDNTFY_AJ'
+            and dlytrn.oprcod = 'INVADJ'
+            and @+dlytrn.wh_id
+            and @+dlytrn.prtnum
+         union all
+         select dlytrn.wh_id as warehouse_id,
+                dlytrn.dlytrn_id as event_id,
+                'Inv Adjustment Minus' as activity,
+                convert(varchar, trndte, 111) as date,
+                convert(varchar, trndte, 24) as time,
+                dlytrn.lodnum as fr_lpn,
+                dlytrn.subnum as fr_sub_lpn,
+                dlytrn.to_lodnum as to_lpn,
+                dlytrn.to_subnum as to_sub_lpn,
+                dlytrn.frstol as fr_loc,
+                dlytrn.tostol as to_loc,
+                dlytrn.prtnum,
+                dlytrn.prt_client_id,
+                dlytrn.trnqty * -1,
+                dlytrn.trndte,
+                (dlytrn.trnqty / pdt1.untqty) * -1 as qty_karton,
+                FLOOR((dlytrn.trnqty / pdt1.untqty) / pdt2.untqty) * -1 as qty_pallet
+           from dlytrn
+           join prtftp
+             on prtftp.prtnum = dlytrn.prtnum
+            and prtftp.prt_client_id = dlytrn.prt_client_id
+            and prtftp.wh_id = dlytrn.wh_id
+           join prtftp_dtl pdt1
+             on pdt1.prtnum = dlytrn.prtnum
+            and pdt1.prt_client_id = dlytrn.prt_client_id
+            and pdt1.wh_id = dlytrn.wh_id
+            and pdt1.ftpcod = prtftp.ftpcod
+            and pdt1.cas_flg = 1
+           join prtftp_dtl pdt2
+             on pdt2.prtnum = dlytrn.prtnum
+            and pdt2.prt_client_id = dlytrn.prt_client_id
+            and pdt2.wh_id = dlytrn.wh_id
+            and pdt2.ftpcod = prtftp.ftpcod
+            and pdt2.pal_flg = 1
+          where dlytrn.trndte between @start_date:date
+            and @end_date:date
+            and dlytrn.oprcod in ('INVADJ', 'CNTAUD')
+            and dlytrn.actcod = 'INVDEL'
+            and dlytrn.fr_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
+            and @+dlytrn.wh_id
+            and @+dlytrn.prtnum
+         union all
+         select dlytrn.wh_id as warehouse_id,
+                dlytrn.dlytrn_id as event_id,
+                'Inv Adjustment Plus' as activity,
+                convert(varchar, trndte, 111) as date,
+                convert(varchar, trndte, 24) as time,
+                dlytrn.lodnum as fr_lpn,
+                dlytrn.subnum as fr_sub_lpn,
+                dlytrn.to_lodnum as to_lpn,
+                dlytrn.to_subnum as to_sub_lpn,
+                dlytrn.frstol as fr_loc,
+                dlytrn.tostol as to_loc,
+                dlytrn.prtnum,
+                dlytrn.prt_client_id,
+                dlytrn.trnqty,
+                dlytrn.trndte,
+                (dlytrn.trnqty / pdt1.untqty) as qty_karton,
+                FLOOR((dlytrn.trnqty / pdt1.untqty) / pdt2.untqty) as qty_pallet
+           from dlytrn
+           join prtftp
+             on prtftp.prtnum = dlytrn.prtnum
+            and prtftp.prt_client_id = dlytrn.prt_client_id
+            and prtftp.wh_id = dlytrn.wh_id
+           join prtftp_dtl pdt1
+             on pdt1.prtnum = dlytrn.prtnum
+            and pdt1.prt_client_id = dlytrn.prt_client_id
+            and pdt1.wh_id = dlytrn.wh_id
+            and pdt1.ftpcod = prtftp.ftpcod
+            and pdt1.cas_flg = 1
+           join prtftp_dtl pdt2
+             on pdt2.prtnum = dlytrn.prtnum
+            and pdt2.prt_client_id = dlytrn.prt_client_id
+            and pdt2.wh_id = dlytrn.wh_id
+            and pdt2.ftpcod = prtftp.ftpcod
+            and pdt2.pal_flg = 1
+          where dlytrn.trndte between @start_date:date
+            and @end_date:date
+            and dlytrn.oprcod IN ('INVADJ', 'CNTAUD')
+            and dlytrn.actcod = 'IDNTFY'
+            and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
+            and @+dlytrn.wh_id
+            and @+dlytrn.prtnum) as evt
+  order by evt.event_id desc]
+]]>
+</local-syntax>
+</command>
