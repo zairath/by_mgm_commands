@@ -10,6 +10,7 @@
         il.lodnum,
         id.prtnum,
         id.prt_client_id,
+        adrmst.adrnam as client_name,
         id.revlvl,
         id.inv_attr_str1 as batch_code,
         id.inv_attr_str2 as reference_1,
@@ -134,6 +135,10 @@
     and prtftp.prt_client_id = prtftp_dtl.prt_client_id
     and prtftp.ftpcod = prtftp_dtl.ftpcod
     and prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)
+   join client
+     on client.client_id = id.prt_client_id
+   join adrmst
+     on adrmst.adr_id = client.adr_id
    left
    join (select final_stock,
                 final_catch_weight,
@@ -164,6 +169,7 @@
         il.lodnum,
         id.prtnum,
         id.prt_client_id,
+        adrmst.adrnam,
         id.revlvl,
         id.inv_attr_str1,
         id.inv_attr_str2,
