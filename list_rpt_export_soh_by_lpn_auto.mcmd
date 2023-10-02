@@ -16,23 +16,36 @@
         pdc.lngdsc,
         id.expire_dte,
         id.untcas,
-        sldt.stock as 'init_stock',
-        sldt.trn_in as 'init_trn_in',
-        sldt.trn_out as 'init_trn_out',
-        sldt.catch_weight as 'init_catch_weight',
-        sldt.carton_weight as 'init_carton_weight',
-        case when prtmst_view.stkuom = prtmst_view.dspuom then cast(decode(prtmst_view.dspuom, null, sum(id.untqty), sum(id.untqty / prtftp_dtl.untqty)) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) as varchar(12))
-             else cast(decode(prtmst_view.dspuom, null, sum(id.untqty), sum(id.untqty / prtftp_dtl.untqty)) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), sum(mod(id.untqty, prtftp_dtl.untqty))) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) as varchar(12))
-        end as 'stock',
+        sldt.final_stock as 'init_stock',
+        sldt.final_catch_weight as 'init_catch_weight',
+        sldt.final_carton_weight as 'init_carton_weight',
         (select sum(dt_in.trnqty)
            from dlytrn dt_in
           where dt_in.prtnum = id.prtnum
             and dt_in.prt_client_id = id.prt_client_id
             and dt_in.wh_id = il.wh_id
             and dt_in.actcod = 'RCV'
-            and dt_in.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
+            and dt_in.to_arecod in ('B1-RSTG', 'B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-RSTG', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
             and dt_in.trndte between sysdate -1
             and sysdate) as trn_in,
+        (select sum(dt_in.trnqty) / max(prtftp_dtl.untqty)
+           from dlytrn dt_in
+          where dt_in.prtnum = id.prtnum
+            and dt_in.prt_client_id = id.prt_client_id
+            and dt_in.wh_id = il.wh_id
+            and dt_in.actcod = 'RCV'
+            and dt_in.to_arecod in ('B1-RSTG', 'B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-RSTG', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
+            and dt_in.trndte between sysdate -1
+            and sysdate) as trn_in_ctn,
+        (select sum(dt_in.catch_qty)
+           from dlytrn dt_in
+          where dt_in.prtnum = id.prtnum
+            and dt_in.prt_client_id = id.prt_client_id
+            and dt_in.wh_id = il.wh_id
+            and dt_in.actcod = 'RCV'
+            and dt_in.to_arecod in ('B1-RSTG', 'B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-RSTG', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
+            and dt_in.trndte between sysdate -1
+            and sysdate) as trn_in_catch_weight,
         (select sum(dt_out.trnqty)
            from dlytrn dt_out
           where dt_out.prtnum = id.prtnum
@@ -42,14 +55,59 @@
             and dt_out.to_arecod = 'SHIP'
             and dt_out.trndte between sysdate -1
             and sysdate) as trn_out,
-        sum(id.catch_qty) as catch_weight,
+        (select sum(dt_out.trnqty) / max(prtftp_dtl.untqty)
+           from dlytrn dt_out
+          where dt_out.prtnum = id.prtnum
+            and dt_out.prt_client_id = id.prt_client_id
+            and dt_out.wh_id = il.wh_id
+            and dt_out.actcod = 'LSTPCK'
+            and dt_out.to_arecod = 'SHIP'
+            and dt_out.trndte between sysdate -1
+            and sysdate) as trn_out_ctn,
+        (select sum(dt_out.catch_qty)
+           from dlytrn dt_out
+          where dt_out.prtnum = id.prtnum
+            and dt_out.prt_client_id = id.prt_client_id
+            and dt_out.wh_id = il.wh_id
+            and dt_out.actcod = 'LSTPCK'
+            and dt_out.to_arecod = 'SHIP'
+            and dt_out.trndte between sysdate -1
+            and sysdate) as trn_out_catch_weight,
+        (select sum(dt_adj.trnqty)
+           from dlytrn dt_adj
+          where dt_adj.prtnum = id.prtnum
+            and dt_adj.prt_client_id = id.prt_client_id
+            and dt_adj.wh_id = il.wh_id
+            and dt_adj.oprcod = 'INVADJ'
+            and dt_adj.trndte between sysdate -1
+            and sysdate) as trn_adj,
+        (select sum(dt_adj.trnqty) / max(prtftp_dtl.untqty)
+           from dlytrn dt_adj
+          where dt_adj.prtnum = id.prtnum
+            and dt_adj.prt_client_id = id.prt_client_id
+            and dt_adj.wh_id = il.wh_id
+            and dt_adj.oprcod = 'INVADJ'
+            and dt_adj.trndte between sysdate -1
+            and sysdate) as trn_adj_ctn,
+        (select sum(dt_adj.catch_qty)
+           from dlytrn dt_adj
+          where dt_adj.prtnum = id.prtnum
+            and dt_adj.prt_client_id = id.prt_client_id
+            and dt_adj.wh_id = il.wh_id
+            and dt_adj.oprcod = 'INVADJ'
+            and dt_adj.trndte between sysdate -1
+            and sysdate) as trn_adj_catch_weight,
+        case when prtmst_view.stkuom = prtmst_view.dspuom then cast(decode(prtmst_view.dspuom, null, sum(id.untqty), sum(id.untqty / prtftp_dtl.untqty)) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) as varchar(12))
+             else cast(decode(prtmst_view.dspuom, null, sum(id.untqty), sum(id.untqty / prtftp_dtl.untqty)) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), sum(mod(id.untqty, prtftp_dtl.untqty))) as varchar(12)) + ' ' + cast(decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) as varchar(12))
+        end as final_stock,
+        sum(id.catch_qty) as final_catch_weight,
         cast((select pdtl.netwgt
                 from prtftp_dtl pdtl
                where pdtl.ftpcod = prtftp_dtl.ftpcod
                  and pdtl.prtnum = prtftp_dtl.prtnum
                  and pdtl.prt_client_id = prtftp_dtl.prt_client_id
                  and pdtl.wh_id = prtftp_dtl.wh_id
-                 and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, sum(id.untqty), sum(id.untqty / prtftp_dtl.untqty)) as decimal(15, 4)) as carton_weight
+                 and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, sum(id.untqty), sum(id.untqty / prtftp_dtl.untqty)) as decimal(15, 4)) as final_carton_weight
    from prtmst_view
    join prtdsc pdc
      on pdc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
@@ -77,11 +135,9 @@
     and prtftp.ftpcod = prtftp_dtl.ftpcod
     and prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)
    left
-   join (select stock,
-                trn_in,
-                trn_out,
-                catch_weight,
-                carton_weight,
+   join (select final_stock,
+                final_catch_weight,
+                final_carton_weight,
                 prtnum,
                 lodnum,
                 revlvl,
@@ -90,11 +146,9 @@
            from soh_lpn_daily_tran
           where date_printed between sysdate -1
             and sysdate
-          group by stock,
-                trn_in,
-                trn_out,
-                catch_weight,
-                carton_weight,
+          group by final_stock,
+                final_catch_weight,
+                final_carton_weight,
                 prtnum,
                 lodnum,
                 revlvl,
@@ -105,8 +159,6 @@
     and sldt.wh_id = prtmst_view.wh_id
     and sldt.lodnum = il.lodnum
     and sldt.revlvl = id.revlvl
-  where @+prtmst_view.prt_client_id
-    and @+prtmst_view.wh_id
   group by il.wh_id,
         il.stoloc,
         il.lodnum,
@@ -124,11 +176,9 @@
         prtftp_dtl.prtnum,
         prtftp_dtl.prt_client_id,
         prtftp_dtl.wh_id,
-        sldt.stock,
-        sldt.trn_in,
-        sldt.trn_out,
-        sldt.catch_weight,
-        sldt.carton_weight
+        sldt.final_stock,
+        sldt.final_catch_weight,
+        sldt.final_carton_weight
   order by id.prtnum,
         il.lodnum asc]
 |
