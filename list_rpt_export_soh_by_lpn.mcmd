@@ -4,14 +4,18 @@
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
+publish data
+ where start_date = @date || '00000000'
+   and end_date = @date || '235959'
+|
 get client in clause for user
  where usr_id = nvl(@usr_id, @@usr_id)
    and @+wh_id
-   and @+start_date
 |
 [select *
    from soh_lpn_daily_tran
-  where date_printed >= @start_date:date
+  where date_printed between @start_date:date
+    and @end_date:date
     and @+prt_client_id
     and @+wh_id]
 ]]>
