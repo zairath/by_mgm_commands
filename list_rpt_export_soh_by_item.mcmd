@@ -5,7 +5,7 @@
   <local-syntax>
 <![CDATA[
 publish data
- where start_date = @date || '00000000'
+ where start_date = @date || '000000'
    and end_date = @date || '235959'
 |
 get client in clause for user
