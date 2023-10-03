@@ -28,7 +28,11 @@ get client in clause for user
         END AS CTNS,
         pw.pckdte,
         pw.last_pck_usr_id,
-        d.dispatch_dte
+        d.dispatch_dte,
+        pw.pck_catch_qty,
+        p.catch_unttyp,
+        p.catch_untwgt*pw.pck_catch_qty picked_weight,
+        pw.pckqty total_picked_qty
    from pckwrk_view pw
    join dlytrn dt
      on dt.ordnum = pw.ordnum
@@ -94,7 +98,11 @@ get client in clause for user
              ELSE (pw.pckqty / pw.untcas) END,
              pw.pckdte,
              pw.last_pck_usr_id,
-             d.dispatch_dte]
+             d.dispatch_dte,
+             pw.pck_catch_qty,
+             p.catch_unttyp,
+             p.catch_untwgt*pw.pck_catch_qty,
+             pw.pckqty]
 ]]>
 </local-syntax>
 </command>
