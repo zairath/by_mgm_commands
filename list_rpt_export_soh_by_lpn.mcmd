@@ -5,9 +5,6 @@
   <local-syntax>
 <![CDATA[
 publish data
- where date = to_date('20231002000000')
-|
-publish data
  where start_date = @date || '00000000'
    and end_date = @date || '235959'
 |
