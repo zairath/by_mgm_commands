@@ -10,7 +10,7 @@ get client in clause for user
 |
 [select *
    from soh_lpn_daily_tran
-  where datediff(day, date_printed, @date) = 0
+  where datediff(day, date_printed, @date:date) = 0
     and @+prt_client_id
     and @+wh_id]
 ]]>
