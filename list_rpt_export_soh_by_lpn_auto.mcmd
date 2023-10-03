@@ -8,7 +8,7 @@
         il.wh_id,
         il.stoloc,
         il.lodnum,
-        ivs.subnum,
+        id.subnum,
         id.prtnum,
         prtmst_view.stkuom,
         id.prt_client_id,
@@ -169,7 +169,7 @@
   group by il.wh_id,
         il.stoloc,
         il.lodnum,
-        ivs.subnum,
+        id.subnum,
         id.prtnum,
         prtmst_view.stkuom,
         id.prt_client_id,
@@ -190,7 +190,8 @@
         sldt.final_catch_weight,
         sldt.final_carton_weight
   order by id.prtnum,
-        il.lodnum asc]
+        il.lodnum,
+        id.subnum asc]
 |
 create record
  where table_name = 'soh_lpn_daily_tran'
