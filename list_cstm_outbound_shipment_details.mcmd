@@ -14,7 +14,6 @@ get client in clause for user
  select distinct shipment_line.wh_id,
         shipment_line.client_id,
         ord_line.entdte as datetime,
-        shipment_line.prtnum,
         sum(nvl(inv.untqty, 0)) untqty,
         prtmst_view.stkuom,
         sum(floor(shipment_line.picked_qty / prtftp_dtl.untqty)) as dspuom_qty,
@@ -117,12 +116,10 @@ get client in clause for user
   group by shipment_line.wh_id,
         shipment_line.client_id,
         ord_line.entdte,
-        shipment_line.prtnum,
         prtmst_view.dspuom,
         prtmst_view.stkuom
   order by shipment_line.wh_id,
-        shipment_line.client_id,
-        shipment_line.prtnum]
+        shipment_line.client_id]
 ]]>
 </local-syntax>
 </command>

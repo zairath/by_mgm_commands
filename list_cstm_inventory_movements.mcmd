@@ -13,7 +13,6 @@ get client in clause for user
 [select evt.date || ' ' || evt.time as datetime,
         evt.warehouse_id,
         evt.prt_client_id,
-        evt.prtnum,
         evt.activity,
         sum(evt.trnqty) as trnqty,
         sum(evt.qty_karton) as qty_karton,
@@ -226,12 +225,10 @@ get client in clause for user
         evt.time,
         evt.warehouse_id,
         evt.prt_client_id,
-        evt.prtnum,
         evt.activity
   order by evt.date,
         evt.warehouse_id,
-        evt.prt_client_id,
-        evt.prtnum]
+        evt.prt_client_id]
 ]]>
 </local-syntax>
 </command>
