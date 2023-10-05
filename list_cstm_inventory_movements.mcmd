@@ -10,7 +10,7 @@ get client in clause for user
    and @+start_date
    and @+end_date
 |
-[select evt.date || ' ' || evt.time as datetime,
+[select evt.date as datetime,
         evt.warehouse_id,
         evt.prt_client_id,
         evt.activity,
@@ -222,7 +222,6 @@ get client in clause for user
             and @+dlytrn.wh_id
             and @+dlytrn.prtnum) as evt
   group by evt.date,
-        evt.time,
         evt.warehouse_id,
         evt.prt_client_id,
         evt.activity

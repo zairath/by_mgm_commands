@@ -17,7 +17,7 @@ get client in clause for user
 [/*#api-query*/
  select inventory.wh_id,
         inventory.prt_client_id,
-        inventory.rcvdte as datetime,
+        cast(inventory.rcvdte as date) as datetime,
         inventory.prtfamgrp as 'temp',
         sum(inventory.untqty) as untqty,
         sum(inventory.catch_qty) as catch_qty,
@@ -396,7 +396,7 @@ get client in clause for user
          */
   group by inventory.wh_id,
         inventory.prt_client_id,
-        inventory.rcvdte,
+        CAST(inventory.rcvdte as date),
         inventory.prtfamgrp,
         inventory.dsp_untqty_uom,
         inventory.rem_untqty_uom
