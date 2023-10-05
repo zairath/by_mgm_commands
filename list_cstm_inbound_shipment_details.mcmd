@@ -23,9 +23,9 @@ get client in clause for user
         sum(inventory.catch_qty) as catch_qty,
         sum(inventory.carton_weight) as carton_weight,
         sum(inventory.dsp_untqty) as dsp_untqty,
-        inventory.dsp_untqty_uom,
+        max(inventory.dsp_untqty_uom) as dsp_untqty_uom,
         sum(inventory.rem_untqty) as rem_untqty,
-        inventory.rem_untqty_uom,
+        max(inventory.rem_untqty_uom) as rem_untqty_uom,
         count(inventory.revlvl) as qty_of_pallets
    from
         /* Union live and historical inventory */
@@ -397,9 +397,7 @@ get client in clause for user
   group by inventory.wh_id,
         inventory.prt_client_id,
         CAST(inventory.rcvdte as date),
-        inventory.prtfamgrp,
-        inventory.dsp_untqty_uom,
-        inventory.rem_untqty_uom
+        inventory.prtfamgrp
   order by inventory.wh_id,
         inventory.prt_client_id]
 ]]>
