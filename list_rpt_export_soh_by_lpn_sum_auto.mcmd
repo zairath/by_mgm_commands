@@ -1,0 +1,142 @@
+<command>
+  <name>list rpt export soh by lpn sum auto</name>
+  <description>list rpt export soh by lpn sum auto</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+[select sysdate as date_printed,
+        prtmst_view.prt_client_id,
+        count(distinct dtin.lodnum) as inbound_pallet,
+        count(distinct dtout.lodnum) as outbound_pallet,
+        count(distinct dtconsmins.lodnum) as consolidation_pallet_minus,
+        count(distinct dtconsplus.lodnum) as consolidation_pallet_plus,
+        count(distinct dtaddpl.lodnum) as adjustment_add_pallet,
+        count(distinct dtdelpl.lodnum) as adjustment_remove_pallet,
+        count(distinct invlod.lodnum) as final_pallet
+   from prtmst_view
+   left
+   join invdtl
+     on invdtl.prtnum = prtmst_view.prtnum
+    and invdtl.prt_client_id = prtmst_view.prt_client_id
+   left
+   join invsub
+     on invsub.subnum = invdtl.subnum
+   left
+   join invlod
+     on invlod.lodnum = invsub.lodnum
+    and invlod.wh_id = prtmst_view.wh_id
+    and invlod.prmflg = 0
+   left
+   join (select dt_in.lodnum,
+                dt_in.subnum,
+                dt_in.prtnum,
+                dt_in.prt_client_id,
+                dt_in.wh_id
+           from dlytrn dt_in
+          where dt_in.actcod = 'RCV'
+            and dt_in.oprcod = 'UID'
+            and dt_in.trndte between sysdate -1
+            and sysdate) dtin
+     on dtin.prtnum = prtmst_view.prtnum
+    and dtin.prt_client_id = prtmst_view.prt_client_id
+    and dtin.wh_id = prtmst_view.wh_id
+   left
+   join (select dt_out.prtnum,
+                dt_out.prt_client_id,
+                dt_out.wh_id,
+                dt_out.lodnum
+           from dlytrn dt_out
+          where dt_out.actcod = 'LSTPCK'
+            and dt_out.oprcod = 'UPK'
+            and dt_out.fr_arecod in ('B1-RSTG', 'B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-RSTG', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
+            and dt_out.trndte between sysdate -1
+            and sysdate
+          group by dt_out.prtnum,
+                dt_out.prt_client_id,
+                dt_out.wh_id,
+                dt_out.lodnum) dtout
+     on dtout.wh_id = prtmst_view.wh_id
+    and dtout.prt_client_id = prtmst_view.prt_client_id
+    and dtout.prtnum = prtmst_view.prtnum
+   left
+   join (select dt_cons_min.prtnum,
+                dt_cons_min.prt_client_id,
+                dt_cons_min.wh_id,
+                dt_cons_min.lodnum
+           from dlytrn dt_cons_min
+          where dt_cons_min.oprcod = 'UTR'
+            and dt_cons_min.actcod = 'FL_XFR'
+            and dt_cons_min.fr_arecod in ('B1-RSTG', 'B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-RSTG', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
+            and dt_cons_min.trndte between sysdate -1
+            and sysdate
+          group by dt_cons_min.prtnum,
+                dt_cons_min.prt_client_id,
+                dt_cons_min.wh_id,
+                dt_cons_min.lodnum) dtconsmins
+     on dtconsmins.wh_id = prtmst_view.wh_id
+    and dtconsmins.prt_client_id = prtmst_view.prt_client_id
+    and dtconsmins.prtnum = prtmst_view.prtnum
+   left
+   join (select dt_cons_plus.prtnum,
+                dt_cons_plus.prt_client_id,
+                dt_cons_plus.wh_id,
+                dt_cons_plus.lodnum
+           from dlytrn dt_cons_plus
+          where dt_cons_plus.oprcod = 'UTR'
+            and dt_cons_plus.actcod = 'PL_XFR'
+            and dt_cons_plus.to_arecod in ('B1-RSTG', 'B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-RSTG', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
+            and dt_cons_plus.trndte between sysdate -1
+            and sysdate
+          group by dt_cons_plus.prtnum,
+                dt_cons_plus.prt_client_id,
+                dt_cons_plus.wh_id,
+                dt_cons_plus.lodnum) dtconsplus
+     on dtconsplus.wh_id = prtmst_view.wh_id
+    and dtconsplus.prt_client_id = prtmst_view.prt_client_id
+    and dtconsplus.prtnum = prtmst_view.prtnum
+   left
+   join (select dt_add_pl.prtnum,
+                dt_add_pl.prt_client_id,
+                dt_add_pl.wh_id,
+                dt_add_pl.lodnum
+           from dlytrn dt_add_pl
+          where dt_add_pl.actcod = 'IDNTFY'
+            and dt_add_pl.lodnum like 'PERM-CRE-LOD-%'
+            and dt_add_pl.to_arecod in ('B1-RSTG', 'B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-RSTG', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
+            and dt_add_pl.trndte between sysdate -1
+            and sysdate
+          group by dt_add_pl.prtnum,
+                dt_add_pl.prt_client_id,
+                dt_add_pl.wh_id,
+                dt_add_pl.lodnum) dtaddpl
+     on dtaddpl.wh_id = prtmst_view.wh_id
+    and dtaddpl.prt_client_id = prtmst_view.prt_client_id
+    and dtaddpl.prtnum = prtmst_view.prtnum
+   left
+   join (select dt_del_pl.prtnum,
+                dt_del_pl.prt_client_id,
+                dt_del_pl.wh_id,
+                dt_del_pl.lodnum
+           from dlytrn dt_del_pl
+          where dt_del_pl.oprcod = 'INVADJ'
+            and dt_del_pl.actcod = 'INVDEL'
+            and dt_del_pl.to_lodnum like 'PERM-ADJ-LOD-%'
+            and dt_del_pl.lodnum not in (select lodnum
+                                           from invlod)
+            and dt_del_pl.fr_arecod in ('B1-RSTG', 'B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-RSTG', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
+            and dt_del_pl.trndte between sysdate -1
+            and sysdate
+          group by dt_del_pl.prtnum,
+                dt_del_pl.prt_client_id,
+                dt_del_pl.wh_id,
+                dt_del_pl.lodnum) dtdelpl
+     on dtdelpl.wh_id = prtmst_view.wh_id
+    and dtdelpl.prt_client_id = prtmst_view.prt_client_id
+    and dtdelpl.prtnum = prtmst_view.prtnum
+  group by prtmst_view.prt_client_id]
+|
+create record
+ where table_name = 'soh_sum_pallet_daily_tran'
+]]>
+</local-syntax>
+</command>
