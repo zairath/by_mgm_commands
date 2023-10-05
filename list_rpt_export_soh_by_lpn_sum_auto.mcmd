@@ -5,7 +5,9 @@
   <local-syntax>
 <![CDATA[
 [select sysdate as date_printed,
+        prtmst_view.wh_id,
         prtmst_view.prt_client_id,
+        adrmst.adrnam as client_name,
         sspdt.final_pallet as 'init_pallet',
         count(distinct dtin.lodnum) as inbound_pallet,
         count(distinct dtout.lodnum) as outbound_pallet,
@@ -15,6 +17,10 @@
         count(distinct dtdelpl.lodnum) as adjustment_remove_pallet,
         count(distinct invlod.lodnum) as final_pallet
    from prtmst_view
+   join client
+     on client.client_id = prtmst_view.prt_client_id
+   join adrmst
+     on adrmst.adr_id = client.adr_id
    left
    join invdtl
      on invdtl.prtnum = prtmst_view.prtnum
@@ -143,8 +149,11 @@
           group by final_pallet,
                 prt_client_id) sspdt
      on sspdt.prt_client_id = prtmst_view.prt_client_id
-  group by prtmst_view.prt_client_id,
-        sspdt.final_pallet]
+  where prtmst_view.wh_id not in ('----', 'WMD1')
+  group by prtmst_view.wh_id,
+        prtmst_view.prt_client_id,
+        sspdt.final_pallet,
+        adrmst.adrnam]
 |
 create record
  where table_name = 'soh_sum_pallet_daily_tran'
