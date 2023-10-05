@@ -1,0 +1,13 @@
+<command>
+  <name>list rpt export soh by lpn sum</name>
+  <description>list rpt export soh by lpn sum</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+[select *
+   from soh_sum_pallet_daily_tran
+  where datediff(day, date_printed, @date:date) = 0
+    and @+prt_client_id]
+]]>
+</local-syntax>
+</command>
