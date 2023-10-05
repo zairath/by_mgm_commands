@@ -6,6 +6,7 @@
 <![CDATA[
 [select sysdate as date_printed,
         prtmst_view.prt_client_id,
+        sspdt.final_pallet as 'init_pallet',
         count(distinct dtin.lodnum) as inbound_pallet,
         count(distinct dtout.lodnum) as outbound_pallet,
         count(distinct dtconsmins.lodnum) as consolidation_pallet_minus,
@@ -133,7 +134,17 @@
      on dtdelpl.wh_id = prtmst_view.wh_id
     and dtdelpl.prt_client_id = prtmst_view.prt_client_id
     and dtdelpl.prtnum = prtmst_view.prtnum
-  group by prtmst_view.prt_client_id]
+   left
+   join (select final_pallet,
+                prt_client_id
+           from soh_sum_pallet_daily_tran
+          where date_printed between sysdate -1
+            and sysdate
+          group by final_pallet,
+                prt_client_id) sspdt
+     on sspdt.prt_client_id = prtmst_view.prt_client_id
+  group by prtmst_view.prt_client_id,
+        sspdt.final_pallet]
 |
 create record
  where table_name = 'soh_sum_pallet_daily_tran'
