@@ -5,9 +5,9 @@
   <local-syntax>
 <![CDATA[
 publish data
- where date_from = '20231001000000'
-   and date_to = '20231005000000'
-   and oprcod = 'LPCK'
+ where date_from = @date_from
+   and date_to = @date_to
+   and oprcod = @oprcod
 |
 get client in clause for user
  where usr_id = nvl(@usr_id, @@usr_id)
