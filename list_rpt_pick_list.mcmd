@@ -258,8 +258,7 @@ if (@oprcod = 'LPCK')
                 a.revlvl,
                 zm.wrkzon,
                 a.pck_uom
-          order by a.list_id,
-                b.prtfam]
+          order by a.srcloc]
     }
     else
     {
@@ -506,8 +505,7 @@ if (@oprcod = 'LPCK')
                 a.revlvl,
                 zm.wrkzon,
                 a.pck_uom
-          order by a.list_id,
-                b.prtfam]
+          order by a.srcloc]
     }
 }
 else if (@oprcod = 'LPCKRPL')
@@ -636,8 +634,7 @@ else if (@oprcod = 'LPCKRPL')
                 a.revlvl,
                 zm.wrkzon,
                 a.pck_uom
-          order by a. list_id,
-                b.prtfam]
+          order by a.srcloc]
     }
     else
     {
@@ -761,8 +758,7 @@ else if (@oprcod = 'LPCKRPL')
                 a.revlvl,
                 zm.wrkzon,
                 a.pck_uom
-          order by a. list_id,
-                b.prtfam]
+          order by a.srcloc]
     }
 }
 ]]>
