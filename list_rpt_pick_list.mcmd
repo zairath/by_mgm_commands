@@ -200,19 +200,17 @@ if (@oprcod = 'LPCK')
             and dlytrn.oprcod = 'UPK'
             and dlytrn.actcod = 'LSTPCK'
            left
-           join invsub
-             on invsub.lodnum = dlytrn.lodnum
-           left
            join invsub_hist
-             on invsub_hist.lodnum = dlytrn.lodnum
-            and invsub_hist.lodnum <> invsub.lodnum
-           left
-           join invdtl
-             on invdtl.subnum = invsub_hist.subnum
+             on invsub_hist.lodnum = dlytrn.to_lodnum
            left
            join invdtl_hist
              on invdtl_hist.subnum = invsub_hist.subnum
-            and invdtl_hist.subnum <> invsub.subnum
+           left
+           join invsub
+             on invsub.lodnum = dlytrn.lodnum
+           left
+           join invdtl
+             on invdtl.subnum = dlytrn.subnum
           where a.list_id is not null
             and m.defftp_flg = '1'
             and @+d.ordnum
@@ -445,19 +443,17 @@ if (@oprcod = 'LPCK')
             and dlytrn.oprcod = 'UPK'
             and dlytrn.actcod = 'LSTPCK'
            left
-           join invsub
-             on invsub.lodnum = dlytrn.lodnum
-           left
            join invsub_hist
-             on invsub_hist.lodnum = dlytrn.lodnum
-            and invsub_hist.lodnum <> invsub.lodnum
-           left
-           join invdtl
-             on invdtl.subnum = invsub_hist.subnum
+             on invsub_hist.lodnum = dlytrn.to_lodnum
            left
            join invdtl_hist
              on invdtl_hist.subnum = invsub_hist.subnum
-            and invdtl_hist.subnum <> invsub.subnum
+           left
+           join invsub
+             on invsub.lodnum = dlytrn.lodnum
+           left
+           join invdtl
+             on invdtl.subnum = dlytrn.subnum
           where a.list_id is not null
             and m.defftp_flg = '1'
             and @+d.ordnum
@@ -585,22 +581,20 @@ else if (@oprcod = 'LPCKRPL')
              on dlytrn.prtnum = a.prtnum
             and dlytrn.ordnum = d.ordnum
             and dlytrn.wh_id = d.wh_id
-            and dlytrn.oprcod = 'UPK'
+            and dlytrn.oprcod = 'RLPCK'
             and dlytrn.actcod = 'LSTPCK'
+           left
+           join invsub_hist
+             on invsub_hist.lodnum = dlytrn.to_lodnum
+           left
+           join invdtl_hist
+             on invdtl_hist.subnum = invsub_hist.subnum
            left
            join invsub
              on invsub.lodnum = dlytrn.lodnum
            left
-           join invsub_hist
-             on invsub_hist.lodnum = dlytrn.lodnum
-            and invsub_hist.lodnum <> invsub.lodnum
-           left
            join invdtl
-             on invdtl.subnum = invsub_hist.subnum
-           left
-           join invdtl_hist
-             on invdtl_hist.subnum = invsub_hist.subnum
-            and invdtl_hist.subnum <> invsub.subnum
+             on invdtl.subnum = dlytrn.subnum
           where a.list_id is not null
             and m.defftp_flg = '1'
             and @+a.ordnum
@@ -711,22 +705,20 @@ else if (@oprcod = 'LPCKRPL')
              on dlytrn.prtnum = a.prtnum
             and dlytrn.ordnum = d.ordnum
             and dlytrn.wh_id = d.wh_id
-            and dlytrn.oprcod = 'UPK'
+            and dlytrn.oprcod = 'RLPCK'
             and dlytrn.actcod = 'LSTPCK'
+           left
+           join invsub_hist
+             on invsub_hist.lodnum = dlytrn.to_lodnum
+           left
+           join invdtl_hist
+             on invdtl_hist.subnum = invsub_hist.subnum
            left
            join invsub
              on invsub.lodnum = dlytrn.lodnum
            left
-           join invsub_hist
-             on invsub_hist.lodnum = dlytrn.lodnum
-            and invsub_hist.lodnum <> invsub.lodnum
-           left
            join invdtl
-             on invdtl.subnum = invsub_hist.subnum
-           left
-           join invdtl_hist
-             on invdtl_hist.subnum = invsub_hist.subnum
-            and invdtl_hist.subnum <> invsub.subnum
+             on invdtl.subnum = dlytrn.subnum
           where a.list_id is not null
             and m.defftp_flg = '1'
             and @+a.ordnum
