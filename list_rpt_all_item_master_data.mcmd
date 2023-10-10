@@ -1,6 +1,6 @@
 <command>
-  <name>list all item master data</name>
-  <description>list all item master data</description>
+  <name>list rpt all item master data</name>
+  <description>list rpt all item master data</description>
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
