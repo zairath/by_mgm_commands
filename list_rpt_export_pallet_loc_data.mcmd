@@ -8,7 +8,7 @@ get client in clause for user
  where usr_id = nvl(@usr_id, @@usr_id)
    and stoloc_wh_id = nvl(@wh_id, @@wh_id)
 |
-[select distinct top 100locmst.stoloc,
+[select distinct locmst.stoloc,
         locmst.aisle_id,
         locmst.arecod,
         adr.adrnam,
