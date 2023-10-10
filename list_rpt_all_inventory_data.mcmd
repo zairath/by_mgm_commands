@@ -1,0 +1,39 @@
+<command>
+  <name>list rpt all inventory data</name>
+  <description>list rpt all inventory data</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+[select wh_id,
+        stoloc,
+        lodnum,
+        subnum,
+        prtnum,
+        prt_client_id,
+        revlvl,
+        invsts,
+        supnum,
+        age_pflnam,
+        fifdte,
+        mandte,
+        expire_dte,
+        untqty,
+        untcas,
+        untpak,
+        ftpcod,
+        adddte,
+        rcvdte,
+        lstmov,
+        lstdte,
+        lstcod,
+        lst_usr_id,
+        catch_qty,
+        lst_mov_zone_id,
+        inv_attr_str1,
+        inv_attr_str2,
+        inv_attr_str3,
+        rcv_catch_qty
+   from inventory_view]
+]]>
+</local-syntax>
+</command>
