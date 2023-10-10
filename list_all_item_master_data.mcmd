@@ -1,0 +1,59 @@
+<command>
+  <name>list all item master data</name>
+  <description>list all item master data</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+[select prtmst.prtnum,
+        prtdsc.lngdsc,
+        prtmst.prt_client_id,
+        prtmst.prtfam,
+        prtmst.dsp_prtnum,
+        prtmst.age_pflnam,
+        prtmst.lodlvl,
+        prtmst.untcst,
+        prtmst.reoqty,
+        prtmst.reopnt,
+        prtmst.stkuom,
+        prtmst.velzon,
+        prtmst.rcvsts,
+        prtmst.catch_cod,
+        prtmst.catch_unttyp,
+        prtmst.min_catch_qty,
+        prtmst.max_catch_qty,
+        prtmst.time_to_warn_for_exp,
+        prtmst.crncy_code,
+        prtmst.dspuom,
+        prtmst.dte_code,
+        prtmst.ordinv,
+        prtmst.shelf_life,
+        prtmst.shelf_timecode,
+        prtftp_dtl.ftpcod,
+        prtftp_dtl.uomcod,
+        prtftp_dtl.uomlvl,
+        prtftp_dtl.len,
+        prtftp_dtl.wid,
+        prtftp_dtl.hgt,
+        prtftp_dtl.grswgt,
+        prtftp_dtl.netwgt,
+        prtftp_dtl.pal_flg,
+        prtftp_dtl.layer_flg,
+        prtftp_dtl.cas_flg,
+        prtftp_dtl.pak_flg,
+        prtftp_dtl.stk_flg,
+        prtftp_dtl.rcv_flg,
+        prtftp_dtl.untqty
+   from prtmst
+   join prtftp_dtl
+     on prtftp_dtl.prtnum = prtmst.prtnum
+    and prtftp_dtl.prt_client_id = prtmst.prt_client_id
+    and prtftp_dtl.wh_id = prtmst.wh_id_tmpl
+   join prtdsc
+     on (prtdsc.colval = /*=varchar(*/ prtmst.prtnum || '|' || prtmst.prt_client_id || '|' || prtmst.wh_id_tmpl /*=)*/)
+  where wh_id_tmpl = '----'
+  order by prtmst.prt_client_id,
+        prtmst.prtnum,
+        prtftp_dtl.uomlvl asc]
+]]>
+</local-syntax>
+</command>
