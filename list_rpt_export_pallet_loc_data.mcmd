@@ -40,6 +40,7 @@ get client in clause for user
         sz_desc.lngdsc as storage_zone,
         all_inventory_view.inv_attr_str1 as batch_code,
         all_inventory_view.inv_attr_str2 as reference_1,
+        all_inventory_view.inv_attr_str3 as reference_2,
         dlytrn.usr_id as putaway_user
    from locmst
    join loc_typ
