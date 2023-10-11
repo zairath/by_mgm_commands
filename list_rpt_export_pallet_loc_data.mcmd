@@ -23,6 +23,8 @@ get client in clause for user
         all_inventory_view.untcas,
         decode(prtmst_view.dspuom, null, all_inventory_view.untqty, all_inventory_view.untqty / prtftp_dtl.untqty) dsp_untqty,
         decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
+        decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), mod(all_inventory_view.untqty, prtftp_dtl.untqty)) rem_untqty,
+        decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) rem_untqty_uom,
         all_inventory_view.catch_qty,
         prtmst_view.catch_unttyp,
         all_inventory_view.invsts,
@@ -62,14 +64,14 @@ get client in clause for user
    join prtdsc
      on prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
     and prtdsc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/
-    and prtdsc.locale_id = 'US_ENGLISH'
+    and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
    left
    join prtftp_dtl
-     on prtmst_view.prtnum = prtftp_dtl.prtnum
-    and prtmst_view.wh_id = prtftp_dtl.wh_id
-    and prtmst_view.prt_client_id = prtftp_dtl.prt_client_id
+     on all_inventory_view.prtnum = prtftp_dtl.prtnum
+    and all_inventory_view.wh_id = prtftp_dtl.wh_id
+    and all_inventory_view.prt_client_id = prtftp_dtl.prt_client_id
     and all_inventory_view.ftpcod = prtftp_dtl.ftpcod
-    and prtftp_dtl.cas_flg = 1
+    and prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)
    left
    join rcvlin
      on rcvlin.rcvkey = all_inventory_view.rcvkey
