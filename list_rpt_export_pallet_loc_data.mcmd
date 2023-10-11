@@ -12,73 +12,74 @@ get client in clause for user
         locmst.aisle_id,
         locmst.arecod,
         adr.adrnam,
-        iv.prt_client_id,
-        iv.lodnum,
-        iv.subnum,
-        iv.prtnum,
-        pv.prtfam,
-        c.lngdsc,
-        iv.revlvl,
-        iv.untqty,
-        iv.untcas,
-        decode(pv.dspuom, null, iv.untqty, iv.untqty / prtftp_dtl.untqty) dsp_untqty,
-        decode(pv.dspuom, null, pv.stkuom, pv.dspuom) dsp_untqty_uom,
-        iv.catch_qty,
-        p.catch_unttyp,
-        iv.invsts,
+        all_inventory_view.prt_client_id,
+        all_inventory_view.lodnum,
+        all_inventory_view.subnum,
+        all_inventory_view.prtnum,
+        prtmst_view.prtfam,
+        prtdsc.lngdsc,
+        all_inventory_view.revlvl,
+        all_inventory_view.untqty,
+        all_inventory_view.untcas,
+        decode(prtmst_view.dspuom, null, all_inventory_view.untqty, all_inventory_view.untqty / prtftp_dtl.untqty) dsp_untqty,
+        decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
+        all_inventory_view.catch_qty,
+        prtmst_view.catch_unttyp,
+        all_inventory_view.invsts,
         inv_stat.lngdsc as invsts_desc,
-        p.stkuom,
-        iv.mandte,
-        iv.expire_dte,
-        iv.rcvdte,
+        prtmst_view.stkuom,
+        all_inventory_view.mandte,
+        all_inventory_view.expire_dte,
+        all_inventory_view.rcvdte,
         rcvtrk.mod_usr_id as create_user,
-        r.mod_usr_id as gr_user,
-        r.trknum,
+        rcvlin.mod_usr_id as gr_user,
+        rcvlin.trknum,
         trlr.trlr_num,
         sz_desc.lngdsc as storage_zone,
-        iv.inv_attr_str1 as batch_code,
-        iv.inv_attr_str2 as reference_1,
+        all_inventory_view.inv_attr_str1 as batch_code,
+        all_inventory_view.inv_attr_str2 as reference_1,
         dlytrn.usr_id as putaway_user
    from locmst
+   join loc_typ
+     on loc_typ.loc_typ_id = locmst.loc_typ_id
+    and loc_typ = 'STO'
    left
-   join inventory_view iv
-     on iv.stoloc = locmst.stoloc
+   join all_inventory_view
+     on all_inventory_view.stoloc = locmst.stoloc
+    and all_inventory_view.wh_id = locmst.wh_id
+    and all_inventory_view.inv_hist_id = -1
+    and all_inventory_view.prtnum != 'RETURNPART'
    left
-   join prtmst_view pv
-     on pv.prtnum = iv.prtnum
-    and pv.prt_client_id = iv.prt_client_id
-    and pv.wh_id = iv.wh_id
+   join aremst
+     on aremst.wh_id = locmst.wh_id
+    and aremst.arecod = locmst.arecod
    left
-   join prtdsc c
-     on c.colval = /*=varchar(*/ iv.prtnum || '|' || iv.prt_client_id || '|' || iv.wh_id /*=)*/
-    and c.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
-    and c.locale_id = nvl(@locale_id, @@locale_id)
+   join prtmst_view
+     on prtmst_view.prtnum = all_inventory_view.prtnum
+    and prtmst_view.prt_client_id = all_inventory_view.prt_client_id
+    and prtmst_view.wh_id = all_inventory_view.wh_id
    left
-   join prtmst p
-     on p.prtnum = iv.prtnum
-    and p.prt_client_id = iv.prt_client_id
-    and p.wh_id_tmpl = iv.wh_id
-   left
-   join prtftp
-     on pv.prtnum = prtftp.prtnum
-    and pv.wh_id = prtftp.wh_id
-    and pv.prt_client_id = prtftp.prt_client_id
-    and iv.ftpcod = prtftp.ftpcod
-     or prtftp.defftp_flg = decode(iv.ftpcod, NULL, 1, cast(null as int))
+   join prtdsc
+     on prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and prtdsc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/
+    and prtdsc.locale_id = 'US_ENGLISH'
    left
    join prtftp_dtl
-     on prtftp.prtnum = prtftp_dtl.prtnum
-    and prtftp.wh_id = prtftp_dtl.wh_id
-    and prtftp.prt_client_id = prtftp_dtl.prt_client_id
-    and prtftp.ftpcod = prtftp_dtl.ftpcod
-    and prtftp_dtl.uomcod = nvl(pv.dspuom, pv.stkuom)
+     on prtmst_view.prtnum = prtftp_dtl.prtnum
+    and prtmst_view.wh_id = prtftp_dtl.wh_id
+    and prtmst_view.prt_client_id = prtftp_dtl.prt_client_id
+    and all_inventory_view.ftpcod = prtftp_dtl.ftpcod
+    and prtftp_dtl.cas_flg = 1
    left
-   join rcvlin r
-     on r.rcvkey = iv.rcvkey
+   join rcvlin
+     on rcvlin.rcvkey = all_inventory_view.rcvkey
    left
-   join dscmst inv_stat
-     on inv_stat.colnam = 'invsts'
-    and inv_stat.colval = iv.invsts
+   join rcvinv
+     on rcvlin.wh_id = rcvinv.wh_id
+    and rcvlin.trknum = rcvinv.trknum
+    and rcvlin.invnum = rcvinv.invnum
+    and rcvlin.supnum = rcvinv.supnum
+    and rcvlin.client_id = rcvinv.client_id
    left
    join sto_zone sz
      on sz.sto_zone_id = locmst.sto_zone_id
@@ -88,27 +89,32 @@ get client in clause for user
     and sz_desc.colval = sz.sto_zone_cod || '|' || locmst.wh_id
    left
    join client cli
-     on cli.client_id = iv.prt_client_id
+     on cli.client_id = all_inventory_view.prt_client_id
    left
    join adrmst adr
      on adr.adr_id = cli.adr_id
    left
    join rcvtrk
-     on rcvtrk.trknum = r.trknum
+     on rcvtrk.trknum = rcvinv.trknum
    left
    join trlr
      on trlr.trlr_id = rcvtrk.trlr_id
    left
+   join dscmst inv_stat
+     on inv_stat.colnam = 'invsts'
+    and inv_stat.colval = all_inventory_view.invsts
+   left
    join dlytrn
-     on iv.lodnum = dlytrn.lodnum
+     on all_inventory_view.lodnum = dlytrn.lodnum
     and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY')
     and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN')
     and dlytrn.tostol not like '%CHAMBER%'
-  where locmst.loc_typ_id in ('10019', '10020', '10022')
+  where locmst.stoloc not like '%PERM%'
     and @+locmst.wh_id
-    and @+p.prtnum
-    and @+iv.lodnum
-    and @+iv.prt_client_id]
+    and @+prtmst_view.prtnum
+    and @+all_inventory_view.lodnum
+    and @+prtmst_view.prt_client_id
+  order by locmst.stoloc]
 ]]>
 </local-syntax>
 </command>
