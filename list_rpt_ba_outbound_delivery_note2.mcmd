@@ -37,6 +37,8 @@ get client in clause for user
         inv.mandte,
         inv.expire_dte,
         inv.inv_attr_str1,
+        inv.inv_attr_str2,
+        inv.inv_attr_str3,
         inv.invsts,
         nvl(inv.catch_qty, 0) as catch_qty,
         prtmst_view.catch_unttyp,
@@ -153,6 +155,8 @@ get client in clause for user
                 inventory_view.mandte,
                 inventory_view.expire_dte,
                 inventory_view.inv_attr_str1,
+                inventory_view.inv_attr_str2,
+                inventory_view.inv_attr_str3,
                 inventory_view.invsts,
                 sum(inventory_view.catch_qty) as catch_qty,
                 sum(inventory_view.untqty) as untqty
@@ -168,6 +172,8 @@ get client in clause for user
                 inventory_view.mandte,
                 inventory_view.expire_dte,
                 inventory_view.inv_attr_str1,
+                inventory_view.inv_attr_str2,
+                inventory_view.inv_attr_str3,
                 inventory_view.invsts) inv
      on (shipment_line.ship_line_id = inv.ship_line_id)
    left outer
