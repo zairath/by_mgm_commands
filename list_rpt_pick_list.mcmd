@@ -7,7 +7,7 @@
 publish data
  where date_from = @date_from
    and date_to = @date_to
-   and oprcod = @oprcod
+   and oprcod = nvl(@oprcod, 'LPCK')
 |
 get client in clause for user
  where usr_id = nvl(@usr_id, @@usr_id)
@@ -142,9 +142,9 @@ if (@oprcod = 'LPCK')
                 a.revlvl,
                 zm.wrkzon,
                 a.pck_uom,
-                coalesce(max(invdtl.inv_attr_str1), max(invdtl_hist.inv_attr_str1)) inv_attr_str1,
-                coalesce(max(invdtl.inv_attr_str2), max(invdtl_hist.inv_attr_str2)) inv_attr_str2,
-                coalesce(max(invdtl.inv_attr_str3), max(invdtl_hist.inv_attr_str3)) inv_attr_str3
+                max(invdtl.inv_attr_str1) inv_attr_str1,
+                max(invdtl.inv_attr_str2) inv_attr_str2,
+                max(invdtl.inv_attr_str3) inv_attr_str3
            from pckwrk_view a
            LEFT
            JOIN dscmst f
@@ -194,23 +194,19 @@ if (@oprcod = 'LPCK')
              on zm.wrk_zone_id = a.src_wrk_zone_id
            left
            join dlytrn
-             on dlytrn.prtnum = a.prtnum
-            and dlytrn.ordnum = d.ordnum
-            and dlytrn.wh_id = d.wh_id
-            and dlytrn.oprcod = 'UPK'
-            and dlytrn.actcod = 'LSTPCK'
+             on dlytrn.prtnum = b.prtnum
+            and dlytrn.wh_id = b.wh_id_tmpl
+            and dlytrn.prt_client_id = b.prt_client_id
            left
-           join invsub_hist
-             on invsub_hist.lodnum = dlytrn.to_lodnum
-           left
-           join invdtl_hist
-             on invdtl_hist.subnum = invsub_hist.subnum
+           join invlod
+             on invlod.lodnum = dlytrn.lodnum
+            and invlod.stoloc = dlytrn.tostol
            left
            join invsub
-             on invsub.lodnum = dlytrn.lodnum
+             on invsub.lodnum = invlod.lodnum
            left
            join invdtl
-             on invdtl.subnum = dlytrn.subnum
+             on invdtl.subnum = invsub.subnum
           where a.list_id is not null
             and m.defftp_flg = '1'
             and @+d.ordnum
@@ -385,9 +381,9 @@ if (@oprcod = 'LPCK')
                 a.revlvl,
                 zm.wrkzon,
                 a.pck_uom,
-                coalesce(max(invdtl.inv_attr_str1), max(invdtl_hist.inv_attr_str1)) inv_attr_str1,
-                coalesce(max(invdtl.inv_attr_str2), max(invdtl_hist.inv_attr_str2)) inv_attr_str2,
-                coalesce(max(invdtl.inv_attr_str3), max(invdtl_hist.inv_attr_str3)) inv_attr_str3
+                max(invdtl.inv_attr_str1) inv_attr_str1,
+                max(invdtl.inv_attr_str2) inv_attr_str2,
+                max(invdtl.inv_attr_str3) inv_attr_str3
            from pckwrk_view a
            LEFT
            JOIN dscmst f
@@ -437,23 +433,19 @@ if (@oprcod = 'LPCK')
              on zm.wrk_zone_id = a.src_wrk_zone_id
            left
            join dlytrn
-             on dlytrn.prtnum = a.prtnum
-            and dlytrn.ordnum = d.ordnum
-            and dlytrn.wh_id = d.wh_id
-            and dlytrn.oprcod = 'UPK'
-            and dlytrn.actcod = 'LSTPCK'
+             on dlytrn.prtnum = b.prtnum
+            and dlytrn.wh_id = b.wh_id_tmpl
+            and dlytrn.prt_client_id = b.prt_client_id
            left
-           join invsub_hist
-             on invsub_hist.lodnum = dlytrn.to_lodnum
-           left
-           join invdtl_hist
-             on invdtl_hist.subnum = invsub_hist.subnum
+           join invlod
+             on invlod.lodnum = dlytrn.lodnum
+            and invlod.stoloc = dlytrn.tostol
            left
            join invsub
-             on invsub.lodnum = dlytrn.lodnum
+             on invsub.lodnum = invlod.lodnum
            left
            join invdtl
-             on invdtl.subnum = dlytrn.subnum
+             on invdtl.subnum = invsub.subnum
           where a.list_id is not null
             and m.defftp_flg = '1'
             and @+d.ordnum
@@ -542,9 +534,9 @@ else if (@oprcod = 'LPCKRPL')
                 a.revlvl,
                 zm.wrkzon,
                 a.pck_uom,
-                coalesce(max(invdtl.inv_attr_str1), max(invdtl_hist.inv_attr_str1)) inv_attr_str1,
-                coalesce(max(invdtl.inv_attr_str2), max(invdtl_hist.inv_attr_str2)) inv_attr_str2,
-                coalesce(max(invdtl.inv_attr_str3), max(invdtl_hist.inv_attr_str3)) inv_attr_str3
+                max(invdtl.inv_attr_str1) inv_attr_str1,
+                max(invdtl.inv_attr_str2) inv_attr_str2,
+                max(invdtl.inv_attr_str3) inv_attr_str3
            from pckwrk_view a
            LEFT
            JOIN dscmst f
@@ -578,23 +570,19 @@ else if (@oprcod = 'LPCKRPL')
              on zm.wrk_zone_id = a.src_wrk_zone_id
            left
            join dlytrn
-             on dlytrn.prtnum = a.prtnum
-            and dlytrn.ordnum = d.ordnum
-            and dlytrn.wh_id = d.wh_id
-            and dlytrn.oprcod = 'RLPCK'
-            and dlytrn.actcod = 'LSTPCK'
+             on dlytrn.prtnum = b.prtnum
+            and dlytrn.wh_id = b.wh_id_tmpl
+            and dlytrn.prt_client_id = b.prt_client_id
            left
-           join invsub_hist
-             on invsub_hist.lodnum = dlytrn.to_lodnum
-           left
-           join invdtl_hist
-             on invdtl_hist.subnum = invsub_hist.subnum
+           join invlod
+             on invlod.lodnum = dlytrn.lodnum
+            and invlod.stoloc = dlytrn.tostol
            left
            join invsub
-             on invsub.lodnum = dlytrn.lodnum
+             on invsub.lodnum = invlod.lodnum
            left
            join invdtl
-             on invdtl.subnum = dlytrn.subnum
+             on invdtl.subnum = invsub.subnum
           where a.list_id is not null
             and m.defftp_flg = '1'
             and @+a.ordnum
@@ -666,9 +654,9 @@ else if (@oprcod = 'LPCKRPL')
                 a.revlvl,
                 zm.wrkzon,
                 a.pck_uom,
-                coalesce(max(invdtl.inv_attr_str1), max(invdtl_hist.inv_attr_str1)) inv_attr_str1,
-                coalesce(max(invdtl.inv_attr_str2), max(invdtl_hist.inv_attr_str2)) inv_attr_str2,
-                coalesce(max(invdtl.inv_attr_str3), max(invdtl_hist.inv_attr_str3)) inv_attr_str3
+                max(invdtl.inv_attr_str1) inv_attr_str1,
+                max(invdtl.inv_attr_str2) inv_attr_str2,
+                max(invdtl.inv_attr_str3) inv_attr_str3
            from pckwrk_view a
            LEFT
            JOIN dscmst f
@@ -702,23 +690,19 @@ else if (@oprcod = 'LPCKRPL')
              on zm.wrk_zone_id = a.src_wrk_zone_id
            left
            join dlytrn
-             on dlytrn.prtnum = a.prtnum
-            and dlytrn.ordnum = d.ordnum
-            and dlytrn.wh_id = d.wh_id
-            and dlytrn.oprcod = 'RLPCK'
-            and dlytrn.actcod = 'LSTPCK'
+             on dlytrn.prtnum = b.prtnum
+            and dlytrn.wh_id = b.wh_id_tmpl
+            and dlytrn.prt_client_id = b.prt_client_id
            left
-           join invsub_hist
-             on invsub_hist.lodnum = dlytrn.to_lodnum
-           left
-           join invdtl_hist
-             on invdtl_hist.subnum = invsub_hist.subnum
+           join invlod
+             on invlod.lodnum = dlytrn.lodnum
+            and invlod.stoloc = dlytrn.tostol
            left
            join invsub
-             on invsub.lodnum = dlytrn.lodnum
+             on invsub.lodnum = invlod.lodnum
            left
            join invdtl
-             on invdtl.subnum = dlytrn.subnum
+             on invdtl.subnum = invsub.subnum
           where a.list_id is not null
             and m.defftp_flg = '1'
             and @+a.ordnum
