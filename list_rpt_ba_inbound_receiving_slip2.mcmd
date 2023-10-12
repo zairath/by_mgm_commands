@@ -156,9 +156,10 @@ get client in clause for user
             and dsctrlr.colval = trlr.trlr_typ
            join carhdr
              on carhdr.carcod = trlr.carcod
+           join client
+             on client.client_id = rcvinv.client_id
            join adrmst
-             on adrmst.client_id = rcvlin.client_id
-            and adrmst.adrtyp = 'CLI'
+             on adrmst.adr_id = client.adr_id
           where @+prtmst_view.prtnum
             and @+rcvlin.mandte:date
             and @+rcvlin.expire_dte:date
