@@ -34,7 +34,7 @@ if (@oprcod = 'LPCK')
                 m.ftpcod,
                 g.adrln1 || ' ' || g.adrln2 || ' ' || g.adrln3 as customer_address,
                 g.phnnum as phone_number,
-                sum(a.pckqty / h.untqty) pick_qty,
+                decode(max(b.dspuom), null, sum(a.pckqty), sum(a.pckqty) / sum(h.untqty)) pick_qty,
                 (select sum(pckwrk_view.pckqty)
                    from (select pckwrk_view.pckqty
                            from pckwrk_view
@@ -152,16 +152,22 @@ if (@oprcod = 'LPCK')
             AND f.colnam = 'uomcod'
            JOIN pcklst e
              on e.list_id = a.list_id
-           JOIN prtmst b
+           JOIN prtmst_view b
              ON b.prtnum = a.prtnum
             and b.wh_id_tmpl = a.wh_id
             and b.prt_client_id = a.prt_client_id
+           JOIN prtftp m
+             on b.prtnum = m.prtnum
+            and b.wh_id = m.wh_id
+            and b.prt_client_id = m.prt_client_id
+            and a.ftpcod = m.ftpcod
+             or m.defftp_flg = decode(a.ftpcod, NULL, 1, cast(null as int))
            JOIN prtftp_dtl h
-             ON h.prtnum = a.prtnum
-            and h.wh_id = a.wh_id
-            and h.ftpcod = a.ftpcod
-            and h.prt_client_id = a.prt_client_id
-            and h.uomcod = a.pck_uom
+             on m.prtnum = h.prtnum
+            and m.wh_id = h.wh_id
+            and m.prt_client_id = h.prt_client_id
+            and m.ftpcod = h.ftpcod
+            and h.uomcod = nvl(b.dspuom, b.stkuom)
            JOIN ord d
              ON d.ordnum = a.ordnum
             and d.wh_id = a.wh_id
@@ -178,11 +184,6 @@ if (@oprcod = 'LPCK')
              ON c.colval = /*=varchar(*/ a.prtnum || '|' || b.prt_client_id || '|' || b.wh_id_tmpl /*=)*/
             AND c.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
             AND c.locale_id = nvl(@locale_id, @@locale_id)
-           JOIN prtftp m
-             ON m.prtnum = a.prtnum
-            and m.wh_id = a.wh_id
-            and m.ftpcod = a.ftpcod
-            and m.prt_client_id = a.prt_client_id
            LEFT
            JOIN dscmst q
              ON q.colval = d.ordtyp || '|' || d.wh_id
@@ -273,7 +274,7 @@ if (@oprcod = 'LPCK')
                 m.ftpcod,
                 g.adrln1 || ' ' || g.adrln2 || ' ' || g.adrln3 as customer_address,
                 g.phnnum as phone_number,
-                sum(a.pckqty / h.untqty) pick_qty,
+                decode(max(b.dspuom), null, sum(a.pckqty), sum(a.pckqty) / sum(h.untqty)) pick_qty,
                 (select sum(pckwrk_view.pckqty)
                    from (select pckwrk_view.pckqty
                            from pckwrk_view
@@ -391,16 +392,22 @@ if (@oprcod = 'LPCK')
             AND f.colnam = 'uomcod'
            JOIN pcklst e
              on e.list_id = a.list_id
-           JOIN prtmst b
+           JOIN prtmst_view b
              ON b.prtnum = a.prtnum
             and b.wh_id_tmpl = a.wh_id
             and b.prt_client_id = a.prt_client_id
+           JOIN prtftp m
+             on b.prtnum = m.prtnum
+            and b.wh_id = m.wh_id
+            and b.prt_client_id = m.prt_client_id
+            and a.ftpcod = m.ftpcod
+             or m.defftp_flg = decode(a.ftpcod, NULL, 1, cast(null as int))
            JOIN prtftp_dtl h
-             ON h.prtnum = a.prtnum
-            and h.wh_id = a.wh_id
-            and h.ftpcod = a.ftpcod
-            and h.prt_client_id = a.prt_client_id
-            and h.uomcod = a.pck_uom
+             on m.prtnum = h.prtnum
+            and m.wh_id = h.wh_id
+            and m.prt_client_id = h.prt_client_id
+            and m.ftpcod = h.ftpcod
+            and h.uomcod = nvl(b.dspuom, b.stkuom)
            JOIN ord d
              ON d.ordnum = a.ordnum
             and d.wh_id = a.wh_id
@@ -417,11 +424,6 @@ if (@oprcod = 'LPCK')
              ON c.colval = /*=varchar(*/ a.prtnum || '|' || b.prt_client_id || '|' || b.wh_id_tmpl /*=)*/
             AND c.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
             AND c.locale_id = nvl(@locale_id, @@locale_id)
-           JOIN prtftp m
-             ON m.prtnum = a.prtnum
-            and m.wh_id = a.wh_id
-            and m.ftpcod = a.ftpcod
-            and m.prt_client_id = a.prt_client_id
            LEFT
            JOIN dscmst q
              ON q.colval = d.ordtyp || '|' || d.wh_id
