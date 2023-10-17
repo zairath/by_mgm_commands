@@ -175,6 +175,7 @@ get client in clause for user
             and rcvtrk.rcvtrk_stat = 'C'
             and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
             and aremst.arecod not in ('ADJS', 'DSPCH')
+            and rcvinv.invtyp <> 'P1'
             and @+rcvlin.rcvkey
             and @+rcvlin.supnum
             and @+rcvlin.rcvkey
@@ -356,6 +357,7 @@ get client in clause for user
             and rcvtrk.rcvtrk_stat = 'C'
             and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
             and aremst.arecod not in ('ADJS', 'DSPCH')
+            and rcvinv.invtyp <> 'P1'
             and @+rcvlin.rcvkey
             and @+rcvlin.supnum
             and @+rcvlin.rcvkey
