@@ -176,6 +176,7 @@ get client in clause for user
    join prtfam
      on prtfam.prtfam = prtmst_view.prtfam
   where ord_line.non_alc_flg = '0'
+    and ord.ordtyp <> 'C1'
     and @+shipment_line.ship_id
     and @+shipment_line.ship_line_id
     and @+shipment_line.client_id
