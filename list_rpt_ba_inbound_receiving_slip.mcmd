@@ -25,8 +25,8 @@ get client in clause for user
         max(rcvLineDtl.rcvqty) rcvqty,
         max(rcvLineDtl.rptqty) rptqty,
         nvl(max(rcvLineDtl.exp_catch_qty), 0) exp_catch_qty,
-        nvl(max(rcvLineDtl.idn_catch_qty), 0) idn_catch_qty,
-        nvl(max(rcvLineDtl.rcv_catch_qty), 0) rcv_catch_qty,
+        nvl(sum(rcvLineDtl.idn_catch_qty), 0) idn_catch_qty,
+        nvl(sum(rcvLineDtl.rcv_catch_qty), 0) rcv_catch_qty,
         decode(count(distinct rcvLineDtl.orgcod), 1, max(rcvLineDtl.orgcod), max(rcvLineOrg.orgcod)) orgcod,
         decode(count(distinct rcvLineDtl.revlvl), 1, max(rcvLineDtl.revlvl), max(rcvLineDtl.revlvl)) revlvl,
         decode(count(distinct rcvLineDtl.lotnum), 1, max(rcvLineDtl.lotnum), max(rcvLineOrg.lotnum)) lotnum,
@@ -44,12 +44,12 @@ get client in clause for user
         max(hot_flg) hot_flg,
         max(expdte) expected_date,
         max(completed_date) completed_date,
-        max(grswgt) * 0.0283495 * max(rcvLineDtl.rcvqty) as gross_weight,
-        max(netwgt) * 0.0283495 * max(rcvLineDtl.rcvqty) as netto_weight,
-        floor(max(rcvLineDtl.rcvqty) / max(actual_ctn)) as actual_carton,
+        max(grswgt) * 0.0283495 * sum(rcvLineDtl.rcvqty) as gross_weight,
+        max(netwgt) * 0.0283495 * sum(rcvLineDtl.rcvqty) as netto_weight,
+        floor(max(rcvLineDtl.rcvqty) / sum(actual_ctn)) as actual_carton,
         decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom)) dsp_untqty_uom,
-        case when max(rcvLineDtl.stkuom) = max(rcvLineDtl.dspuom) then cast(floor(max(rcvLineDtl.rcvqty / actual_pcs)) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom))
-             else cast(floor(max(rcvLineDtl.rcvqty) / max(actual_ctn)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, cast(null as int), max(rcvLineDtl.stkuom), cast(null as int), mod(max(rcvLineDtl.rcvqty), max(actual_pcs))) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, null, max(rcvLineDtl.stkuom), null, max(rcvLineDtl.stkuom))
+        case when max(rcvLineDtl.stkuom) = max(rcvLineDtl.dspuom) then cast(floor(sum(rcvLineDtl.rcvqty / actual_pcs)) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom))
+             else cast(floor(sum(rcvLineDtl.rcvqty) / max(actual_ctn)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, cast(null as int), max(rcvLineDtl.stkuom), cast(null as int), mod(max(rcvLineDtl.rcvqty), max(actual_pcs))) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, null, max(rcvLineDtl.stkuom), null, max(rcvLineDtl.stkuom))
         end as quantity_reported,
         cast((select pdtl2.netwgt
                 from prtftp_dtl pdtl2
@@ -57,7 +57,7 @@ get client in clause for user
                  and pdtl2.prtnum = max(rcvLineDtl.prtnum)
                  and pdtl2.prt_client_id = max(rcvLineDtl.prt_client_id)
                  and pdtl2.wh_id = max(rcvLineDtl.wh_id)
-                 and pdtl2.uomcod = nvl(max(rcvLineDtl.dspuom), max(rcvLineDtl.stkuom))) / 35.274 * decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.dtluntqty), max(rcvLineDtl.rcvqty) / max(rcvLineDtl.actual_ctn)) as decimal(10, 2)) as carton_weight,
+                 and pdtl2.uomcod = nvl(max(rcvLineDtl.dspuom), max(rcvLineDtl.stkuom))) / 35.274 * decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.dtluntqty), sum(rcvLineDtl.rcvqty) / max(rcvLineDtl.actual_ctn)) as decimal(10, 2)) as carton_weight,
         case when max(rcvLineDtl.stkuom) = max(rcvLineDtl.dspuom) then cast(max(rcvLineDtl.stkuom) + ' = ' + max(stkuom_lngdsc) as varchar(50))
              else cast(max(rcvLineDtl.stkuom) + ' = ' + max(stkuom_lngdsc) as varchar(50)) + ' & ' + cast(max(rcvLineDtl.dspuom) + ' = ' + max(dspuom_lngdsc) as varchar(50))
         end as uom_lngdsc
