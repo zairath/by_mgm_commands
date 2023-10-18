@@ -57,7 +57,7 @@ get client in clause for user
                  and pdtl2.prtnum = max(rcvLineDtl.prtnum)
                  and pdtl2.prt_client_id = max(rcvLineDtl.prt_client_id)
                  and pdtl2.wh_id = max(rcvLineDtl.wh_id)
-                 and pdtl2.uomcod = nvl(max(rcvLineDtl.dspuom), max(rcvLineDtl.stkuom))) / 35.274 * decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.dtluntqty), sum(rcvLineDtl.rcvqty) / max(rcvLineDtl.actual_ctn)) as decimal(10, 2)) as carton_weight,
+                 and pdtl2.uomcod = nvl(max(rcvLineDtl.dspuom), max(rcvLineDtl.stkuom))) / 35.274 * decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.rcvqty), sum(rcvLineDtl.rcvqty) / max(rcvLineDtl.actual_ctn)) as decimal(10, 2)) as carton_weight,
         case when max(rcvLineDtl.stkuom) = max(rcvLineDtl.dspuom) then cast(max(rcvLineDtl.stkuom) + ' = ' + max(stkuom_lngdsc) as varchar(50))
              else cast(max(rcvLineDtl.stkuom) + ' = ' + max(stkuom_lngdsc) as varchar(50)) + ' & ' + cast(max(rcvLineDtl.dspuom) + ' = ' + max(dspuom_lngdsc) as varchar(50))
         end as uom_lngdsc
@@ -84,7 +84,6 @@ get client in clause for user
                 pdt1.untqty as actual_ctn,
                 pdt.ftpcod,
                 rcvtrk.rcvtrk_stat,
-                invdtl.untqty as dtluntqty,
                 ddmst1.lngdsc as stkuom_lngdsc,
                 ddmst2.lngdsc as dspuom_lngdsc,
                 adrmst.adrnam
@@ -120,8 +119,6 @@ get client in clause for user
             and pdt1.prt_client_id = prtmst_view.prt_client_id
             and pdt1.wh_id = prtmst_view.wh_id
             and pdt1.cas_flg = 1
-           join invdtl
-             on invdtl.rcvkey = rcvlin.rcvkey
            join dscmst ddmst1
              on ddmst1.colnam = 'uomcod'
             and ddmst1.colval = prtmst_view.stkuom
