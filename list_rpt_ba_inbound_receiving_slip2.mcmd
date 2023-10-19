@@ -53,8 +53,8 @@ get client in clause for user
         max(actual_pcs) * sum(rcvLineDtl.rcvqty) as actual_pcs,
         floor(sum(rcvLineDtl.rcvqty) / max(actual_ctn)) as actual_carton,
         floor(sum(rcvLineDtl.expqty) / max(actual_ctn)) as expected_carton,
-        case when rcvLineDtl.stkuom = max(rcvLineDtl.dspuom) then cast(floor(sum(rcvLineDtl.rcvqty / actual_pcs)) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom))
-             else cast(floor(sum(rcvLineDtl.rcvqty) / max(actual_ctn)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, cast(null as int), max(rcvLineDtl.stkuom), cast(null as int), mod(sum(rcvLineDtl.rcvqty), max(actual_pcs))) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, null, max(rcvLineDtl.stkuom), null, max(rcvLineDtl.stkuom))
+        case when rcvLineDtl.stkuom = max(rcvLineDtl.dspuom) then cast(floor(sum(distinct rcvLineDtl.rcvqty / actual_pcs)) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom))
+             else cast(floor(sum(distinct rcvLineDtl.rcvqty / actual_ctn)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, cast(null as int), max(rcvLineDtl.stkuom), cast(null as int), mod(sum(rcvLineDtl.rcvqty), max(actual_pcs))) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, null, max(rcvLineDtl.stkuom), null, max(rcvLineDtl.stkuom))
         end as quantity_reported,
         max(inventory_status) as inventory_status,
         max(truck_type) as truck_type,
