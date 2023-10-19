@@ -34,7 +34,7 @@ if (@oprcod = 'LPCK')
                 m.ftpcod,
                 g.adrln1 || ' ' || g.adrln2 || ' ' || g.adrln3 as customer_address,
                 g.phnnum as phone_number,
-                /** decode(max(b.dspuom), null, sum(a.pckqty), sum(a.pckqty) / sum(h.untqty)) pick_qty, **/
+                decode(max(b.dspuom), null, sum(a.pckqty), sum(a.pckqty) / sum(h.untqty)) pick_qty,
                 (select sum(pckwrk_view.pckqty)
                    from (select pckwrk_view.pckqty
                            from pckwrk_view
@@ -44,8 +44,7 @@ if (@oprcod = 'LPCK')
                              ON d.ordnum = a.ordnum
                           where pckwrk_view.list_id = e.list_id
                             and pckwrk_view.ordnum = d.ordnum
-                            and pckwrk_view.pck_uom = a.pck_uom) pckwrk_view) as pick_qty
-                /** total_picks **/,
+                            and pckwrk_view.pck_uom = a.pck_uom) pckwrk_view) as total_picks,
                 b.prtfam item_family,
                 a.prtnum item_number,
                 c.lngdsc item_description,
@@ -169,7 +168,7 @@ if (@oprcod = 'LPCK')
             and m.wh_id = h.wh_id
             and m.prt_client_id = h.prt_client_id
             and m.ftpcod = h.ftpcod
-            and h.uomcod = nvl(b.dspuom, b.stkuom)
+            and h.uomcod = a.pck_uom
            JOIN ord d
              ON d.ordnum = a.ordnum
             and d.wh_id = a.wh_id
@@ -276,7 +275,7 @@ if (@oprcod = 'LPCK')
                 m.ftpcod,
                 g.adrln1 || ' ' || g.adrln2 || ' ' || g.adrln3 as customer_address,
                 g.phnnum as phone_number,
-                /** decode(max(b.dspuom), null, sum(a.pckqty), sum(a.pckqty) / sum(h.untqty)) pick_qty, **/
+                decode(max(b.dspuom), null, sum(a.pckqty), sum(a.pckqty) / sum(h.untqty)) pick_qty,
                 (select sum(pckwrk_view.pckqty)
                    from (select pckwrk_view.pckqty
                            from pckwrk_view
@@ -286,8 +285,7 @@ if (@oprcod = 'LPCK')
                              ON d.ordnum = a.ordnum
                           where pckwrk_view.list_id = e.list_id
                             and pckwrk_view.ordnum = d.ordnum
-                            and pckwrk_view.pck_uom = a.pck_uom) pckwrk_view) as pick_qty
-                /** total_picks **/,
+                            and pckwrk_view.pck_uom = a.pck_uom) pckwrk_view) as total_picks,
                 b.prtfam item_family,
                 a.prtnum item_number,
                 c.lngdsc item_description,
@@ -411,12 +409,12 @@ if (@oprcod = 'LPCK')
             and m.wh_id = h.wh_id
             and m.prt_client_id = h.prt_client_id
             and m.ftpcod = h.ftpcod
-            and h.uomcod = nvl(b.dspuom, b.stkuom)
+            and h.uomcod = a.pck_uom
            JOIN ord d
              ON d.ordnum = a.ordnum
             and d.wh_id = a.wh_id
-           left
-           Join ord_line_note j
+           LEFT
+           JOIN ord_line_note j
              on j.ordnum = a.ordnum
             and j.ordlin = a.ordlin
             and j.wh_id = a.wh_id
