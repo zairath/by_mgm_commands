@@ -14,7 +14,7 @@ get client in clause for user
         rcvLineDtl.invnum as nomor_po,
         rcvLineDtl.wh_id,
         rcvLineDtl.prtnum,
-        rcvLineDtl.stkuom,
+        max(rcvLineDtl.stkuom) as stkuom,
         rcvLineDtl.prt_client_id,
         rcvLineDtl.adrnam,
         rcvLineDtl.trlr_num as container,
@@ -25,29 +25,23 @@ get client in clause for user
         max(rcvLineDtl.rcvqty) rcvqty,
         max(rcvLineDtl.rptqty) rptqty,
         nvl(max(rcvLineDtl.exp_catch_qty), 0) exp_catch_qty,
-        nvl(sum(rcvLineDtl.idn_catch_qty), 0) idn_catch_qty,
-        nvl(sum(rcvLineDtl.rcv_catch_qty), 0) rcv_catch_qty,
-        decode(count(distinct rcvLineDtl.orgcod), 1, max(rcvLineDtl.orgcod), max(rcvLineOrg.orgcod)) orgcod,
-        rcvLineDtl.revlvl revlvl,
-        decode(count(distinct rcvLineDtl.lotnum), 1, max(rcvLineDtl.lotnum), max(rcvLineOrg.lotnum)) lotnum,
-        decode(count(distinct rcvLineDtl.rcvsts), 1, max(rcvLineDtl.rcvsts), max(rcvLineOrg.rcvsts)) rcvsts,
-        decode(count(distinct rcvLineDtl.mandte), 0, '', 1, max(rcvLineDtl.mandte), max(rcvLineOrg.mandte)) mandte,
-        decode(count(distinct rcvLineDtl.expire_dte), 0, '', 1, max(rcvLineDtl.expire_dte), max(rcvLineOrg.expire_dte)) expire_dte,
-        decode(count(distinct rcvLineDtl.retcod), 0, '', 1, max(rcvLineDtl.retcod), max(rcvLineOrg.retcod)) retcod,
-        decode(count(distinct rcvLineDtl.cnsg_flg), 1, max(rcvLineDtl.cnsg_flg), max(rcvLineOrg.cnsg_flg)) cnsg_flg,
-        decode(count(distinct rcvLineDtl.catch_unttyp), 0, '', 1, max(rcvLineDtl.catch_unttyp), @mlsMultiple) catch_unttyp,
-        decode(count(distinct rcvLineDtl.short_dsc), 0, '', 1, max(rcvLineDtl.short_dsc), @mlsMultiple) short_dsc,
-        decode(count(distinct rcvLineDtl.lngdsc), 0, '', 1, max(rcvLineDtl.lngdsc), @mlsMultiple) lngdsc,
+        nvl(max(rcvLineDtl.idn_catch_qty), 0) idn_catch_qty,
+        nvl(max(rcvLineDtl.rcv_catch_qty), 0) rcv_catch_qty,
+        rcvLineDtl.inv_attr_str1,
+        rcvLineDtl.expire_dte,
+        rcvLineDtl.catch_unttyp,
+        rcvLineDtl.short_dsc,
+        rcvLineDtl.lngdsc,
         max(carcod) carcod,
         max(hot_flg) hot_flg,
         max(expdte) expected_date,
         max(completed_date) completed_date,
-        max(grswgt) * 0.0283495 * sum(rcvLineDtl.rcvqty) as gross_weight,
-        max(netwgt) * 0.0283495 * sum(rcvLineDtl.rcvqty) as netto_weight,
-        floor(sum(rcvLineDtl.rcvqty) / max(untqty)) as actual_carton,
+        max(grswgt) * 0.0283495 * max(rcvLineDtl.rcvqty) as gross_weight,
+        max(netwgt) * 0.0283495 * max(rcvLineDtl.rcvqty) as netto_weight,
+        floor(max(rcvLineDtl.rcvqty / untqty)) as actual_carton,
         decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom)) dsp_untqty_uom,
-        case when rcvLineDtl.stkuom = max(rcvLineDtl.dspuom) then cast(floor(sum(rcvLineDtl.rcvqty / untqty)) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom))
-             else cast(floor(sum(rcvLineDtl.rcvqty) / max(untqty)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, cast(null as int), max(rcvLineDtl.stkuom), cast(null as int), mod(sum(rcvLineDtl.dtluntqty), sum(rcvLineDtl.untqty))) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, null, max(rcvLineDtl.stkuom), null, max(rcvLineDtl.stkuom))
+        case when max(rcvLineDtl.stkuom) = max(rcvLineDtl.dspuom) then cast(floor(max(rcvLineDtl.rcvqty / untqty)) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom))
+             else cast(floor(max(rcvLineDtl.rcvqty / untqty)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, cast(null as int), max(rcvLineDtl.stkuom), cast(null as int), mod(max(rcvLineDtl.rcvqty), max(untqty))) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, null, max(rcvLineDtl.stkuom), null, max(rcvLineDtl.stkuom))
         end as quantity_reported,
         cast((select pdtl2.netwgt
                 from prtftp_dtl pdtl2
@@ -55,9 +49,9 @@ get client in clause for user
                  and pdtl2.prtnum = max(rcvLineDtl.prtnum)
                  and pdtl2.prt_client_id = max(rcvLineDtl.prt_client_id)
                  and pdtl2.wh_id = max(rcvLineDtl.wh_id)
-                 and pdtl2.uomcod = nvl(max(rcvLineDtl.dspuom), max(rcvLineDtl.stkuom))) / 35.274 * decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.dtluntqty), max(rcvLineDtl.dtluntqty) / max(rcvLineDtl.untqty)) as decimal(10, 2)) as carton_weight,
-        case when rcvLineDtl.stkuom = max(rcvLineDtl.dspuom) then cast(rcvLineDtl.stkuom + ' = ' + max(stkuom_lngdsc) as varchar(50))
-             else cast(rcvLineDtl.stkuom + ' = ' + max(stkuom_lngdsc) as varchar(50)) + ' & ' + cast(rcvLineDtl.dspuom + ' = ' + max(dspuom_lngdsc) as varchar(50))
+                 and pdtl2.uomcod = nvl(max(rcvLineDtl.dspuom), max(rcvLineDtl.stkuom))) / 35.274 * decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.rcvqty), sum(rcvLineDtl.rcvqty) / max(rcvLineDtl.untqty)) as decimal(10, 2)) as carton_weight,
+        case when max(rcvLineDtl.stkuom) = max(rcvLineDtl.dspuom) then cast(max(rcvLineDtl.stkuom) + ' = ' + max(stkuom_lngdsc) as varchar(50))
+             else cast(max(rcvLineDtl.stkuom) + ' = ' + max(stkuom_lngdsc) as varchar(50)) + ' & ' + cast(max(rcvLineDtl.dspuom) + ' = ' + max(dspuom_lngdsc) as varchar(50))
         end as uom_lngdsc
    from (select prtmst_view.catch_unttyp,
                 prtmst_view.stkuom,
@@ -81,7 +75,6 @@ get client in clause for user
                 pdt.untqty,
                 pdt.ftpcod,
                 rcvtrk.rcvtrk_stat,
-                invdtl_hist.untqty as dtluntqty,
                 ddmst1.lngdsc as stkuom_lngdsc,
                 ddmst2.lngdsc as dspuom_lngdsc,
                 adrmst.adrnam
@@ -107,13 +100,20 @@ get client in clause for user
             and rcvlin.invnum = rcvinv.invnum
             and rcvlin.wh_id = rcvinv.wh_id
             and rcvlin.client_id = rcvinv.client_id
-           join prtftp_dtl pdt
-             on pdt.prtnum = prtmst_view.prtnum
-            and pdt.prt_client_id = prtmst_view.prt_client_id
-            and pdt.wh_id = prtmst_view.wh_id
-            and pdt.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)
            join invdtl_hist
              on invdtl_hist.rcvkey = rcvlin.rcvkey
+           join prtftp
+             on prtmst_view.prtnum = prtftp.prtnum
+            and prtmst_view.wh_id = prtftp.wh_id
+            and prtmst_view.prt_client_id = prtftp.prt_client_id
+            and invdtl_hist.ftpcod = prtftp.ftpcod
+             or prtftp.defftp_flg = decode(invdtl_hist.ftpcod, NULL, 1, cast(null as int))
+           join prtftp_dtl pdt
+             on prtftp.prtnum = pdt.prtnum
+            and prtftp.wh_id = pdt.wh_id
+            and prtftp.prt_client_id = pdt.prt_client_id
+            and prtftp.ftpcod = pdt.ftpcod
+            and pdt.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)
            join dscmst ddmst1
              on ddmst1.colnam = 'uomcod'
             and ddmst1.colval = prtmst_view.stkuom
@@ -149,22 +149,26 @@ get client in clause for user
     and rcvLineOrg.wh_id = rcvLineDtl.wh_id
     and rcvLineOrg.seqnum = 0
   where rcvlinedtl.rcvtrk_stat in ('C', 'R')
+    and rcvLineDtl.expqty = 0
   group by rcvLineDtl.trknum,
         rcvLineDtl.client_id,
         rcvLineDtl.supnum,
         rcvLineDtl.invnum,
+        rcvLineDtl.rcvkey,
         rcvLineDtl.wh_id,
         rcvLineDtl.prtnum,
-        rcvLineDtl.stkuom,
-        rcvLineDtl.dspuom,
         rcvLineDtl.prt_client_id,
         rcvLineDtl.adrnam,
         rcvLineDtl.trlr_num,
         rcvLineDtl.po_num,
-        rcvLineDtl.revlvl,
         rcvLineDtl.invtyp,
         rcvLineDtl.expdte,
-        completed_date
+        completed_date,
+        rcvLineDtl.inv_attr_str1,
+        rcvLineDtl.expire_dte,
+        rcvLineDtl.catch_unttyp,
+        rcvLineDtl.short_dsc,
+        rcvLineDtl.lngdsc
   order by rcvLineDtl.trknum,
         rcvLineDtl.client_id,
         rcvLineDtl.supnum,
