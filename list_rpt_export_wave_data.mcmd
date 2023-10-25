@@ -43,7 +43,6 @@ get client in clause for user
     and dt.wh_id = pw.wh_id
     and dt.actcod = 'LSTPCK'
     and dt.prtnum = pw.prtnum
-    and dt.trnqty = pw.pckqty
     and dt.frstol = pw.srcloc
    join prtmst p
      on p.wh_id_tmpl = pw.wh_id
