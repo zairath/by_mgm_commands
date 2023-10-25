@@ -149,7 +149,6 @@ get client in clause for user
     and rcvLineOrg.wh_id = rcvLineDtl.wh_id
     and rcvLineOrg.seqnum = 0
   where rcvLineDtl.rcvtrk_stat in ('C', 'R')
-    and rcvLineDtl.expqty = 0
   group by rcvLineDtl.trknum,
         rcvLineDtl.client_id,
         rcvLineDtl.supnum,
