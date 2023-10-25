@@ -27,7 +27,8 @@ get client in clause for user
     and adrmst.adrtyp = 'CLI'
     and rcvlin.trknum = @trknum
     and rcvlin.prtnum = @prtnum
-    and rcvlin.wh_id = @wh_id];
+    and inventory_view.lodnum = @lodnum
+    and rcvlin.wh_id = @wh_id]
 ]]>
 </local-syntax>
 </command>
