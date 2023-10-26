@@ -24,7 +24,8 @@ get client in clause for user
         rcvLineDtl.invtyp,
         max(rcvLineDtl.expqty) expqty,
         max(rcvLineDtl.idnqty) idnqty,
-        max(rcvLineDtl.rcvqty) rcvqty,
+        /**max(rcvLineDtl.rcvqty) rcvqty,**/
+        max(rcvLineDtl.dtluntqty) rcvqty,
         max(rcvLineDtl.rptqty) rptqty,
         nvl(max(rcvLineDtl.exp_catch_qty), 0) exp_catch_qty,
         nvl(max(rcvLineDtl.idn_catch_qty), 0) idn_catch_qty,
@@ -47,12 +48,12 @@ get client in clause for user
         max(hot_flg) hot_flg,
         max(expdte) expected_date,
         max(completed_date) completed_date,
-        max(grswgt) * 0.0283495 * sum(rcvLineDtl.rcvqty) as gross_weight,
-        max(netwgt) * 0.0283495 * sum(rcvLineDtl.rcvqty) as netto_weight,
-        floor(sum(rcvLineDtl.rcvqty) / max(untqty)) as actual_carton,
+        max(grswgt) * 0.0283495 * max(rcvLineDtl.dtluntqty) as gross_weight,
+        max(netwgt) * 0.0283495 * max(rcvLineDtl.dtluntqty) as netto_weight,
+        floor(max(rcvLineDtl.dtluntqty) / max(untqty)) as actual_carton,
         decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom)) dsp_untqty_uom,
-        case when max(rcvLineDtl.stkuom) = max(rcvLineDtl.dspuom) then cast(floor(max(rcvLineDtl.rcvqty) / max(untqty)) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom))
-             else cast(floor(max(rcvLineDtl.rcvqty) / max(untqty)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, cast(null as int), max(rcvLineDtl.stkuom), cast(null as int), mod(sum(rcvLineDtl.dtluntqty), sum(rcvLineDtl.untqty))) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, null, max(rcvLineDtl.stkuom), null, max(rcvLineDtl.stkuom))
+        case when max(rcvLineDtl.stkuom) = max(rcvLineDtl.dspuom) then cast(floor(max(rcvLineDtl.dtluntqty) / max(untqty)) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom))
+             else cast(floor(max(rcvLineDtl.dtluntqty) / max(untqty)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, cast(null as int), max(rcvLineDtl.stkuom), cast(null as int), mod(sum(rcvLineDtl.dtluntqty), max(rcvLineDtl.untqty))) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, null, max(rcvLineDtl.stkuom), null, max(rcvLineDtl.stkuom))
         end as quantity_reported,
         cast((select pdtl2.netwgt
                 from prtftp_dtl pdtl2
