@@ -30,9 +30,10 @@ get client in clause for user
         nvl(max(rcvLineDtl.idn_catch_qty), 0) idn_catch_qty,
         nvl(max(rcvLineDtl.rcv_catch_qty), 0) rcv_catch_qty,
         decode(count(distinct rcvLineDtl.orgcod), 1, max(rcvLineDtl.orgcod), max(rcvLineOrg.orgcod)) orgcod,
-        max(rcvLineDtl.revlvl) revlvl,
-        max(rcvLineDtl.inv_attr_str1) batch_code,
-        max(rcvLineDtl.inv_attr_str2) reference_1,
+        rcvLineDtl.revlvl,
+        rcvLineDtl.inv_attr_str1 batch_code,
+        rcvLineDtl.inv_attr_str2 reference_1,
+        rcvLineDtl.inv_attr_str2 reference_2,
         decode(count(distinct rcvLineDtl.lotnum), 1, max(rcvLineDtl.lotnum), max(rcvLineOrg.lotnum)) lotnum,
         decode(count(distinct rcvLineDtl.rcvsts), 1, max(rcvLineDtl.rcvsts), max(rcvLineOrg.rcvsts)) rcvsts,
         decode(count(distinct rcvLineDtl.mandte), 0, '', 1, max(rcvLineDtl.mandte), max(rcvLineOrg.mandte)) mandte,
@@ -96,6 +97,7 @@ get client in clause for user
                 rcvlin.revlvl,
                 rcvlin.inv_attr_str1,
                 rcvlin.inv_attr_str2,
+                rcvlin.inv_attr_str3,
                 rcvlin.lotnum,
                 rcvlin.sup_lotnum,
                 rcvlin.rcvsts,
@@ -149,8 +151,8 @@ get client in clause for user
                 dlytrn.tostol,
                 dlytrn.last_upd_user_id,
                 dlytrn.lodnum
-           from prtdsc
-           join prtmst_view
+           from prtmst_view
+           join prtdsc
              on prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
             and prtdsc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/
             and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
@@ -171,13 +173,19 @@ get client in clause for user
             and rcvlin.invnum = rcvinv.invnum
             and rcvlin.wh_id = rcvinv.wh_id
             and rcvlin.client_id = rcvinv.client_id
+           join invdtl_hist
+             on invdtl_hist.rcvkey = rcvlin.rcvkey
+           join prtftp
+             on prtmst_view.prtnum = prtftp.prtnum
+            and prtmst_view.wh_id = prtftp.wh_id
+            and prtmst_view.prt_client_id = prtftp.prt_client_id
+            and invdtl_hist.ftpcod = prtftp.ftpcod
+             or prtftp.defftp_flg = decode(invdtl_hist.ftpcod, NULL, 1, cast(null as int))
            join prtftp_dtl pdt
              on pdt.prtnum = prtmst_view.prtnum
             and pdt.prt_client_id = prtmst_view.prt_client_id
             and pdt.wh_id = prtmst_view.wh_id
             and pdt.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)
-           join invdtl_hist
-             on invdtl_hist.rcvkey = rcvlin.rcvkey
            join dscmst ddmst1
              on ddmst1.colnam = 'uomcod'
             and ddmst1.colval = prtmst_view.stkuom
@@ -188,8 +196,6 @@ get client in clause for user
              on client.client_id = prtmst_view.prt_client_id
            join adrmst
              on adrmst.adr_id = client.adr_id
-           join historical_inventory_view iv
-             on iv.rcvkey = rcvlin.rcvkey
            join dlytrn
              on dlytrn.lodnum = invdtl_hist.revlvl
             and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR')
@@ -232,12 +238,20 @@ get client in clause for user
         rcvLineDtl.dspuom,
         rcvLineDtl.prt_client_id,
         rcvLineDtl.adrnam,
+        rcvLineDtl.revlvl,
         rcvLineDtl.trlr_num,
         rcvLineDtl.po_num,
         rcvLineDtl.invtyp,
         rcvLineDtl.expdte,
         rcvLineDtl.lodnum,
-        completed_date
+        completed_date,
+        rcvLineDtl.inv_attr_str1,
+        rcvLineDtl.inv_attr_str2,
+        rcvLineDtl.inv_attr_str3,
+        rcvLineDtl.expire_dte,
+        rcvLineDtl.catch_unttyp,
+        rcvLineDtl.short_dsc,
+        rcvLineDtl.lngdsc
   order by rcvLineDtl.trknum,
         rcvLineDtl.client_id,
         rcvLineDtl.supnum,
