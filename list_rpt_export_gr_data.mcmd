@@ -199,7 +199,7 @@ get client in clause for user
            join dlytrn
              on invdtl.revlvl = dlytrn.lodnum
             and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV')
-            and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN')
+            and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN', 'B1-RSTG', 'B2-RSTG')
             and dlytrn.tostol not like '%CHAMBER%'
           where @+prtmst_view.prtnum
             and @+rcvlin.mandte:date
