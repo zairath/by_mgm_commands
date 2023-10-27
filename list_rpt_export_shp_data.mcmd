@@ -29,10 +29,10 @@ get client in clause for user
         pv.oprcod,
         ptv.stkuom,
         pv.pck_mthd_id,
-        pv.pckqty pckqty,
-        pv.pck_catch_qty pck_catch_qty,
-        pv.appqty appqty,
-        pv.app_catch_qty app_catch_qty,
+        sum(pv.pckqty) pckqty,
+        sum(pv.pck_catch_qty) pck_catch_qty,
+        sum(pv.appqty) appqty,
+        sum(pv.app_catch_qty) app_catch_qty,
         pv.pcksts,
         pv.prt_client_id,
         pv.invsts,
@@ -75,7 +75,7 @@ get client in clause for user
                  and pdtl2.prtnum = max(prtftp_dtl.prtnum)
                  and pdtl2.prt_client_id = max(prtftp_dtl.prt_client_id)
                  and pdtl2.wh_id = max(prtftp_dtl.wh_id)
-                 and pdtl2.uomcod = nvl(max(ptv.dspuom), max(ptv.stkuom))) / 35.274 * decode(max(ptv.dspuom), null, max(invdtl.untqty), max(invdtl.untqty) / max(prtftp_dtl.untqty)) as decimal(10, 2)) as carton_weight,
+                 and pdtl2.uomcod = nvl(max(ptv.dspuom), max(ptv.stkuom))) / 35.274 * decode(max(ptv.dspuom), null, sum(invdtl.untqty), sum(invdtl.untqty) / sum(prtftp_dtl.untqty)) as decimal(10, 2)) as carton_weight,
         trlr.trlr_num,
         trlr.carcod,
         trlr.close_dte as loaded_date,
@@ -136,9 +136,13 @@ get client in clause for user
      on dlytrn.dtlnum = av.dtlnum
     and dlytrn.frstol = pv.srcloc
     and dlytrn.actcod = 'LSTPCK'
+    and dlytrn.oprcod is not null
+    and dlytrn.trnqty = pv.pckqty
     and dlytrn.prtnum = ptv.prtnum
     and dlytrn.prt_client_id = ptv.prt_client_id
     and dlytrn.wh_id = ptv.wh_id
+    and dlytrn.ordnum = pv.ordnum
+    and dlytrn.ship_id = pv.ship_id
   where @+pv.ordnum
     and @+pv.client_id
     and o.adddte between @start_date:date
@@ -164,10 +168,6 @@ get client in clause for user
         pv.oprcod,
         ptv.stkuom,
         pv.pck_mthd_id,
-        pv.pckqty,
-        pv.pck_catch_qty,
-        pv.appqty,
-        pv.app_catch_qty,
         pv.pcksts,
         pv.prt_client_id,
         pv.invsts,
