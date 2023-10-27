@@ -17,7 +17,7 @@ get client in clause for user
 [/*#api-query*/
  select inventory.wh_id,
         inventory.prt_client_id,
-        cast(inventory.rcvdte as date) as datetime,
+        cast(inventory.completed_date as date) as datetime,
         inventory.prtfamgrp as 'temp',
         sum(inventory.untqty) as untqty,
         sum(inventory.catch_qty) as catch_qty,
@@ -71,7 +71,7 @@ get client in clause for user
                 round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)) days_to_expire,
                 invdtl.fifdte,
                 invlod.adddte,
-                invdtl.rcvdte,
+                rcvinv.completed_date,
                 rcvtrk.trlr_id,
                 rcvtrk.trknum,
                 rcvlin.rcvsts,
@@ -208,7 +208,7 @@ get client in clause for user
             and (@max_days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1) <= nvl(cast(@max_days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1)))
             and @+invlod.stoloc
             and @+rcvinv.invtyp
-            and invdtl.rcvdte between @start_date:date
+            and rcvinv.completed_date between @start_date:date
             and @end_date:date
          UNION ALL
          /* Select the Historical Inventory */
@@ -253,7 +253,7 @@ get client in clause for user
                 round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)) days_to_expire,
                 invdtl.fifdte,
                 invlod.adddte,
-                invdtl.rcvdte,
+                rcvinv.completed_date,
                 rcvtrk.trlr_id,
                 rcvtrk.trknum,
                 rcvlin.rcvsts,
@@ -390,7 +390,7 @@ get client in clause for user
             and (@max_days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1) <= nvl(cast(@max_days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1)))
             and @+invlod.stoloc
             and @+rcvinv.invtyp
-            and invdtl.rcvdte between @start_date:date
+            and rcvinv.completed_date between @start_date:date
             and @end_date:date) inventory
         /* modified to select by prtnum ! = RETURN PART rather
          * the earlier hardcoded invsts - which is configurable
@@ -398,7 +398,7 @@ get client in clause for user
          */
   group by inventory.wh_id,
         inventory.prt_client_id,
-        CAST(inventory.rcvdte as date),
+        CAST(inventory.completed_date as date),
         inventory.prtfamgrp
   order by inventory.wh_id,
         inventory.prt_client_id]
