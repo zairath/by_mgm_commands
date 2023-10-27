@@ -13,7 +13,7 @@ get client in clause for user
 [/*#api-query*/
  select distinct shipment_line.wh_id,
         shipment_line.client_id,
-        cast(ord_line.entdte as date) as datetime,
+        cast(ord.adddte as date) as datetime,
         sum(nvl(inv.untqty, 0)) untqty,
         prtmst_view.stkuom,
         sum(floor(shipment_line.picked_qty / prtftp_dtl.untqty)) as dspuom_qty,
@@ -112,11 +112,11 @@ get client in clause for user
     and @+ord_line.late_dlvdte:date
     and @+prtmst_wh.cntdte:date
     and @+prtmst_view.moddte:date
-    and ord_line.entdte between @start_date:date
+    and ord.adddte between @start_date:date
     and @end_date:date
   group by shipment_line.wh_id,
         shipment_line.client_id,
-        cast(ord_line.entdte as date),
+        cast(ord.adddte as date),
         prtmst_view.dspuom,
         prtmst_view.stkuom
   order by shipment_line.wh_id,
