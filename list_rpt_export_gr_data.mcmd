@@ -151,7 +151,8 @@ get client in clause for user
                 adrmst.adrnam,
                 dlytrn.tostol,
                 dlytrn.last_upd_user_id,
-                dlytrn.lodnum
+                dlytrn.lodnum,
+                invdtl.dtlnum
            from prtmst_view
            join prtdsc
              on prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
@@ -246,6 +247,7 @@ get client in clause for user
         rcvLineDtl.invtyp,
         rcvLineDtl.expdte,
         rcvLineDtl.lodnum,
+        rcvLineDtl.dtlnum,
         completed_date,
         rcvLineDtl.inv_attr_str1,
         rcvLineDtl.inv_attr_str2,

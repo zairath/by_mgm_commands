@@ -236,6 +236,7 @@ get client in clause for user
         rcvLineDtl.wh_id,
         rcvLineDtl.prtnum,
         rcvLineDtl.stkuom,
+        rcvLineDtl.rcvkey,
         rcvLineDtl.dspuom,
         rcvLineDtl.prt_client_id,
         rcvLineDtl.adrnam,
