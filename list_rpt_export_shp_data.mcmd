@@ -145,7 +145,7 @@ get client in clause for user
     and dlytrn.ship_id = pv.ship_id
   where @+pv.ordnum
     and @+pv.client_id
-    and o.adddte between @start_date:date
+    and trlr.close_dte between @start_date:date
     and @end_date:date
  /* and trlr.dispatch_dte between @start_date:date
     and @end_date:date */

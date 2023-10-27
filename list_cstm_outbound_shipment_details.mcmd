@@ -13,7 +13,7 @@ get client in clause for user
 [/*#api-query*/
  select distinct shipment_line.wh_id,
         shipment_line.client_id,
-        cast(ord.adddte as date) as datetime,
+        cast(trlr.close_dte as date) as datetime,
         sum(nvl(inv.untqty, 0)) untqty,
         prtmst_view.stkuom,
         sum(floor(shipment_line.picked_qty / prtftp_dtl.untqty)) as dspuom_qty,
@@ -96,6 +96,14 @@ get client in clause for user
      on pvw.ship_line_id = shipment_line.ship_line_id
    join prtfam
      on prtfam.prtfam = prtmst_view.prtfam
+   join shipment
+     on shipment.ship_id = pvw.ship_id
+   join stop
+     on stop.stop_id = shipment.stop_id
+   join car_move
+     on car_move.car_move_id = stop.car_move_id
+   join trlr
+     on trlr.trlr_id = car_move.trlr_id
   where ord_line.non_alc_flg = '0'
     and ord.ordtyp <> 'C1'
     and @+shipment_line.ship_id
@@ -112,11 +120,11 @@ get client in clause for user
     and @+ord_line.late_dlvdte:date
     and @+prtmst_wh.cntdte:date
     and @+prtmst_view.moddte:date
-    and ord.adddte between @start_date:date
+    and trlr.close_dte between @start_date:date
     and @end_date:date
   group by shipment_line.wh_id,
         shipment_line.client_id,
-        cast(ord.adddte as date),
+        cast(trlr.close_dte as date),
         prtmst_view.dspuom,
         prtmst_view.stkuom
   order by shipment_line.wh_id,
