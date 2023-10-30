@@ -202,13 +202,15 @@ if (@oprcod = 'LPCK')
            left
            join invlod
              on invlod.lodnum = dlytrn.lodnum
-            and invlod.stoloc = dlytrn.tostol
+            and invlod.stoloc = dlytrn.frstol
            left
            join invsub
              on invsub.lodnum = invlod.lodnum
+            and invsub.subnum = dlytrn.subnum
            left
            join invdtl
              on invdtl.subnum = invsub.subnum
+            and invdtl.dtlnum = dlytrn.dtlnum
           where a.list_id is not null
             and m.defftp_flg = '1'
             and @+d.ordnum
@@ -447,9 +449,11 @@ if (@oprcod = 'LPCK')
            left
            join invsub
              on invsub.lodnum = invlod.lodnum
+            and invsub.subnum = dlytrn.subnum
            left
            join invdtl
              on invdtl.subnum = invsub.subnum
+            and invdtl.dtlnum = dlytrn.dtlnum
           where a.list_id is not null
             and m.defftp_flg = '1'
             and @+d.ordnum
