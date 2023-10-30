@@ -29,7 +29,8 @@ get client in clause for user
         max(rcvLineDtl.rptqty) rptqty,
         nvl(max(rcvLineDtl.exp_catch_qty), 0) exp_catch_qty,
         nvl(max(rcvLineDtl.idn_catch_qty), 0) idn_catch_qty,
-        nvl(max(rcvLineDtl.rcv_catch_qty), 0) rcv_catch_qty,
+        /**nvl(max(rcvLineDtl.rcv_catch_qty), 0) rcv_catch_qty,**/
+        nvl(max(rcvLineDtl.dtlcatchqty), 0) rcv_catch_qty,
         decode(count(distinct rcvLineDtl.orgcod), 1, max(rcvLineDtl.orgcod), max(rcvLineOrg.orgcod)) orgcod,
         rcvLineDtl.revlvl,
         rcvLineDtl.inv_attr_str1 batch_code,
@@ -146,6 +147,7 @@ get client in clause for user
                 pdt.ftpcod,
                 rcvtrk.rcvtrk_stat,
                 invdtl.untqty as dtluntqty,
+                invdtl.catch_qty as dtlcatchqty,
                 ddmst1.lngdsc as stkuom_lngdsc,
                 ddmst2.lngdsc as dspuom_lngdsc,
                 adrmst.adrnam,
