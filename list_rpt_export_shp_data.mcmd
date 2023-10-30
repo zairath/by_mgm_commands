@@ -20,9 +20,9 @@ get client in clause for user
         pv.srcloc,
         pv.prtnum,
         pdc.lngdsc,
-        dlytrn.revlvl,
-        dlytrn.inv_attr_str1 as batch_code,
-        dlytrn.inv_attr_str2 as reference_1,
+        av.revlvl,
+        av.inv_attr_str1 as batch_code,
+        av.inv_attr_str2 as reference_1,
         pv.srcare,
         pv.client_id,
         pv.wh_id,
@@ -76,7 +76,7 @@ get client in clause for user
         trlr.carcod,
         trlr.close_dte as loaded_date,
         trlr.dispatch_dte,
-        dlytrn.lodnum,
+        av.lodnum,
         stop.car_move_id,
         ptv.catch_unttyp
    from pckwrk_view pv
@@ -92,6 +92,7 @@ get client in clause for user
     and pdc.locale_id = nvl(@locale_id, @@locale_id)
    join all_inventory_view av
      on av.ship_line_id = pv.ship_line_id
+    and av.wrkref_dtl = pv.wrkref_dtl
    left
    join rcvlin rl
      on rl.rcvkey = av.rcvkey
@@ -128,17 +129,6 @@ get client in clause for user
    left
    join adrmst adr_clt
      on adr_clt.adr_id = client.adr_id
-   join dlytrn
-     on dlytrn.dtlnum = av.dtlnum
-    and dlytrn.frstol = pv.srcloc
-    and dlytrn.actcod = 'LSTPCK'
-    and dlytrn.oprcod is not null
-    and dlytrn.trnqty = pv.pckqty
-    and dlytrn.prtnum = ptv.prtnum
-    and dlytrn.prt_client_id = ptv.prt_client_id
-    and dlytrn.wh_id = ptv.wh_id
-    and dlytrn.ordnum = pv.ordnum
-    and dlytrn.ship_id = pv.ship_id
   where @+pv.ordnum
     and @+pv.client_id
     and trlr.close_dte between @start_date:date
@@ -155,9 +145,9 @@ get client in clause for user
         pv.srcloc,
         pv.prtnum,
         pdc.lngdsc,
-        dlytrn.revlvl,
-        dlytrn.inv_attr_str1,
-        dlytrn.inv_attr_str2,
+        av.revlvl,
+        av.inv_attr_str1,
+        av.inv_attr_str2,
         pv.srcare,
         pv.client_id,
         pv.wh_id,
@@ -199,7 +189,7 @@ get client in clause for user
         trlr.dispatch_dte,
         ptv.stkuom,
         ptv.dspuom,
-        dlytrn.lodnum,
+        av.lodnum,
         stop.car_move_id,
         ptv.catch_unttyp
   order by pv.schbat,
