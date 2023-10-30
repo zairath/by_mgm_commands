@@ -147,7 +147,7 @@ get client in clause for user
                 pdt.ftpcod,
                 rcvtrk.rcvtrk_stat,
                 invdtl_hist.untqty as dtluntqty,
-                invdtl.catch_qty as dtlcatchqty,
+                invdtl_hist.catch_qty as dtlcatchqty,
                 ddmst1.lngdsc as stkuom_lngdsc,
                 ddmst2.lngdsc as dspuom_lngdsc,
                 adrmst.adrnam,
