@@ -39,7 +39,7 @@ if (@start_date is not null and @end_date is not null)
      select *
        from (select invlod.wh_id,
                     invdtl.prt_client_id,
-                    cast(invdtl.adddte as date) as datetime,
+                    convert(varchar, invdtl.adddte, 111) as datetime,
                     prtfam.prtfamgrp as 'temp',
                     sum(invdtl.untqty) as untqty,
                     sum(decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty)) dsp_untqty,
@@ -111,13 +111,13 @@ if (@start_date is not null and @end_date is not null)
               group by invlod.wh_id,
                     invdtl.prt_client_id,
                     prtfam.prtfamgrp,
-                    cast(invdtl.adddte as date),
+                    convert(varchar, invdtl.adddte, 111),
                     prtmst_view.stkuom,
                     prtmst_view.dspuom
              union all
              select invlod_hist.wh_id,
                     invdtl_hist.prt_client_id,
-                    cast(invdtl_hist.adddte as date) as datetime,
+                    convert(varchar, invdtl_hist.adddte, 111) as datetime,
                     prtfam.prtfamgrp as 'temp',
                     sum(invdtl_hist.untqty) as untqty,
                     sum(decode(prtmst_view.dspuom, null, invdtl_hist.untqty, invdtl_hist.untqty / prtftp_dtl.untqty)) dsp_untqty,
@@ -171,7 +171,7 @@ if (@start_date is not null and @end_date is not null)
               group by invlod_hist.wh_id,
                     invdtl_hist.prt_client_id,
                     prtfam.prtfamgrp,
-                    cast(invdtl_hist.adddte as date),
+                    convert(varchar, invdtl_hist.adddte, 111),
                     prtmst_view.stkuom,
                     prtmst_view.dspuom) inventory
       order by wh_id,

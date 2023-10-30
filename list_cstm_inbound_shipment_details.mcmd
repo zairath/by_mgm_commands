@@ -17,7 +17,7 @@ get client in clause for user
 [/*#api-query*/
  select inventory.wh_id,
         inventory.prt_client_id,
-        cast(inventory.completed_date as date) as datetime,
+        convert(varchar, inventory.completed_date, 111) as datetime,
         inventory.prtfamgrp as 'temp',
         sum(inventory.untqty) as untqty,
         sum(inventory.catch_qty) as catch_qty,
@@ -398,7 +398,7 @@ get client in clause for user
          */
   group by inventory.wh_id,
         inventory.prt_client_id,
-        CAST(inventory.completed_date as date),
+        convert(varchar, inventory.completed_date, 111),
         inventory.prtfamgrp
   order by inventory.wh_id,
         inventory.prt_client_id]
