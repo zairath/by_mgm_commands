@@ -383,7 +383,7 @@ else
                 and @+invdtl.inv_attr_str1
                 and @+loc_typ.fwiflg
              /** add condition for uploaded inventory stock balances **/
-                and invdtl.ins_dt < to_date('20231101030000')
+                and invdtl.ins_dt < to_date('20231101070000')
               group by invlod.wh_id,
                     invdtl.prt_client_id,
                     prtfam.prtfamgrp,
