@@ -41,7 +41,14 @@ get client in clause for user
         all_inventory_view.inv_attr_str1 as batch_code,
         all_inventory_view.inv_attr_str2 as reference_1,
         all_inventory_view.inv_attr_str3 as reference_2,
-        dlytrn.usr_id as putaway_user
+        dlytrn.usr_id as putaway_user,
+        cast((select pdtl2.netwgt
+                from prtftp_dtl pdtl2
+               where pdtl2.ftpcod = all_inventory_view.ftpcod
+                 and pdtl2.prtnum = all_inventory_view.prtnum
+                 and pdtl2.prt_client_id = all_inventory_view.prt_client_id
+                 and pdtl2.wh_id = all_inventory_view.wh_id
+                 and pdtl2.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, all_inventory_view.untqty, all_inventory_view.untqty / prtftp_dtl.untqty) as decimal(10, 5)) as carton_weight
    from locmst
    join loc_typ
      on loc_typ.loc_typ_id = locmst.loc_typ_id
@@ -109,7 +116,7 @@ get client in clause for user
    left
    join dlytrn
      on all_inventory_view.lodnum = dlytrn.lodnum
-    and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY')
+    and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
     and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN')
     and dlytrn.tostol not like '%CHAMBER%'
   where locmst.stoloc not like '%PERM%'
