@@ -383,12 +383,12 @@ if (@oprcod = 'LPCK')
                 d.adddte,
                 a.pcksts,
                 a.srcloc,
-                a.revlvl,
+                max(ivww.revlvl) revlvl,
                 zm.wrkzon,
                 a.pck_uom,
-                max(invdtl.inv_attr_str1) inv_attr_str1,
-                max(invdtl.inv_attr_str2) inv_attr_str2,
-                max(invdtl.inv_attr_str3) inv_attr_str3
+                max(ivww.inv_attr_str1) inv_attr_str1,
+                max(ivww.inv_attr_str2) inv_attr_str2,
+                max(ivww.inv_attr_str3) inv_attr_str3
            from pckwrk_view a
            LEFT
            JOIN dscmst f
@@ -437,23 +437,12 @@ if (@oprcod = 'LPCK')
             and q1.colnam = 'wh_id'
            join zonmst zm
              on zm.wrk_zone_id = a.src_wrk_zone_id
-           left
-           join dlytrn
-             on dlytrn.prtnum = b.prtnum
-            and dlytrn.wh_id = b.wh_id_tmpl
-            and dlytrn.prt_client_id = b.prt_client_id
-           left
-           join invlod
-             on invlod.lodnum = dlytrn.lodnum
-            and invlod.stoloc = dlytrn.tostol
-           left
-           join invsub
-             on invsub.lodnum = invlod.lodnum
-            and invsub.subnum = dlytrn.subnum
-           left
-           join invdtl
-             on invdtl.subnum = invsub.subnum
-            and invdtl.dtlnum = dlytrn.dtlnum
+           join inventory_view ivww
+             on ivww.prtnum = a.prtnum
+            and ivww.prt_client_id = a.prt_client_id
+            and ivww.wh_id = a.wh_id
+            and ivww.ftpcod = a.ftpcod
+            and ivww.stoloc = a.srcloc
           where a.list_id is not null
             and m.defftp_flg = '1'
             and @+d.ordnum
