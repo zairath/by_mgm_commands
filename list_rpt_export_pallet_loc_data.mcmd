@@ -48,7 +48,8 @@ get client in clause for user
                  and pdtl2.prtnum = all_inventory_view.prtnum
                  and pdtl2.prt_client_id = all_inventory_view.prt_client_id
                  and pdtl2.wh_id = all_inventory_view.wh_id
-                 and pdtl2.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, all_inventory_view.untqty, all_inventory_view.untqty / prtftp_dtl.untqty) as decimal(20, 5)) as carton_weight
+                 and pdtl2.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, all_inventory_view.untqty, all_inventory_view.untqty / prtftp_dtl.untqty) as decimal(20, 5)) as carton_weight,
+        all_inventory_view.dtlnum
    from locmst
    join loc_typ
      on loc_typ.loc_typ_id = locmst.loc_typ_id
