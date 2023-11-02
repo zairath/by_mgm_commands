@@ -1,3 +1,9 @@
+<command>
+  <name>list cstm inventory balances by upload</name>
+  <description>list cstm inventory balances by upload</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
 get client in clause for user
  where table_prefix = 'invdtl'
    and usr_id = @@usr_id
@@ -97,3 +103,6 @@ if (@invtid)
         prtfam.prtfamgrp,
         prtmst_view.stkuom,
         prtmst_view.dspuom]
+]]>
+</local-syntax>
+</command>
