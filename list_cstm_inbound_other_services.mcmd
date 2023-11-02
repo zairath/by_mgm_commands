@@ -27,7 +27,7 @@ get client in clause for user
                 rcvlin.rcvqty,
                 rcvlin.rcv_catch_qty,
                 rcvinv.completed_date,
-                decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom
+                dscmst.lngdsc as dsp_untqty_uom
            from rcvinv
            join rcvlin
              on rcvlin.trknum = rcvinv.trknum
@@ -46,6 +46,9 @@ get client in clause for user
             and (rcvtrk.wh_id = rcvlin.wh_id)
            join prtfam
              on prtfam.prtfam = prtmst_view.prtfam
+           join dscmst
+             on dscmst.colnam = 'uomcod'
+            and dscmst.colval = prtmst_view.dspuom
           where prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
             and rcvtrk.rcvtrk_stat = 'C'
             and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
