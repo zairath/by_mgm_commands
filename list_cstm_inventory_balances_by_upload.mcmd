@@ -44,7 +44,7 @@ if (@invtid)
         sum(invdtl.catch_qty) as catch_qty,
         sum(invdtl.rcv_catch_qty) as rcv_catch_qty,
         count(distinct invdtl.revlvl) as qty_of_pallets,
-        sum(prtftp_dtl.netwgt) / 35.274 * decode(prtmst_view.dspuom, null, sum(invdtl.untqty), sum(invdtl.untqty / prtftp_dtl.untqty)) as carton_weight
+        max(prtftp_dtl.netwgt) / 35.274 * decode(prtmst_view.dspuom, null, sum(invdtl.untqty), sum(invdtl.untqty / prtftp_dtl.untqty)) as carton_weight
    from invdtl
    join invsub
      on invsub.subnum = invdtl.subnum
