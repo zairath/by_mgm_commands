@@ -117,6 +117,7 @@ get client in clause for user
    left
    join dlytrn
      on all_inventory_view.lodnum = dlytrn.lodnum
+    and all_inventory_view.subnum = dlytrn.subnum
     and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
     and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN')
     and dlytrn.tostol not like '%CHAMBER%'
