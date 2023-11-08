@@ -33,77 +33,167 @@ if (@invtid)
     }
 }
 |
-[select invlod.wh_id,
-        invdtl.prt_client_id,
-        convert(varchar, sysdate, 111) as datetime,
-        prtfam.prtfamgrp as 'temp',
-        sum(invdtl.untqty) as untqty,
-        sum(decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty)) dsp_untqty,
-        decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
-        prtmst_view.stkuom,
-        sum(invdtl.catch_qty) as catch_qty,
-        sum(invdtl.rcv_catch_qty) as rcv_catch_qty,
-        count(distinct invdtl.revlvl) as qty_of_pallets,
-        max(prtftp_dtl.netwgt) / 35.274 * decode(prtmst_view.dspuom, null, sum(invdtl.untqty), sum(invdtl.untqty / prtftp_dtl.untqty)) as carton_weight
-   from invdtl
-   join invsub
-     on invsub.subnum = invdtl.subnum
-   join invlod
-     on invlod.lodnum = invsub.lodnum
-   join locmst
-     on locmst.stoloc = invlod.stoloc
-    and locmst.wh_id = invlod.wh_id
-   join aremst
-     on aremst.arecod = locmst.arecod
-    and aremst.wh_id = locmst.wh_id
-    and aremst.arecod not in ('ADJS', 'DSPCH', 'B1-RSTG', 'SHIP', 'B2-RSTG', 'B1-OTH-SER', 'B2-OTH-SER', 'EXPR', 'EXPR000009')
-   join loc_typ
-     on locmst.loc_typ_id = loc_typ.loc_typ_id
-   join prtmst_view
-     on prtmst_view.prtnum = invdtl.prtnum
-    and prtmst_view.prt_client_id = invdtl.prt_client_id
-    and prtmst_view.wh_id_tmpl = invlod.wh_id
-   join prtfam
-     on prtfam.prtfam = prtmst_view.prtfam
-   join prtftp
-     on prtmst_view.prtnum = prtftp.prtnum
-    and prtmst_view.wh_id = prtftp.wh_id
-    and prtmst_view.prt_client_id = prtftp.prt_client_id
-    and invdtl.ftpcod = prtftp.ftpcod
-     or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int))
-   join prtftp_dtl
-     on prtftp.prtnum = prtftp_dtl.prtnum
-    and prtftp.wh_id = prtftp_dtl.wh_id
-    and prtftp.prt_client_id = prtftp_dtl.prt_client_id
-    and prtftp.ftpcod = prtftp_dtl.ftpcod
-    and prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)
-  where @client_in_clause:raw
-    and @+invlod.lodnum
-    and @+invsub.subnum
-    and @+invdtl.dtlnum
-    and @+invlod.wh_id
-    and @+invlod.stoloc
-    and @+invdtl.prtnum
-    and @+invdtl.prt_client_id
-    and @+invdtl.lotnum
-    and @+invdtl.orgcod
-    and @+invdtl.revlvl
-    and @+invdtl.supnum
-    and @+invdtl.sup_lotnum
-    and @+invdtl.rttn_id
-    and @+invdtl.expire_dte
-    and @+invdtl.mandte
-    and @+invdtl.wrkref
-    and @+invdtl.ship_line_id
-    and @+invdtl.inv_attr_str1
-    and @+loc_typ.fwiflg
- /** add condition for uploaded inventory stock balances **/
-    and invdtl.rcvkey is null
-  group by invlod.wh_id,
-        invdtl.prt_client_id,
-        prtfam.prtfamgrp,
-        prtmst_view.stkuom,
-        prtmst_view.dspuom]
+[select balance_datas.wh_id,
+        balance_datas.prt_client_id,
+        balance_datas.datetime,
+        balance_datas.temp,
+        sum(untqty) untqty,
+        sum(dsp_untqty) dsp_untqty,
+        balance_datas.dsp_untqty_uom,
+        balance_datas.stkuom,
+        sum(qty_of_pallets) qty_of_pallets,
+        max(carton_weight) + max(catch_qty) as carton_weight
+   from (select invlod.wh_id,
+                invdtl.prt_client_id,
+                convert(varchar, sysdate, 111) as datetime,
+                prtfam.prtfamgrp as 'temp',
+                sum(invdtl.untqty) as untqty,
+                sum(decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty)) dsp_untqty,
+                decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
+                prtmst_view.stkuom,
+                sum(invdtl.catch_qty) as catch_qty,
+                sum(invdtl.rcv_catch_qty) as rcv_catch_qty,
+                count(distinct invdtl.revlvl) as qty_of_pallets,
+                max(prtftp_dtl.netwgt) / 35.274 * decode(prtmst_view.dspuom, null, sum(invdtl.untqty), sum(invdtl.untqty / prtftp_dtl.untqty)) as carton_weight
+           from invdtl
+           join invsub
+             on invsub.subnum = invdtl.subnum
+           join invlod
+             on invlod.lodnum = invsub.lodnum
+           join locmst
+             on locmst.stoloc = invlod.stoloc
+            and locmst.wh_id = invlod.wh_id
+           join aremst
+             on aremst.arecod = locmst.arecod
+            and aremst.wh_id = locmst.wh_id
+            and aremst.arecod not in ('ADJS', 'DSPCH', 'B1-RSTG', 'SHIP', 'B2-RSTG', 'B1-OTH-SER', 'B2-OTH-SER', 'EXPR', 'EXPR000009')
+           join loc_typ
+             on locmst.loc_typ_id = loc_typ.loc_typ_id
+           join prtmst_view
+             on prtmst_view.prtnum = invdtl.prtnum
+            and prtmst_view.prt_client_id = invdtl.prt_client_id
+            and prtmst_view.wh_id_tmpl = invlod.wh_id
+            and prtmst_view.catch_unttyp is not null
+           join prtfam
+             on prtfam.prtfam = prtmst_view.prtfam
+           join prtftp
+             on prtmst_view.prtnum = prtftp.prtnum
+            and prtmst_view.wh_id = prtftp.wh_id
+            and prtmst_view.prt_client_id = prtftp.prt_client_id
+            and invdtl.ftpcod = prtftp.ftpcod
+             or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int))
+           join prtftp_dtl
+             on prtftp.prtnum = prtftp_dtl.prtnum
+            and prtftp.wh_id = prtftp_dtl.wh_id
+            and prtftp.prt_client_id = prtftp_dtl.prt_client_id
+            and prtftp.ftpcod = prtftp_dtl.ftpcod
+            and prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)
+          where @client_in_clause:raw
+            and @+invlod.lodnum
+            and @+invsub.subnum
+            and @+invdtl.dtlnum
+            and @+invlod.wh_id
+            and @+invlod.stoloc
+            and @+invdtl.prtnum
+            and @+invdtl.prt_client_id
+            and @+invdtl.lotnum
+            and @+invdtl.orgcod
+            and @+invdtl.revlvl
+            and @+invdtl.supnum
+            and @+invdtl.sup_lotnum
+            and @+invdtl.rttn_id
+            and @+invdtl.expire_dte
+            and @+invdtl.mandte
+            and @+invdtl.wrkref
+            and @+invdtl.ship_line_id
+            and @+invdtl.inv_attr_str1
+            and @+loc_typ.fwiflg
+         /** add condition for uploaded inventory stock balances **/
+            and invdtl.rcvkey is null
+          group by invlod.wh_id,
+                invdtl.prt_client_id,
+                prtfam.prtfamgrp,
+                prtmst_view.stkuom,
+                prtmst_view.dspuom
+         union
+         select invlod.wh_id,
+                invdtl.prt_client_id,
+                convert(varchar, sysdate, 111) as datetime,
+                prtfam.prtfamgrp as 'temp',
+                sum(invdtl.untqty) as untqty,
+                sum(decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty)) dsp_untqty,
+                decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
+                prtmst_view.stkuom,
+                sum(invdtl.catch_qty) as catch_qty,
+                sum(invdtl.rcv_catch_qty) as rcv_catch_qty,
+                count(distinct invdtl.revlvl) as qty_of_pallets,
+                max(prtftp_dtl.netwgt) / 35.274 * decode(prtmst_view.dspuom, null, sum(invdtl.untqty), sum(invdtl.untqty / prtftp_dtl.untqty)) as carton_weight
+           from invdtl
+           join invsub
+             on invsub.subnum = invdtl.subnum
+           join invlod
+             on invlod.lodnum = invsub.lodnum
+           join locmst
+             on locmst.stoloc = invlod.stoloc
+            and locmst.wh_id = invlod.wh_id
+           join aremst
+             on aremst.arecod = locmst.arecod
+            and aremst.wh_id = locmst.wh_id
+            and aremst.arecod not in ('ADJS', 'DSPCH', 'B1-RSTG', 'SHIP', 'B2-RSTG', 'B1-OTH-SER', 'B2-OTH-SER', 'EXPR', 'EXPR000009')
+           join loc_typ
+             on locmst.loc_typ_id = loc_typ.loc_typ_id
+           join prtmst_view
+             on prtmst_view.prtnum = invdtl.prtnum
+            and prtmst_view.prt_client_id = invdtl.prt_client_id
+            and prtmst_view.wh_id_tmpl = invlod.wh_id
+            and prtmst_view.catch_unttyp is null
+           join prtfam
+             on prtfam.prtfam = prtmst_view.prtfam
+           join prtftp
+             on prtmst_view.prtnum = prtftp.prtnum
+            and prtmst_view.wh_id = prtftp.wh_id
+            and prtmst_view.prt_client_id = prtftp.prt_client_id
+            and invdtl.ftpcod = prtftp.ftpcod
+             or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int))
+           join prtftp_dtl
+             on prtftp.prtnum = prtftp_dtl.prtnum
+            and prtftp.wh_id = prtftp_dtl.wh_id
+            and prtftp.prt_client_id = prtftp_dtl.prt_client_id
+            and prtftp.ftpcod = prtftp_dtl.ftpcod
+            and prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)
+          where @client_in_clause:raw
+            and @+invlod.lodnum
+            and @+invsub.subnum
+            and @+invdtl.dtlnum
+            and @+invlod.wh_id
+            and @+invlod.stoloc
+            and @+invdtl.prtnum
+            and @+invdtl.prt_client_id
+            and @+invdtl.lotnum
+            and @+invdtl.orgcod
+            and @+invdtl.revlvl
+            and @+invdtl.supnum
+            and @+invdtl.sup_lotnum
+            and @+invdtl.rttn_id
+            and @+invdtl.expire_dte
+            and @+invdtl.mandte
+            and @+invdtl.wrkref
+            and @+invdtl.ship_line_id
+            and @+invdtl.inv_attr_str1
+            and @+loc_typ.fwiflg
+         /** add condition for uploaded inventory stock balances **/
+            and invdtl.rcvkey is null
+          group by invlod.wh_id,
+                invdtl.prt_client_id,
+                prtfam.prtfamgrp,
+                prtmst_view.stkuom,
+                prtmst_view.dspuom) as balance_datas
+  group by balance_datas.wh_id,
+        balance_datas.prt_client_id,
+        balance_datas.datetime,
+        balance_datas.temp,
+        balance_datas.dsp_untqty_uom,
+        balance_datas.stkuom]
 ]]>
 </local-syntax>
 </command>
