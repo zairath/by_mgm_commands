@@ -4,7 +4,7 @@
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
-[select sysdate as date_printed,
+[select sysdate -1 as date_printed,
         il.wh_id,
         id.prt_client_id,
         adrmst.adrnam as client_name,
