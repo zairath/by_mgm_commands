@@ -41,7 +41,7 @@ get client in clause for user
         all_inventory_view.inv_attr_str1 as batch_code,
         all_inventory_view.inv_attr_str2 as reference_1,
         all_inventory_view.inv_attr_str3 as reference_2,
-        dlytrn.usr_id as putaway_user,
+        dtrn.usr_id as putaway_user,
         cast((select pdtl2.netwgt
                 from prtftp_dtl pdtl2
                where pdtl2.ftpcod = all_inventory_view.ftpcod
@@ -115,13 +115,24 @@ get client in clause for user
      on inv_stat.colnam = 'invsts'
     and inv_stat.colval = all_inventory_view.invsts
    left
-   join dlytrn
-     on all_inventory_view.lodnum = dlytrn.lodnum
-    and all_inventory_view.subnum = dlytrn.subnum
-    and all_inventory_view.stoloc = dlytrn.tostol
-    and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
-    and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN')
-    and dlytrn.tostol not like '%CHAMBER%'
+   join (select lodnum,
+                subnum,
+                tostol,
+                usr_id,
+                trndte
+           from dlytrn
+          where dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
+            and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN')
+            and dlytrn.tostol not like '%CHAMBER%'
+          group by lodnum,
+                subnum,
+                tostol,
+                usr_id,
+                trndte) dtrn
+     on all_inventory_view.lodnum = dtrn.lodnum
+    and all_inventory_view.subnum = dtrn.subnum
+    and all_inventory_view.stoloc = dtrn.tostol
+    and all_inventory_view.lstmov = dtrn.trndte
   where locmst.stoloc not like '%PERM%'
     and @+locmst.wh_id
     and @+prtmst_view.prtnum
