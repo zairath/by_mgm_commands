@@ -142,7 +142,7 @@ get client in clause for user
              on prtmst_view.prtnum = prtftp.prtnum
             and prtmst_view.wh_id = prtftp.wh_id
             and prtmst_view.prt_client_id = prtftp.prt_client_id
-             or prtftp.defftp_flg = 1
+             or prtftp.defftp_flg = null
            join prtftp_dtl pdt
              on prtftp.prtnum = pdt.prtnum
             and prtftp.wh_id = pdt.wh_id
