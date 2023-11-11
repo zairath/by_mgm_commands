@@ -28,8 +28,11 @@ get client in clause for user
                 sum(floor(shipment_line.picked_qty / prtftp_dtl.untqty)) as dspuom_qty,
                 prtmst_view.dspuom,
                 sum(inv.catch_qty) as catch_qty,
-                sum(cast(prtftp_dtl.netwgt / 35.274 * floor(shipment_line.picked_qty / prtftp_dtl.untqty) as decimal(10, 2))) as carton_weight,
-                count(inv.revlvl) as qty_of_pallets
+                case when prtmst_view.catch_unttyp is null then sum(cast(prtftp_dtl.netwgt / 35.274 * floor(shipment_line.picked_qty / prtftp_dtl.untqty) as decimal(10, 2)))
+                     else 0
+                end as carton_weight,
+                count(inv.revlvl) as qty_of_pallets,
+                prtmst_view.catch_unttyp as catch_unttype
            from prtmst_view
            join ord_line
              on (prtmst_view.prt_client_id = ord_line.prt_client_id)
@@ -119,7 +122,6 @@ get client in clause for user
           where ord_line.non_alc_flg = '0'
             and ord.ordtyp <> 'C1'
             and trlr.trlr_stat = 'D'
-            and prtmst_view.catch_unttyp is null
             and @+shipment_line.ship_id
             and @+shipment_line.ship_line_id
             and @+shipment_line.client_id
@@ -140,129 +142,8 @@ get client in clause for user
                 shipment_line.client_id,
                 convert(varchar, trlr.close_dte, 111),
                 prtmst_view.dspuom,
-                prtmst_view.stkuom
-         union
-         select distinct shipment_line.wh_id,
-                shipment_line.client_id,
-                convert(varchar, trlr.close_dte, 111) as datetime,
-                sum(nvl(inv.untqty, 0)) untqty,
                 prtmst_view.stkuom,
-                sum(floor(shipment_line.picked_qty / prtftp_dtl.untqty)) as dspuom_qty,
-                prtmst_view.dspuom,
-                sum(inv.catch_qty) as catch_qty,
-                sum(cast(prtftp_dtl.netwgt / 35.274 * floor(shipment_line.picked_qty / prtftp_dtl.untqty) as decimal(10, 2))) as carton_weight,
-                count(inv.revlvl) as qty_of_pallets
-           from prtmst_view
-           join ord_line
-             on (prtmst_view.prt_client_id = ord_line.prt_client_id)
-            and (prtmst_view.prtnum = ord_line.prtnum)
-            and (prtmst_view.wh_id = ord_line.wh_id)
-           join prtmst_wh
-             on (prtmst_view.wh_id = prtmst_wh.wh_id)
-            and (prtmst_view.prtnum = prtmst_wh.prtnum)
-            and (prtmst_view.prt_client_id = prtmst_wh.prt_client_id)
-           join prtftp
-             on prtftp.prtnum = prtmst_view.prtnum
-            and prtftp.prt_client_id = prtmst_view.prt_client_id
-            and prtftp.wh_id = prtmst_view.wh_id
-            and prtftp.defftp_flg = 1
-           join prtftp_dtl
-             on prtftp_dtl.prtnum = prtftp.prtnum
-            and prtftp_dtl.prt_client_id = prtftp.prt_client_id
-            and prtftp_dtl.wh_id = prtftp.wh_id
-            and prtftp_dtl.ftpcod = prtftp.ftpcod
-            and prtftp_dtl.cas_flg = 1
-           join ord
-             on (ord.client_id = ord_line.client_id)
-            and (ord.ordnum = ord_line.ordnum)
-            and (ord.wh_id = ord_line.wh_id)
-           join shipment_line
-             on (ord_line.client_id = shipment_line.client_id)
-            and (ord_line.wh_id = shipment_line.wh_id)
-            and (ord_line.ordnum = shipment_line.ordnum)
-            and (ord_line.ordlin = shipment_line.ordlin)
-            and (ord_line.ordsln = shipment_line.ordsln)
-            and (shipment_line.linsts != 'B')
-           left outer
-           join (select shipment_line.ship_line_id,
-                        invdtl_hist.orgcod,
-                        invdtl_hist.lotnum,
-                        invdtl_hist.sup_lotnum,
-                        invdtl_hist.revlvl,
-                        invdtl_hist.mandte,
-                        invdtl_hist.expire_dte,
-                        invdtl_hist.inv_attr_str1,
-                        invdtl_hist.inv_attr_str2,
-                        invdtl_hist.invsts,
-                        invdtl_hist.ftpcod,
-                        sum(invdtl_hist.catch_qty) catch_qty,
-                        sum(invdtl_hist.untqty) untqty
-                   from invdtl_hist,
-                        shipment_line
-                  where shipment_line.ship_line_id = invdtl_hist.ship_line_id
-                    and @+shipment_line.ship_id
-                  group by shipment_line.ship_line_id,
-                        invdtl_hist.orgcod,
-                        invdtl_hist.lotnum,
-                        invdtl_hist.sup_lotnum,
-                        invdtl_hist.revlvl,
-                        invdtl_hist.mandte,
-                        invdtl_hist.expire_dte,
-                        invdtl_hist.inv_attr_str1,
-                        invdtl_hist.inv_attr_str2,
-                        invdtl_hist.ftpcod,
-                        invdtl_hist.catch_qty,
-                        invdtl_hist.invsts) inv
-             on (shipment_line.ship_line_id = inv.ship_line_id)
-           left outer
-           join (select alloc_rule_hdr.wh_id,
-                        alloc_rule_hdr.rule_nam,
-                        alloc_rule_dtl.value,
-                        alloc_rule_dtl.field_name
-                   from alloc_rule_dtl,
-                        alloc_rule_hdr
-                  where alloc_rule_hdr.cplx_flg = 0
-                    and alloc_rule_dtl.rule_nam = alloc_rule_hdr.rule_nam) alcrule
-             on (ord_line.rule_nam = alcrule.rule_nam)
-            and (alcrule.wh_id = ord.wh_id)
-           left
-           join pckwrk_view pvw
-             on pvw.ship_line_id = shipment_line.ship_line_id
-           join prtfam
-             on prtfam.prtfam = prtmst_view.prtfam
-           join shipment
-             on shipment.ship_id = pvw.ship_id
-           join stop
-             on stop.stop_id = shipment.stop_id
-           join car_move
-             on car_move.car_move_id = stop.car_move_id
-           join trlr
-             on trlr.trlr_id = car_move.trlr_id
-          where ord_line.non_alc_flg = '0'
-            and ord.ordtyp <> 'C1'
-            and trlr.trlr_stat = 'D'
-            and prtmst_view.catch_unttyp is not null
-            and @+shipment_line.ship_id
-            and @+shipment_line.ship_line_id
-            and @+shipment_line.client_id
-            and @+shipment_line.ordnum
-            and @+shipment_line.ordlin
-            and @+shipment_line.ordsln
-            and @+shipment_line.wh_id
-            and @+ord_line.entdte:date
-            and @+ord_line.early_shpdte:date
-            and @+ord_line.late_shpdte:date
-            and @+ord_line.early_dlvdte:date
-            and @+ord_line.late_dlvdte:date
-            and @+prtmst_wh.cntdte:date
-            and @+prtmst_view.moddte:date
-            and trlr.close_dte between @start_date:date
-            and @end_date:date
-          group by shipment_line.wh_id,
-                shipment_line.client_id,
-                convert(varchar, trlr.close_dte, 111),
-                prtmst_view.dspuom,
-                prtmst_view.stkuom) outbound_datas
+                prtmst_view.catch_unttyp) outbound_datas
   group by outbound_datas.wh_id,
         outbound_datas.client_id,
         outbound_datas.datetime,
