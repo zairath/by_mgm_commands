@@ -15,393 +15,804 @@ get client in clause for user
    and prt_client_id_flg = 1
 |
 [/*#api-query*/
- select inventory.wh_id,
-        inventory.prt_client_id,
-        convert(varchar, inventory.completed_date, 111) as datetime,
-        inventory.prtfamgrp as 'temp',
-        sum(inventory.untqty) as untqty,
-        sum(inventory.catch_qty) as catch_qty,
-        sum(inventory.carton_weight) as carton_weight,
-        sum(inventory.dsp_untqty) as dsp_untqty,
-        max(inventory.dsp_untqty_uom) as dsp_untqty_uom,
-        sum(inventory.rem_untqty) as rem_untqty,
-        max(inventory.rem_untqty_uom) as rem_untqty_uom,
-        count(inventory.revlvl) as qty_of_pallets
-   from
-        /* Union live and historical inventory */
-        /* Select the Live Inventory */
-        (select aremst.arecod,
-                aremst.bldg_id,
-                aremst.wh_id,
-                locmst.stoloc,
-                invlod.lodnum,
-                invsub.subnum,
-                invdtl.dtlnum,
-                invdtl.phdflg,
-                invdtl.prt_client_id,
-                invdtl.prtnum,
-                prtdsc.lngdsc,
-                prtfam.prtfamgrp,
-                invdtl.orgcod,
-                invdtl.lotnum,
-                invdtl.revlvl,
-                invdtl.invsts,
-                invdtl.untpak,
-                invdtl.untcas,
-                invdtl.mandte,
-                invdtl.untqty,
-                invdtl.catch_qty,
-                invlod.avg_unt_catch_qty,
-                prtmst_view.catch_unttyp,
-                cast((select pdtl.netwgt
-                        from prtftp_dtl pdtl
-                       where pdtl.ftpcod = prtftp_dtl.ftpcod
-                         and pdtl.prtnum = prtftp_dtl.prtnum
-                         and pdtl.prt_client_id = prtftp_dtl.prt_client_id
-                         and pdtl.wh_id = prtftp_dtl.wh_id
-                         and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) as decimal(10, 2)) as carton_weight,
-                invdtl.ftpcod,
-                invdtl.rcvkey,
-                invdtl.inv_attr_str1,
-                invdtl.inv_attr_str2,
-                invdtl.age_pflnam,
-                prtmst_view.stkuom,
-                prtmst_view.lodlvl,
-                invdtl.expire_dte,
-                round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)) days_to_expire,
-                invdtl.fifdte,
-                invlod.adddte,
-                rcvinv.completed_date,
-                rcvtrk.trlr_id,
-                rcvtrk.trknum,
-                rcvlin.rcvsts,
-                rcvinv.invtyp,
-                rcvinv.po_num,
-                rcvlin.supnum,
-                trlr.yard_loc,
-                trlr.carcod,
-                rcvinv.invnum,
-                trlr.trlr_stat,
-                case when invdtl.lstmov > invsub.lstmov then
-                     case when invsub.lstmov > invlod.lstmov then invdtl.lstmov
-                          else
-                          case when invdtl.lstmov > invlod.lstmov then invdtl.lstmov
-                               else invlod.lstmov
-                          end
-                     end
-                     else
-                     case when invdtl.lstmov > invlod.lstmov then invsub.lstmov
-                          else
-                          case when invsub.lstmov > invlod.lstmov then invsub.lstmov
-                               else invlod.lstmov
-                          end
-                     end
-                end lstmov,
-                case when invdtl.lstdte > invsub.lstdte then
-                     case when invsub.lstdte > invlod.lstdte then invdtl.lstdte
-                          else
-                          case when invdtl.lstdte > invlod.lstdte then invdtl.lstdte
-                               else invlod.lstdte
-                          end
-                     end
-                     else
-                     case when invdtl.lstdte > invlod.lstdte then invsub.lstdte
-                          else
-                          case when invsub.lstdte > invlod.lstdte then invsub.lstdte
-                               else invlod.lstdte
-                          end
-                     end
-                end lstdte,
-                null min_days_to_expire,
-                null max_days_to_expire,
-                decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) dsp_untqty,
-                decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
-                decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), mod(invdtl.untqty, prtftp_dtl.untqty)) rem_untqty,
-                decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) rem_untqty_uom
-           from aremst
-           join locmst
-             on (aremst.arecod = locmst.arecod)
-            and (aremst.wh_id = locmst.wh_id)
-           join invlod
-             on (locmst.stoloc = invlod.stoloc)
-            and (locmst.wh_id = invlod.wh_id)
-           join invsub
-             on (invlod.lodnum = invsub.lodnum)
-           join invdtl
-             on (invsub.subnum = invdtl.subnum)
-           join prtmst_view
-             on (invdtl.prtnum = prtmst_view.prtnum)
-            and (invdtl.prt_client_id = prtmst_view.prt_client_id)
-            and (locmst.wh_id = prtmst_view.wh_id)
-           join prtdsc
-             on (prtdsc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/)
-           join prtftp
-             on (prtmst_view.prtnum = prtftp.prtnum)
-            and (prtmst_view.wh_id = prtftp.wh_id)
-            and (prtmst_view.prt_client_id = prtftp.prt_client_id)
-            and (invdtl.ftpcod = prtftp.ftpcod or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int)))
-           join prtftp_dtl
-             on (prtftp.prtnum = prtftp_dtl.prtnum)
-            and (prtftp.wh_id = prtftp_dtl.wh_id)
-            and (prtftp.prt_client_id = prtftp_dtl.prt_client_id)
-            and (prtftp.ftpcod = prtftp_dtl.ftpcod)
-            and (prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom))
-           join rcvlin
-             on rcvlin.rcvkey = invdtl.rcvkey
-           join rcvinv
-             on (rcvlin.trknum = rcvinv.trknum)
-            and (rcvlin.invnum = rcvinv.invnum)
-            and (rcvlin.client_id = rcvinv.client_id)
-            and (rcvlin.supnum = rcvinv.supnum)
-            and (rcvlin.wh_id = rcvinv.wh_id)
-           join rcvtrk
-             on (rcvtrk.trknum = rcvlin.trknum)
-            and (rcvtrk.wh_id = rcvlin.wh_id)
-           left outer
-           join asset_link parent_asset_link
-             on (parent_asset_link.asset_num = invlod.lodnum)
-           left outer
-           join asset_link child_asset_link
-             on (child_asset_link.asset_num = invsub.subnum)
-           join loc_typ
-             on locmst.loc_typ_id = loc_typ.loc_typ_id
-           left outer
-           join trlr
-             on (trlr.trlr_id = rcvtrk.trlr_id)
-           join prtfam
-             on prtfam.prtfam = prtmst_view.prtfam
-          where invdtl.prtnum != 'RETURNPART'
-            and prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
-            and rcvtrk.rcvtrk_stat = 'C'
-            and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
-            and aremst.arecod not in ('ADJS', 'DSPCH')
-            and rcvinv.invtyp <> 'P1'
-            and @+rcvlin.rcvkey
-            and @+rcvlin.supnum
-            and @+rcvlin.rcvkey
-            and @+rcvinv.supnum
-            and @client_in_clause:raw
-            and @+invdtl.prtnum
-            and @+invdtl.prt_client_id
-            and @+locmst.wh_id
-            and @+invlod.lodnum
-            and @+invsub.subnum
-            and @+invdtl.dtlnum
-            and @+invdtl.lotnum
-            and @+invdtl.sup_lotnum
-            and @+invdtl.adddte:date
-            and @+aremst.bldg_id
-            and @+aremst.arecod
-            and @+rcvinv.trknum
-            and @+rcvinv.po_num
-            and @+rcvtrk.trkref
-            and @+trlr.yard_loc
-            and @+rcvinv.invnum
-            and @+trlr.carcod
-            and @+trlr_stat
-            and @+loc_typ.adjflg
-            and @+invdtl.cstms_cnsgnmnt_id
-            and @+invdtl.rttn_id
-            and @+invdtl.cstms_bond_flg
-            and (@days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@days_to_expire as int), 1) + 1) = nvl(cast(@days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@days_to_expire as int), 1) + 1)))
-            and (@min_days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@min_days_to_expire as int), 1) -1) >= nvl(cast(@min_days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@min_days_to_expire as int), 1) -1)))
-            and (@max_days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1) <= nvl(cast(@max_days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1)))
-            and @+invlod.stoloc
-            and @+rcvinv.invtyp
-            and rcvinv.completed_date between @start_date:date
-            and @end_date:date
-         UNION ALL
-         /* Select the Historical Inventory */
-         select aremst.arecod,
-                aremst.bldg_id,
-                aremst.wh_id,
-                locmst.stoloc,
-                invlod.lodnum,
-                invsub.subnum,
-                invdtl.dtlnum,
-                invdtl.phdflg,
-                invdtl.prt_client_id,
-                invdtl.prtnum,
-                prtdsc.lngdsc,
-                prtfam.prtfamgrp,
-                invdtl.orgcod,
-                invdtl.lotnum,
-                invdtl.revlvl,
-                invdtl.invsts,
-                invdtl.untpak,
-                invdtl.untcas,
-                invdtl.mandte,
-                invdtl.untqty,
-                invdtl.catch_qty,
-                invlod.avg_unt_catch_qty,
-                prtmst_view.catch_unttyp,
-                cast((select pdtl.netwgt
-                        from prtftp_dtl pdtl
-                       where pdtl.ftpcod = prtftp_dtl.ftpcod
-                         and pdtl.prtnum = prtftp_dtl.prtnum
-                         and pdtl.prt_client_id = prtftp_dtl.prt_client_id
-                         and pdtl.wh_id = prtftp_dtl.wh_id
-                         and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) as decimal(10, 2)) as carton_weight,
-                invdtl.ftpcod,
-                invdtl.rcvkey,
-                invdtl.inv_attr_str1,
-                invdtl.inv_attr_str2,
-                invdtl.age_pflnam,
-                prtmst_view.stkuom,
-                prtmst_view.lodlvl,
-                invdtl.expire_dte,
-                round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)) days_to_expire,
-                invdtl.fifdte,
-                invlod.adddte,
-                rcvinv.completed_date,
-                rcvtrk.trlr_id,
-                rcvtrk.trknum,
-                rcvlin.rcvsts,
-                rcvinv.invtyp,
-                rcvinv.po_num,
-                rcvlin.supnum,
-                trlr.yard_loc,
-                trlr.carcod,
-                rcvinv.invnum,
-                trlr.trlr_stat,
-                case when invdtl.lstmov > invsub.lstmov then
-                     case when invsub.lstmov > invlod.lstmov then invdtl.lstmov
-                          else
-                          case when invdtl.lstmov > invlod.lstmov then invdtl.lstmov
-                               else invlod.lstmov
-                          end
-                     end
-                     else
-                     case when invdtl.lstmov > invlod.lstmov then invsub.lstmov
-                          else
-                          case when invsub.lstmov > invlod.lstmov then invsub.lstmov
-                               else invlod.lstmov
-                          end
-                     end
-                end lstmov,
-                case when invdtl.lstdte > invsub.lstdte then
-                     case when invsub.lstdte > invlod.lstdte then invdtl.lstdte
-                          else
-                          case when invdtl.lstdte > invlod.lstdte then invdtl.lstdte
-                               else invlod.lstdte
-                          end
-                     end
-                     else
-                     case when invdtl.lstdte > invlod.lstdte then invsub.lstdte
-                          else
-                          case when invsub.lstdte > invlod.lstdte then invsub.lstdte
-                               else invlod.lstdte
-                          end
-                     end
-                end lstdte,
-                null min_days_to_expire,
-                null max_days_to_expire,
-                decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) dsp_untqty,
-                decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
-                decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), mod(invdtl.untqty, prtftp_dtl.untqty)) rem_untqty,
-                decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) rem_untqty_uom
-           from aremst
-           join locmst
-             on (aremst.arecod = locmst.arecod)
-            and (aremst.wh_id = locmst.wh_id)
-           join invlod_hist invlod
-             on (locmst.stoloc = invlod.stoloc)
-            and (locmst.wh_id = invlod.wh_id)
-           join invsub_hist invsub
-             on (invlod.lodnum = invsub.lodnum and invlod.inv_hist_id = invsub.inv_hist_id)
-           join invdtl_hist invdtl
-             on (invsub.subnum = invdtl.subnum and invsub.inv_hist_id = invdtl.inv_hist_id)
-           join prtmst_view
-             on (invdtl.prtnum = prtmst_view.prtnum)
-            and (invdtl.prt_client_id = prtmst_view.prt_client_id)
-            and (locmst.wh_id = prtmst_view.wh_id)
-           join prtdsc
-             on (prtdsc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/)
-           join prtftp
-             on (prtmst_view.prtnum = prtftp.prtnum)
-            and (prtmst_view.wh_id = prtftp.wh_id)
-            and (prtmst_view.prt_client_id = prtftp.prt_client_id)
-            and (invdtl.ftpcod = prtftp.ftpcod or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int)))
-           join prtftp_dtl
-             on (prtftp.prtnum = prtftp_dtl.prtnum)
-            and (prtftp.wh_id = prtftp_dtl.wh_id)
-            and (prtftp.prt_client_id = prtftp_dtl.prt_client_id)
-            and (prtftp.ftpcod = prtftp_dtl.ftpcod)
-            and (prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom))
-           join rcvlin
-             on rcvlin.rcvkey = invdtl.rcvkey
-           join rcvinv
-             on (rcvlin.trknum = rcvinv.trknum)
-            and (rcvlin.invnum = rcvinv.invnum)
-            and (rcvlin.client_id = rcvinv.client_id)
-            and (rcvlin.supnum = rcvinv.supnum)
-            and (rcvlin.wh_id = rcvinv.wh_id)
-           join rcvtrk
-             on (rcvtrk.trknum = rcvlin.trknum)
-            and (rcvtrk.wh_id = rcvlin.wh_id)
-           left outer
-           join asset_link parent_asset_link
-             on (parent_asset_link.asset_num = invlod.lodnum)
-           left outer
-           join asset_link child_asset_link
-             on (child_asset_link.asset_num = invsub.subnum)
-           join loc_typ
-             on locmst.loc_typ_id = loc_typ.loc_typ_id
-           left outer
-           join trlr
-             on (trlr.trlr_id = rcvtrk.trlr_id)
-           join prtfam
-             on prtfam.prtfam = prtmst_view.prtfam
-          where invdtl.prtnum != 'RETURNPART'
-            and prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
-            and rcvtrk.rcvtrk_stat = 'C'
-            and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
-            and aremst.arecod not in ('ADJS', 'DSPCH')
-            and rcvinv.invtyp <> 'P1'
-            and @+rcvlin.rcvkey
-            and @+rcvlin.supnum
-            and @+rcvlin.rcvkey
-            and @+rcvinv.supnum
-            and @client_in_clause:raw
-            and @+invdtl.prtnum
-            and @+invdtl.prt_client_id
-            and @+locmst.wh_id
-            and @+invlod.lodnum
-            and @+invsub.subnum
-            and @+invdtl.dtlnum
-            and @+invdtl.lotnum
-            and @+invdtl.sup_lotnum
-            and @+invdtl.adddte:date
-            and @+aremst.bldg_id
-            and @+aremst.arecod
-            and @+rcvinv.trknum
-            and @+rcvinv.po_num
-            and @+rcvtrk.trkref
-            and @+trlr.yard_loc
-            and @+rcvinv.invnum
-            and @+trlr.carcod
-            and @+trlr_stat
-            and @+loc_typ.adjflg
-            and @+invdtl.cstms_cnsgnmnt_id
-            and @+invdtl.rttn_id
-            and @+invdtl.cstms_bond_flg
-            and (@days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@days_to_expire as int), 1) + 1) = nvl(cast(@days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@days_to_expire as int), 1) + 1)))
-            and (@min_days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@min_days_to_expire as int), 1) -1) >= nvl(cast(@min_days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@min_days_to_expire as int), 1) -1)))
-            and (@max_days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1) <= nvl(cast(@max_days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1)))
-            and @+invlod.stoloc
-            and @+rcvinv.invtyp
-            and rcvinv.completed_date between @start_date:date
-            and @end_date:date) inventory
-        /* modified to select by prtnum ! = RETURN PART rather
-         * the earlier hardcoded invsts - which is configurable
-         * where as 'RETURNPART' is an internal constant
-         */
-  group by inventory.wh_id,
-        inventory.prt_client_id,
-        convert(varchar, inventory.completed_date, 111),
-        inventory.prtfamgrp
-  order by inventory.wh_id,
-        inventory.prt_client_id]
+ select inbound_datas.wh_id,
+        inbound_datas.prt_client_id,
+        inbound_datas.datetime,
+        inbound_datas.temp,
+        sum(inbound_datas.untqty) untqty,
+        case when max(inbound_datas.catch_unttype) is not null then max(inbound_datas.carton_weight) * 0 + max(inbound_datas.catch_qty)
+             else sum(inbound_datas.carton_weight)
+        end as carton_weight,
+        sum(inbound_datas.dsp_untqty) dsp_untqty,
+        inbound_datas.dsp_untqty_uom,
+        sum(inbound_datas.rem_untqty) rem_untqty,
+        inbound_datas.rem_untqty_uom,
+        sum(inbound_datas.qty_of_pallets) qty_of_pallets
+   from (select inventory_1.wh_id,
+                inventory_1.prt_client_id,
+                convert(varchar, inventory_1.completed_date, 111) as datetime,
+                inventory_1.prtfamgrp as 'temp',
+                sum(inventory_1.untqty) as untqty,
+                sum(inventory_1.catch_qty) as catch_qty,
+                sum(inventory_1.carton_weight) as carton_weight,
+                sum(inventory_1.dsp_untqty) as dsp_untqty,
+                max(inventory_1.dsp_untqty_uom) as dsp_untqty_uom,
+                sum(inventory_1.rem_untqty) as rem_untqty,
+                max(inventory_1.rem_untqty_uom) as rem_untqty_uom,
+                count(inventory_1.revlvl) as qty_of_pallets,
+                max(inventory_1.catch_unttyp) as catch_unttype
+           from
+                /* Union live and historical inventory */
+                /* Select the Live Inventory */
+                (select aremst.arecod,
+                        aremst.bldg_id,
+                        aremst.wh_id,
+                        locmst.stoloc,
+                        invlod.lodnum,
+                        invsub.subnum,
+                        invdtl.dtlnum,
+                        invdtl.phdflg,
+                        invdtl.prt_client_id,
+                        invdtl.prtnum,
+                        prtdsc.lngdsc,
+                        prtfam.prtfamgrp,
+                        invdtl.orgcod,
+                        invdtl.lotnum,
+                        invdtl.revlvl,
+                        invdtl.invsts,
+                        invdtl.untpak,
+                        invdtl.untcas,
+                        invdtl.mandte,
+                        invdtl.untqty,
+                        invdtl.catch_qty,
+                        invlod.avg_unt_catch_qty,
+                        prtmst_view.catch_unttyp,
+                        cast((select pdtl.netwgt
+                                from prtftp_dtl pdtl
+                               where pdtl.ftpcod = prtftp_dtl.ftpcod
+                                 and pdtl.prtnum = prtftp_dtl.prtnum
+                                 and pdtl.prt_client_id = prtftp_dtl.prt_client_id
+                                 and pdtl.wh_id = prtftp_dtl.wh_id
+                                 and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) as decimal(10, 2)) as carton_weight,
+                        invdtl.ftpcod,
+                        invdtl.rcvkey,
+                        invdtl.inv_attr_str1,
+                        invdtl.inv_attr_str2,
+                        invdtl.age_pflnam,
+                        prtmst_view.stkuom,
+                        prtmst_view.lodlvl,
+                        invdtl.expire_dte,
+                        round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)) days_to_expire,
+                        invdtl.fifdte,
+                        invlod.adddte,
+                        rcvinv.completed_date,
+                        rcvtrk.trlr_id,
+                        rcvtrk.trknum,
+                        rcvlin.rcvsts,
+                        rcvinv.invtyp,
+                        rcvinv.po_num,
+                        rcvlin.supnum,
+                        trlr.yard_loc,
+                        trlr.carcod,
+                        rcvinv.invnum,
+                        trlr.trlr_stat,
+                        case when invdtl.lstmov > invsub.lstmov then
+                             case when invsub.lstmov > invlod.lstmov then invdtl.lstmov
+                                  else
+                                  case when invdtl.lstmov > invlod.lstmov then invdtl.lstmov
+                                       else invlod.lstmov
+                                  end
+                             end
+                             else
+                             case when invdtl.lstmov > invlod.lstmov then invsub.lstmov
+                                  else
+                                  case when invsub.lstmov > invlod.lstmov then invsub.lstmov
+                                       else invlod.lstmov
+                                  end
+                             end
+                        end lstmov,
+                        case when invdtl.lstdte > invsub.lstdte then
+                             case when invsub.lstdte > invlod.lstdte then invdtl.lstdte
+                                  else
+                                  case when invdtl.lstdte > invlod.lstdte then invdtl.lstdte
+                                       else invlod.lstdte
+                                  end
+                             end
+                             else
+                             case when invdtl.lstdte > invlod.lstdte then invsub.lstdte
+                                  else
+                                  case when invsub.lstdte > invlod.lstdte then invsub.lstdte
+                                       else invlod.lstdte
+                                  end
+                             end
+                        end lstdte,
+                        null min_days_to_expire,
+                        null max_days_to_expire,
+                        decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) dsp_untqty,
+                        decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
+                        decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), mod(invdtl.untqty, prtftp_dtl.untqty)) rem_untqty,
+                        decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) rem_untqty_uom
+                   from aremst
+                   join locmst
+                     on (aremst.arecod = locmst.arecod)
+                    and (aremst.wh_id = locmst.wh_id)
+                   join invlod
+                     on (locmst.stoloc = invlod.stoloc)
+                    and (locmst.wh_id = invlod.wh_id)
+                   join invsub
+                     on (invlod.lodnum = invsub.lodnum)
+                   join invdtl
+                     on (invsub.subnum = invdtl.subnum)
+                   join prtmst_view
+                     on (invdtl.prtnum = prtmst_view.prtnum)
+                    and (invdtl.prt_client_id = prtmst_view.prt_client_id)
+                    and (locmst.wh_id = prtmst_view.wh_id)
+                    and (prtmst_view.catch_unttyp is not null)
+                   join prtdsc
+                     on (prtdsc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/)
+                   join prtftp
+                     on (prtmst_view.prtnum = prtftp.prtnum)
+                    and (prtmst_view.wh_id = prtftp.wh_id)
+                    and (prtmst_view.prt_client_id = prtftp.prt_client_id)
+                    and (invdtl.ftpcod = prtftp.ftpcod or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int)))
+                   join prtftp_dtl
+                     on (prtftp.prtnum = prtftp_dtl.prtnum)
+                    and (prtftp.wh_id = prtftp_dtl.wh_id)
+                    and (prtftp.prt_client_id = prtftp_dtl.prt_client_id)
+                    and (prtftp.ftpcod = prtftp_dtl.ftpcod)
+                    and (prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom))
+                   join rcvlin
+                     on rcvlin.rcvkey = invdtl.rcvkey
+                   join rcvinv
+                     on (rcvlin.trknum = rcvinv.trknum)
+                    and (rcvlin.invnum = rcvinv.invnum)
+                    and (rcvlin.client_id = rcvinv.client_id)
+                    and (rcvlin.supnum = rcvinv.supnum)
+                    and (rcvlin.wh_id = rcvinv.wh_id)
+                   join rcvtrk
+                     on (rcvtrk.trknum = rcvlin.trknum)
+                    and (rcvtrk.wh_id = rcvlin.wh_id)
+                   left outer
+                   join asset_link parent_asset_link
+                     on (parent_asset_link.asset_num = invlod.lodnum)
+                   left outer
+                   join asset_link child_asset_link
+                     on (child_asset_link.asset_num = invsub.subnum)
+                   join loc_typ
+                     on locmst.loc_typ_id = loc_typ.loc_typ_id
+                   left outer
+                   join trlr
+                     on (trlr.trlr_id = rcvtrk.trlr_id)
+                   join prtfam
+                     on prtfam.prtfam = prtmst_view.prtfam
+                  where invdtl.prtnum != 'RETURNPART'
+                    and prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+                    and rcvtrk.rcvtrk_stat = 'C'
+                    and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
+                    and aremst.arecod not in ('ADJS', 'DSPCH')
+                    and rcvinv.invtyp <> 'P1'
+                    and @+rcvlin.rcvkey
+                    and @+rcvlin.supnum
+                    and @+rcvlin.rcvkey
+                    and @+rcvinv.supnum
+                    and @client_in_clause:raw
+                    and @+invdtl.prtnum
+                    and @+invdtl.prt_client_id
+                    and @+locmst.wh_id
+                    and @+invlod.lodnum
+                    and @+invsub.subnum
+                    and @+invdtl.dtlnum
+                    and @+invdtl.lotnum
+                    and @+invdtl.sup_lotnum
+                    and @+invdtl.adddte:date
+                    and @+aremst.bldg_id
+                    and @+aremst.arecod
+                    and @+rcvinv.trknum
+                    and @+rcvinv.po_num
+                    and @+rcvtrk.trkref
+                    and @+trlr.yard_loc
+                    and @+rcvinv.invnum
+                    and @+trlr.carcod
+                    and @+trlr_stat
+                    and @+loc_typ.adjflg
+                    and @+invdtl.cstms_cnsgnmnt_id
+                    and @+invdtl.rttn_id
+                    and @+invdtl.cstms_bond_flg
+                    and (@days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@days_to_expire as int), 1) + 1) = nvl(cast(@days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@days_to_expire as int), 1) + 1)))
+                    and (@min_days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@min_days_to_expire as int), 1) -1) >= nvl(cast(@min_days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@min_days_to_expire as int), 1) -1)))
+                    and (@max_days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1) <= nvl(cast(@max_days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1)))
+                    and @+invlod.stoloc
+                    and @+rcvinv.invtyp
+                    and rcvinv.completed_date between @start_date:date
+                    and @end_date:date
+                 UNION ALL
+                 /* Select the Historical Inventory */
+                 select aremst.arecod,
+                        aremst.bldg_id,
+                        aremst.wh_id,
+                        locmst.stoloc,
+                        invlod.lodnum,
+                        invsub.subnum,
+                        invdtl.dtlnum,
+                        invdtl.phdflg,
+                        invdtl.prt_client_id,
+                        invdtl.prtnum,
+                        prtdsc.lngdsc,
+                        prtfam.prtfamgrp,
+                        invdtl.orgcod,
+                        invdtl.lotnum,
+                        invdtl.revlvl,
+                        invdtl.invsts,
+                        invdtl.untpak,
+                        invdtl.untcas,
+                        invdtl.mandte,
+                        invdtl.untqty,
+                        invdtl.catch_qty,
+                        invlod.avg_unt_catch_qty,
+                        prtmst_view.catch_unttyp,
+                        cast((select pdtl.netwgt
+                                from prtftp_dtl pdtl
+                               where pdtl.ftpcod = prtftp_dtl.ftpcod
+                                 and pdtl.prtnum = prtftp_dtl.prtnum
+                                 and pdtl.prt_client_id = prtftp_dtl.prt_client_id
+                                 and pdtl.wh_id = prtftp_dtl.wh_id
+                                 and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) as decimal(10, 2)) as carton_weight,
+                        invdtl.ftpcod,
+                        invdtl.rcvkey,
+                        invdtl.inv_attr_str1,
+                        invdtl.inv_attr_str2,
+                        invdtl.age_pflnam,
+                        prtmst_view.stkuom,
+                        prtmst_view.lodlvl,
+                        invdtl.expire_dte,
+                        round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)) days_to_expire,
+                        invdtl.fifdte,
+                        invlod.adddte,
+                        rcvinv.completed_date,
+                        rcvtrk.trlr_id,
+                        rcvtrk.trknum,
+                        rcvlin.rcvsts,
+                        rcvinv.invtyp,
+                        rcvinv.po_num,
+                        rcvlin.supnum,
+                        trlr.yard_loc,
+                        trlr.carcod,
+                        rcvinv.invnum,
+                        trlr.trlr_stat,
+                        case when invdtl.lstmov > invsub.lstmov then
+                             case when invsub.lstmov > invlod.lstmov then invdtl.lstmov
+                                  else
+                                  case when invdtl.lstmov > invlod.lstmov then invdtl.lstmov
+                                       else invlod.lstmov
+                                  end
+                             end
+                             else
+                             case when invdtl.lstmov > invlod.lstmov then invsub.lstmov
+                                  else
+                                  case when invsub.lstmov > invlod.lstmov then invsub.lstmov
+                                       else invlod.lstmov
+                                  end
+                             end
+                        end lstmov,
+                        case when invdtl.lstdte > invsub.lstdte then
+                             case when invsub.lstdte > invlod.lstdte then invdtl.lstdte
+                                  else
+                                  case when invdtl.lstdte > invlod.lstdte then invdtl.lstdte
+                                       else invlod.lstdte
+                                  end
+                             end
+                             else
+                             case when invdtl.lstdte > invlod.lstdte then invsub.lstdte
+                                  else
+                                  case when invsub.lstdte > invlod.lstdte then invsub.lstdte
+                                       else invlod.lstdte
+                                  end
+                             end
+                        end lstdte,
+                        null min_days_to_expire,
+                        null max_days_to_expire,
+                        decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) dsp_untqty,
+                        decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
+                        decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), mod(invdtl.untqty, prtftp_dtl.untqty)) rem_untqty,
+                        decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) rem_untqty_uom
+                   from aremst
+                   join locmst
+                     on (aremst.arecod = locmst.arecod)
+                    and (aremst.wh_id = locmst.wh_id)
+                   join invlod_hist invlod
+                     on (locmst.stoloc = invlod.stoloc)
+                    and (locmst.wh_id = invlod.wh_id)
+                   join invsub_hist invsub
+                     on (invlod.lodnum = invsub.lodnum and invlod.inv_hist_id = invsub.inv_hist_id)
+                   join invdtl_hist invdtl
+                     on (invsub.subnum = invdtl.subnum and invsub.inv_hist_id = invdtl.inv_hist_id)
+                   join prtmst_view
+                     on (invdtl.prtnum = prtmst_view.prtnum)
+                    and (invdtl.prt_client_id = prtmst_view.prt_client_id)
+                    and (locmst.wh_id = prtmst_view.wh_id)
+                    and (prtmst_view.catch_unttyp is not null)
+                   join prtdsc
+                     on (prtdsc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/)
+                   join prtftp
+                     on (prtmst_view.prtnum = prtftp.prtnum)
+                    and (prtmst_view.wh_id = prtftp.wh_id)
+                    and (prtmst_view.prt_client_id = prtftp.prt_client_id)
+                    and (invdtl.ftpcod = prtftp.ftpcod or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int)))
+                   join prtftp_dtl
+                     on (prtftp.prtnum = prtftp_dtl.prtnum)
+                    and (prtftp.wh_id = prtftp_dtl.wh_id)
+                    and (prtftp.prt_client_id = prtftp_dtl.prt_client_id)
+                    and (prtftp.ftpcod = prtftp_dtl.ftpcod)
+                    and (prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom))
+                   join rcvlin
+                     on rcvlin.rcvkey = invdtl.rcvkey
+                   join rcvinv
+                     on (rcvlin.trknum = rcvinv.trknum)
+                    and (rcvlin.invnum = rcvinv.invnum)
+                    and (rcvlin.client_id = rcvinv.client_id)
+                    and (rcvlin.supnum = rcvinv.supnum)
+                    and (rcvlin.wh_id = rcvinv.wh_id)
+                   join rcvtrk
+                     on (rcvtrk.trknum = rcvlin.trknum)
+                    and (rcvtrk.wh_id = rcvlin.wh_id)
+                   left outer
+                   join asset_link parent_asset_link
+                     on (parent_asset_link.asset_num = invlod.lodnum)
+                   left outer
+                   join asset_link child_asset_link
+                     on (child_asset_link.asset_num = invsub.subnum)
+                   join loc_typ
+                     on locmst.loc_typ_id = loc_typ.loc_typ_id
+                   left outer
+                   join trlr
+                     on (trlr.trlr_id = rcvtrk.trlr_id)
+                   join prtfam
+                     on prtfam.prtfam = prtmst_view.prtfam
+                  where invdtl.prtnum != 'RETURNPART'
+                    and prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+                    and rcvtrk.rcvtrk_stat = 'C'
+                    and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
+                    and aremst.arecod not in ('ADJS', 'DSPCH')
+                    and rcvinv.invtyp <> 'P1'
+                    and @+rcvlin.rcvkey
+                    and @+rcvlin.supnum
+                    and @+rcvlin.rcvkey
+                    and @+rcvinv.supnum
+                    and @client_in_clause:raw
+                    and @+invdtl.prtnum
+                    and @+invdtl.prt_client_id
+                    and @+locmst.wh_id
+                    and @+invlod.lodnum
+                    and @+invsub.subnum
+                    and @+invdtl.dtlnum
+                    and @+invdtl.lotnum
+                    and @+invdtl.sup_lotnum
+                    and @+invdtl.adddte:date
+                    and @+aremst.bldg_id
+                    and @+aremst.arecod
+                    and @+rcvinv.trknum
+                    and @+rcvinv.po_num
+                    and @+rcvtrk.trkref
+                    and @+trlr.yard_loc
+                    and @+rcvinv.invnum
+                    and @+trlr.carcod
+                    and @+trlr_stat
+                    and @+loc_typ.adjflg
+                    and @+invdtl.cstms_cnsgnmnt_id
+                    and @+invdtl.rttn_id
+                    and @+invdtl.cstms_bond_flg
+                    and (@days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@days_to_expire as int), 1) + 1) = nvl(cast(@days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@days_to_expire as int), 1) + 1)))
+                    and (@min_days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@min_days_to_expire as int), 1) -1) >= nvl(cast(@min_days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@min_days_to_expire as int), 1) -1)))
+                    and (@max_days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1) <= nvl(cast(@max_days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1)))
+                    and @+invlod.stoloc
+                    and @+rcvinv.invtyp
+                    and rcvinv.completed_date between @start_date:date
+                    and @end_date:date) inventory_1
+                /* modified to select by prtnum ! = RETURN PART rather
+                 * the earlier hardcoded invsts - which is configurable
+                 * where as 'RETURNPART' is an internal constant
+                 */
+          group by inventory_1.wh_id,
+                inventory_1.prt_client_id,
+                convert(varchar, inventory_1.completed_date, 111),
+                inventory_1.prtfamgrp
+         union
+         select inventory_2.wh_id,
+                inventory_2.prt_client_id,
+                convert(varchar, inventory_2.completed_date, 111) as datetime,
+                inventory_2.prtfamgrp as 'temp',
+                sum(inventory_2.untqty) as untqty,
+                sum(inventory_2.catch_qty) as catch_qty,
+                sum(inventory_2.carton_weight) as carton_weight,
+                sum(inventory_2.dsp_untqty) as dsp_untqty,
+                max(inventory_2.dsp_untqty_uom) as dsp_untqty_uom,
+                sum(inventory_2.rem_untqty) as rem_untqty,
+                max(inventory_2.rem_untqty_uom) as rem_untqty_uom,
+                count(inventory_2.revlvl) as qty_of_pallets,
+                max(inventory_2.catch_unttyp) as catch_unttype
+           from
+                /* Union live and historical inventory */
+                /* Select the Live Inventory */
+                (select aremst.arecod,
+                        aremst.bldg_id,
+                        aremst.wh_id,
+                        locmst.stoloc,
+                        invlod.lodnum,
+                        invsub.subnum,
+                        invdtl.dtlnum,
+                        invdtl.phdflg,
+                        invdtl.prt_client_id,
+                        invdtl.prtnum,
+                        prtdsc.lngdsc,
+                        prtfam.prtfamgrp,
+                        invdtl.orgcod,
+                        invdtl.lotnum,
+                        invdtl.revlvl,
+                        invdtl.invsts,
+                        invdtl.untpak,
+                        invdtl.untcas,
+                        invdtl.mandte,
+                        invdtl.untqty,
+                        invdtl.catch_qty,
+                        invlod.avg_unt_catch_qty,
+                        prtmst_view.catch_unttyp,
+                        cast((select pdtl.netwgt
+                                from prtftp_dtl pdtl
+                               where pdtl.ftpcod = prtftp_dtl.ftpcod
+                                 and pdtl.prtnum = prtftp_dtl.prtnum
+                                 and pdtl.prt_client_id = prtftp_dtl.prt_client_id
+                                 and pdtl.wh_id = prtftp_dtl.wh_id
+                                 and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) as decimal(10, 2)) as carton_weight,
+                        invdtl.ftpcod,
+                        invdtl.rcvkey,
+                        invdtl.inv_attr_str1,
+                        invdtl.inv_attr_str2,
+                        invdtl.age_pflnam,
+                        prtmst_view.stkuom,
+                        prtmst_view.lodlvl,
+                        invdtl.expire_dte,
+                        round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)) days_to_expire,
+                        invdtl.fifdte,
+                        invlod.adddte,
+                        rcvinv.completed_date,
+                        rcvtrk.trlr_id,
+                        rcvtrk.trknum,
+                        rcvlin.rcvsts,
+                        rcvinv.invtyp,
+                        rcvinv.po_num,
+                        rcvlin.supnum,
+                        trlr.yard_loc,
+                        trlr.carcod,
+                        rcvinv.invnum,
+                        trlr.trlr_stat,
+                        case when invdtl.lstmov > invsub.lstmov then
+                             case when invsub.lstmov > invlod.lstmov then invdtl.lstmov
+                                  else
+                                  case when invdtl.lstmov > invlod.lstmov then invdtl.lstmov
+                                       else invlod.lstmov
+                                  end
+                             end
+                             else
+                             case when invdtl.lstmov > invlod.lstmov then invsub.lstmov
+                                  else
+                                  case when invsub.lstmov > invlod.lstmov then invsub.lstmov
+                                       else invlod.lstmov
+                                  end
+                             end
+                        end lstmov,
+                        case when invdtl.lstdte > invsub.lstdte then
+                             case when invsub.lstdte > invlod.lstdte then invdtl.lstdte
+                                  else
+                                  case when invdtl.lstdte > invlod.lstdte then invdtl.lstdte
+                                       else invlod.lstdte
+                                  end
+                             end
+                             else
+                             case when invdtl.lstdte > invlod.lstdte then invsub.lstdte
+                                  else
+                                  case when invsub.lstdte > invlod.lstdte then invsub.lstdte
+                                       else invlod.lstdte
+                                  end
+                             end
+                        end lstdte,
+                        null min_days_to_expire,
+                        null max_days_to_expire,
+                        decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) dsp_untqty,
+                        decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
+                        decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), mod(invdtl.untqty, prtftp_dtl.untqty)) rem_untqty,
+                        decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) rem_untqty_uom
+                   from aremst
+                   join locmst
+                     on (aremst.arecod = locmst.arecod)
+                    and (aremst.wh_id = locmst.wh_id)
+                   join invlod
+                     on (locmst.stoloc = invlod.stoloc)
+                    and (locmst.wh_id = invlod.wh_id)
+                   join invsub
+                     on (invlod.lodnum = invsub.lodnum)
+                   join invdtl
+                     on (invsub.subnum = invdtl.subnum)
+                   join prtmst_view
+                     on (invdtl.prtnum = prtmst_view.prtnum)
+                    and (invdtl.prt_client_id = prtmst_view.prt_client_id)
+                    and (locmst.wh_id = prtmst_view.wh_id)
+                    and (prtmst_view.catch_unttyp is null)
+                   join prtdsc
+                     on (prtdsc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/)
+                   join prtftp
+                     on (prtmst_view.prtnum = prtftp.prtnum)
+                    and (prtmst_view.wh_id = prtftp.wh_id)
+                    and (prtmst_view.prt_client_id = prtftp.prt_client_id)
+                    and (invdtl.ftpcod = prtftp.ftpcod or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int)))
+                   join prtftp_dtl
+                     on (prtftp.prtnum = prtftp_dtl.prtnum)
+                    and (prtftp.wh_id = prtftp_dtl.wh_id)
+                    and (prtftp.prt_client_id = prtftp_dtl.prt_client_id)
+                    and (prtftp.ftpcod = prtftp_dtl.ftpcod)
+                    and (prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom))
+                   join rcvlin
+                     on rcvlin.rcvkey = invdtl.rcvkey
+                   join rcvinv
+                     on (rcvlin.trknum = rcvinv.trknum)
+                    and (rcvlin.invnum = rcvinv.invnum)
+                    and (rcvlin.client_id = rcvinv.client_id)
+                    and (rcvlin.supnum = rcvinv.supnum)
+                    and (rcvlin.wh_id = rcvinv.wh_id)
+                   join rcvtrk
+                     on (rcvtrk.trknum = rcvlin.trknum)
+                    and (rcvtrk.wh_id = rcvlin.wh_id)
+                   left outer
+                   join asset_link parent_asset_link
+                     on (parent_asset_link.asset_num = invlod.lodnum)
+                   left outer
+                   join asset_link child_asset_link
+                     on (child_asset_link.asset_num = invsub.subnum)
+                   join loc_typ
+                     on locmst.loc_typ_id = loc_typ.loc_typ_id
+                   left outer
+                   join trlr
+                     on (trlr.trlr_id = rcvtrk.trlr_id)
+                   join prtfam
+                     on prtfam.prtfam = prtmst_view.prtfam
+                  where invdtl.prtnum != 'RETURNPART'
+                    and prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+                    and rcvtrk.rcvtrk_stat = 'C'
+                    and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
+                    and aremst.arecod not in ('ADJS', 'DSPCH')
+                    and rcvinv.invtyp <> 'P1'
+                    and @+rcvlin.rcvkey
+                    and @+rcvlin.supnum
+                    and @+rcvlin.rcvkey
+                    and @+rcvinv.supnum
+                    and @client_in_clause:raw
+                    and @+invdtl.prtnum
+                    and @+invdtl.prt_client_id
+                    and @+locmst.wh_id
+                    and @+invlod.lodnum
+                    and @+invsub.subnum
+                    and @+invdtl.dtlnum
+                    and @+invdtl.lotnum
+                    and @+invdtl.sup_lotnum
+                    and @+invdtl.adddte:date
+                    and @+aremst.bldg_id
+                    and @+aremst.arecod
+                    and @+rcvinv.trknum
+                    and @+rcvinv.po_num
+                    and @+rcvtrk.trkref
+                    and @+trlr.yard_loc
+                    and @+rcvinv.invnum
+                    and @+trlr.carcod
+                    and @+trlr_stat
+                    and @+loc_typ.adjflg
+                    and @+invdtl.cstms_cnsgnmnt_id
+                    and @+invdtl.rttn_id
+                    and @+invdtl.cstms_bond_flg
+                    and (@days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@days_to_expire as int), 1) + 1) = nvl(cast(@days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@days_to_expire as int), 1) + 1)))
+                    and (@min_days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@min_days_to_expire as int), 1) -1) >= nvl(cast(@min_days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@min_days_to_expire as int), 1) -1)))
+                    and (@max_days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1) <= nvl(cast(@max_days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1)))
+                    and @+invlod.stoloc
+                    and @+rcvinv.invtyp
+                    and rcvinv.completed_date between @start_date:date
+                    and @end_date:date
+                 UNION ALL
+                 /* Select the Historical Inventory */
+                 select aremst.arecod,
+                        aremst.bldg_id,
+                        aremst.wh_id,
+                        locmst.stoloc,
+                        invlod.lodnum,
+                        invsub.subnum,
+                        invdtl.dtlnum,
+                        invdtl.phdflg,
+                        invdtl.prt_client_id,
+                        invdtl.prtnum,
+                        prtdsc.lngdsc,
+                        prtfam.prtfamgrp,
+                        invdtl.orgcod,
+                        invdtl.lotnum,
+                        invdtl.revlvl,
+                        invdtl.invsts,
+                        invdtl.untpak,
+                        invdtl.untcas,
+                        invdtl.mandte,
+                        invdtl.untqty,
+                        invdtl.catch_qty,
+                        invlod.avg_unt_catch_qty,
+                        prtmst_view.catch_unttyp,
+                        cast((select pdtl.netwgt
+                                from prtftp_dtl pdtl
+                               where pdtl.ftpcod = prtftp_dtl.ftpcod
+                                 and pdtl.prtnum = prtftp_dtl.prtnum
+                                 and pdtl.prt_client_id = prtftp_dtl.prt_client_id
+                                 and pdtl.wh_id = prtftp_dtl.wh_id
+                                 and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) as decimal(10, 2)) as carton_weight,
+                        invdtl.ftpcod,
+                        invdtl.rcvkey,
+                        invdtl.inv_attr_str1,
+                        invdtl.inv_attr_str2,
+                        invdtl.age_pflnam,
+                        prtmst_view.stkuom,
+                        prtmst_view.lodlvl,
+                        invdtl.expire_dte,
+                        round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)) days_to_expire,
+                        invdtl.fifdte,
+                        invlod.adddte,
+                        rcvinv.completed_date,
+                        rcvtrk.trlr_id,
+                        rcvtrk.trknum,
+                        rcvlin.rcvsts,
+                        rcvinv.invtyp,
+                        rcvinv.po_num,
+                        rcvlin.supnum,
+                        trlr.yard_loc,
+                        trlr.carcod,
+                        rcvinv.invnum,
+                        trlr.trlr_stat,
+                        case when invdtl.lstmov > invsub.lstmov then
+                             case when invsub.lstmov > invlod.lstmov then invdtl.lstmov
+                                  else
+                                  case when invdtl.lstmov > invlod.lstmov then invdtl.lstmov
+                                       else invlod.lstmov
+                                  end
+                             end
+                             else
+                             case when invdtl.lstmov > invlod.lstmov then invsub.lstmov
+                                  else
+                                  case when invsub.lstmov > invlod.lstmov then invsub.lstmov
+                                       else invlod.lstmov
+                                  end
+                             end
+                        end lstmov,
+                        case when invdtl.lstdte > invsub.lstdte then
+                             case when invsub.lstdte > invlod.lstdte then invdtl.lstdte
+                                  else
+                                  case when invdtl.lstdte > invlod.lstdte then invdtl.lstdte
+                                       else invlod.lstdte
+                                  end
+                             end
+                             else
+                             case when invdtl.lstdte > invlod.lstdte then invsub.lstdte
+                                  else
+                                  case when invsub.lstdte > invlod.lstdte then invsub.lstdte
+                                       else invlod.lstdte
+                                  end
+                             end
+                        end lstdte,
+                        null min_days_to_expire,
+                        null max_days_to_expire,
+                        decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) dsp_untqty,
+                        decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
+                        decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), mod(invdtl.untqty, prtftp_dtl.untqty)) rem_untqty,
+                        decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) rem_untqty_uom
+                   from aremst
+                   join locmst
+                     on (aremst.arecod = locmst.arecod)
+                    and (aremst.wh_id = locmst.wh_id)
+                   join invlod_hist invlod
+                     on (locmst.stoloc = invlod.stoloc)
+                    and (locmst.wh_id = invlod.wh_id)
+                   join invsub_hist invsub
+                     on (invlod.lodnum = invsub.lodnum and invlod.inv_hist_id = invsub.inv_hist_id)
+                   join invdtl_hist invdtl
+                     on (invsub.subnum = invdtl.subnum and invsub.inv_hist_id = invdtl.inv_hist_id)
+                   join prtmst_view
+                     on (invdtl.prtnum = prtmst_view.prtnum)
+                    and (invdtl.prt_client_id = prtmst_view.prt_client_id)
+                    and (locmst.wh_id = prtmst_view.wh_id)
+                    and (prtmst_view.catch_unttyp is null)
+                   join prtdsc
+                     on (prtdsc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/)
+                   join prtftp
+                     on (prtmst_view.prtnum = prtftp.prtnum)
+                    and (prtmst_view.wh_id = prtftp.wh_id)
+                    and (prtmst_view.prt_client_id = prtftp.prt_client_id)
+                    and (invdtl.ftpcod = prtftp.ftpcod or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int)))
+                   join prtftp_dtl
+                     on (prtftp.prtnum = prtftp_dtl.prtnum)
+                    and (prtftp.wh_id = prtftp_dtl.wh_id)
+                    and (prtftp.prt_client_id = prtftp_dtl.prt_client_id)
+                    and (prtftp.ftpcod = prtftp_dtl.ftpcod)
+                    and (prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom))
+                   join rcvlin
+                     on rcvlin.rcvkey = invdtl.rcvkey
+                   join rcvinv
+                     on (rcvlin.trknum = rcvinv.trknum)
+                    and (rcvlin.invnum = rcvinv.invnum)
+                    and (rcvlin.client_id = rcvinv.client_id)
+                    and (rcvlin.supnum = rcvinv.supnum)
+                    and (rcvlin.wh_id = rcvinv.wh_id)
+                   join rcvtrk
+                     on (rcvtrk.trknum = rcvlin.trknum)
+                    and (rcvtrk.wh_id = rcvlin.wh_id)
+                   left outer
+                   join asset_link parent_asset_link
+                     on (parent_asset_link.asset_num = invlod.lodnum)
+                   left outer
+                   join asset_link child_asset_link
+                     on (child_asset_link.asset_num = invsub.subnum)
+                   join loc_typ
+                     on locmst.loc_typ_id = loc_typ.loc_typ_id
+                   left outer
+                   join trlr
+                     on (trlr.trlr_id = rcvtrk.trlr_id)
+                   join prtfam
+                     on prtfam.prtfam = prtmst_view.prtfam
+                  where invdtl.prtnum != 'RETURNPART'
+                    and prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+                    and rcvtrk.rcvtrk_stat = 'C'
+                    and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
+                    and aremst.arecod not in ('ADJS', 'DSPCH')
+                    and rcvinv.invtyp <> 'P1'
+                    and @+rcvlin.rcvkey
+                    and @+rcvlin.supnum
+                    and @+rcvlin.rcvkey
+                    and @+rcvinv.supnum
+                    and @client_in_clause:raw
+                    and @+invdtl.prtnum
+                    and @+invdtl.prt_client_id
+                    and @+locmst.wh_id
+                    and @+invlod.lodnum
+                    and @+invsub.subnum
+                    and @+invdtl.dtlnum
+                    and @+invdtl.lotnum
+                    and @+invdtl.sup_lotnum
+                    and @+invdtl.adddte:date
+                    and @+aremst.bldg_id
+                    and @+aremst.arecod
+                    and @+rcvinv.trknum
+                    and @+rcvinv.po_num
+                    and @+rcvtrk.trkref
+                    and @+trlr.yard_loc
+                    and @+rcvinv.invnum
+                    and @+trlr.carcod
+                    and @+trlr_stat
+                    and @+loc_typ.adjflg
+                    and @+invdtl.cstms_cnsgnmnt_id
+                    and @+invdtl.rttn_id
+                    and @+invdtl.cstms_bond_flg
+                    and (@days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@days_to_expire as int), 1) + 1) = nvl(cast(@days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@days_to_expire as int), 1) + 1)))
+                    and (@min_days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@min_days_to_expire as int), 1) -1) >= nvl(cast(@min_days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@min_days_to_expire as int), 1) -1)))
+                    and (@max_days_to_expire is null or invdtl.expire_dte is null or nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1) <= nvl(cast(@max_days_to_expire as int), nvl(round(moca_util.date_diff_days(sysdate, invdtl.expire_dte)), nvl(cast(@max_days_to_expire as int), 1) + 1)))
+                    and @+invlod.stoloc
+                    and @+rcvinv.invtyp
+                    and rcvinv.completed_date between @start_date:date
+                    and @end_date:date) inventory_2
+                /* modified to select by prtnum ! = RETURN PART rather
+                 * the earlier hardcoded invsts - which is configurable
+                 * where as 'RETURNPART' is an internal constant
+                 */
+          group by inventory_2.wh_id,
+                inventory_2.prt_client_id,
+                convert(varchar, inventory_2.completed_date, 111),
+                inventory_2.prtfamgrp) inbound_datas
+  group by inbound_datas.wh_id,
+        inbound_datas.prt_client_id,
+        inbound_datas.datetime,
+        inbound_datas.temp,
+        inbound_datas.dsp_untqty_uom,
+        inbound_datas.rem_untqty_uom
+  order by inbound_datas.wh_id,
+        inbound_datas.prt_client_id]
 ]]>
 </local-syntax>
 </command>
