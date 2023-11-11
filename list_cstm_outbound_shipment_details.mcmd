@@ -19,7 +19,8 @@ get client in clause for user
         sum(outbound_datas.dspuom_qty) dspuom_qty,
         outbound_datas.dspuom,
         max(outbound_datas.carton_weight) + max(outbound_datas.catch_qty) as carton_weight,
-        sum(outbound_datas.qty_of_pallets) qty_of_pallets
+        sum(outbound_datas.qty_of_pallets) qty_of_pallets,
+        outbound_datas.out_categories as categories
    from (select distinct shipment_line.wh_id,
                 shipment_line.client_id,
                 convert(varchar, trlr.close_dte, 111) as datetime,
@@ -32,7 +33,12 @@ get client in clause for user
                      else 0
                 end as carton_weight,
                 count(inv.revlvl) as qty_of_pallets,
-                prtmst_view.catch_unttyp as catch_unttype
+                prtmst_view.catch_unttyp as catch_unttype,
+                case when exists(select invdtlexist.dtlnum
+                                   from invdtl invdtlexist
+                                  where invdtlexist.revlvl = inv.revlvl) then 'NON-FULL-PALLET'
+                     else 'FULL-PALLET'
+                end as out_categories
            from prtmst_view
            join ord_line
              on (prtmst_view.prt_client_id = ord_line.prt_client_id)
@@ -143,12 +149,14 @@ get client in clause for user
                 convert(varchar, trlr.close_dte, 111),
                 prtmst_view.dspuom,
                 prtmst_view.stkuom,
-                prtmst_view.catch_unttyp) outbound_datas
+                prtmst_view.catch_unttyp,
+                inv.revlvl) outbound_datas
   group by outbound_datas.wh_id,
         outbound_datas.client_id,
         outbound_datas.datetime,
         outbound_datas.stkuom,
-        outbound_datas.dspuom
+        outbound_datas.dspuom,
+        outbound_datas.out_categories
   order by outbound_datas.wh_id,
         outbound_datas.client_id]
 ]]>
