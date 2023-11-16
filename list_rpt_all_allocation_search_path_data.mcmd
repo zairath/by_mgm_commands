@@ -1,0 +1,91 @@
+<command>
+  <name>list rpt all allocation search path data</name>
+  <description>list rpt all allocation search path data</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+|
+[select asp_data.alloc_search_path_id,
+        asp_data.wh_id,
+        asp_data.priority,
+        asp_data.search_path_name,
+        asp_data.client_id,
+        asp_data.order_type,
+        asp_data.item_family,
+        asp_data.sequence,
+        asp_data.bldg_id,
+        asp_data.pick_zone,
+        asp_data.lpn_level,
+        STRING_AGG(asp_data.uomcod, ',') allocation_uom
+   from (select asp.alloc_search_path_id,
+                asp.wh_id,
+                asp.srtseq as priority,
+                d1.lngdsc as search_path_name,
+                (select alloc_search_path_criteria.colval
+                   from alloc_search_path_criteria
+                  where alloc_search_path_criteria.alloc_search_path_id = max(asp.alloc_search_path_id)
+                    and alloc_search_path_criteria.colnam = 'client_id') as client_id,
+                (select d2.lngdsc
+                   from alloc_search_path_criteria
+                   join dscmst d2
+                     on d2.colnam = alloc_search_path_criteria.colnam
+                    and d2.colval = alloc_search_path_criteria.colval
+                  where alloc_search_path_criteria.alloc_search_path_id = max(asp.alloc_search_path_id)
+                    and alloc_search_path_criteria.colnam = 'ordtyp') as order_type,
+                (select d2.lngdsc
+                   from alloc_search_path_criteria
+                   join dscmst d2
+                     on d2.colnam = alloc_search_path_criteria.colnam
+                    and d2.colval = alloc_search_path_criteria.colval
+                  where alloc_search_path_criteria.alloc_search_path_id = max(asp.alloc_search_path_id)
+                    and alloc_search_path_criteria.colnam = 'prtfamgrp') as item_family,
+                aspr.srtseq as sequence,
+                aspr.bldg_id,
+                d3.lngdsc as pick_zone,
+                aspr.lodlvl as lpn_level,
+                aspr.uomcod
+           from alloc_search_path asp
+           join alloc_search_path_criteria aspc
+             on aspc.alloc_search_path_id = asp.alloc_search_path_id
+           join alloc_search_path_rule aspr
+             on aspr.alloc_search_path_id = aspc.alloc_search_path_id
+           join pck_zone pz
+             on pz.pck_zone_id = aspr.pck_zone_id
+            and pz.bldg_id = aspr.bldg_id
+           join dscmst d1
+             on d1.colnam = 'alloc_search_path_id'
+            and d1.colval = asp.alloc_search_path_id
+           join dscmst d3
+             on d3.colnam = 'pck_zone_cod|wh_id'
+            and d3.colval = pz.pck_zone_cod || '|' || pz.wh_id
+          where asp.search_path_typ = 'PICK'
+         /**where sc.sto_config_id = '000009'**/
+          group by asp.alloc_search_path_id,
+                asp.wh_id,
+                asp.srtseq,
+                d1.lngdsc,
+                aspr.srtseq,
+                aspr.bldg_id,
+                d3.lngdsc,
+                aspr.lodlvl,
+                aspr.uomcod) as asp_data
+  where asp_data.wh_id = @wh_id
+  group by asp_data.alloc_search_path_id,
+        asp_data.wh_id,
+        asp_data.priority,
+        asp_data.search_path_name,
+        asp_data.client_id,
+        asp_data.order_type,
+        asp_data.item_family,
+        asp_data.sequence,
+        asp_data.bldg_id,
+        asp_data.pick_zone,
+        asp_data.lpn_level
+  order by asp_data.priority,
+        asp_data.wh_id]
+]]>
+</local-syntax>
+</command>
