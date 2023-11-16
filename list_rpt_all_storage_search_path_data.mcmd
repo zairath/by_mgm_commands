@@ -1,0 +1,92 @@
+<command>
+  <name>list rpt all storage search path data</name>
+  <description>list rpt all storage search path data</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+|
+[select sp_data.sto_config_id,
+        sp_data.wh_id,
+        sp_data.priority,
+        sp_data.search_path_name,
+        sp_data.client_id,
+        sp_data.inventory_status,
+        sp_data.item_family,
+        sp_data.sequence,
+        sp_data.bldg_id,
+        sp_data.storage_zone,
+        sp_data.location_capacity,
+        STRING_AGG(sp_data.uomcod, ',') uomcod
+   from (select sc.sto_config_id,
+                sc.wh_id,
+                sc.srtseq as priority,
+                d1.lngdsc as search_path_name,
+                (select sto_config_criteria.colval
+                   from sto_config_criteria
+                  where sto_config_criteria.sto_config_id = max(scc.sto_config_id)
+                    and sto_config_criteria.colnam = 'prt_client_id') as client_id,
+                (select d2.lngdsc
+                   from sto_config_criteria
+                   join dscmst d2
+                     on d2.colnam = sto_config_criteria.colnam
+                    and d2.colval = sto_config_criteria.colval
+                  where sto_config_criteria.sto_config_id = max(scc.sto_config_id)
+                    and sto_config_criteria.colnam = 'invsts') as inventory_status,
+                (select d2.lngdsc
+                   from sto_config_criteria
+                   join dscmst d2
+                     on d2.colnam = sto_config_criteria.colnam
+                    and d2.colval = sto_config_criteria.colval
+                  where sto_config_criteria.sto_config_id = max(scc.sto_config_id)
+                    and sto_config_criteria.colnam = 'prtfam') as item_family,
+                scr.srtseq as sequence,
+                scr.bldg_id,
+                d3.lngdsc as storage_zone,
+                scr.strategy as location_capacity,
+                su.uomcod
+           from sto_config sc
+           join sto_config_criteria scc
+             on scc.sto_config_id = sc.sto_config_id
+           join sto_config_rule scr
+             on scr.sto_config_id = scc.sto_config_id
+           join sto_zone sz
+             on sz.sto_zone_id = scr.sto_zone_id
+            and sz.bldg_id = scr.bldg_id
+           join dscmst d1
+             on d1.colnam = 'sto_config_id'
+            and d1.colval = sc.sto_config_id
+           join dscmst d3
+             on d3.colnam = 'sto_zone_cod|wh_id'
+            and d3.colval = sz.sto_zone_cod || '|' || sz.wh_id
+           join sto_uom su
+             on su.sto_zone_id = scr.sto_zone_id
+                /**where sc.sto_config_id = '000009'**/
+          group by sc.sto_config_id,
+                sc.wh_id,
+                sc.srtseq,
+                d1.lngdsc,
+                scr.srtseq,
+                scr.bldg_id,
+                d3.lngdsc,
+                scr.strategy,
+                su.uomcod) as sp_data
+  where sp_data.wh_id = @wh_id
+  group by sp_data.sto_config_id,
+        sp_data.wh_id,
+        sp_data.priority,
+        sp_data.search_path_name,
+        sp_data.client_id,
+        sp_data.inventory_status,
+        sp_data.item_family,
+        sp_data.sequence,
+        sp_data.bldg_id,
+        sp_data.storage_zone,
+        sp_data.location_capacity
+  order by sp_data.priority,
+        sp_data.wh_id]
+]]>
+</local-syntax>
+</command>
