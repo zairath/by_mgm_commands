@@ -18,7 +18,7 @@ get client in clause for user
         outbound_datas.stkuom,
         sum(outbound_datas.dspuom_qty) dspuom_qty,
         outbound_datas.dspuom,
-        max(outbound_datas.carton_weight) + max(outbound_datas.catch_qty) as carton_weight,
+        sum(outbound_datas.carton_weight) + sum(outbound_datas.catch_qty) as carton_weight,
         sum(outbound_datas.qty_of_pallets) qty_of_pallets,
         outbound_datas.out_categories as categories
    from (select distinct shipment_line.wh_id,
