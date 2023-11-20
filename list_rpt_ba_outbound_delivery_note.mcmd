@@ -82,11 +82,6 @@ get client in clause for user
     and (ord_line.ordlin = shipment_line.ordlin)
     and (ord_line.ordsln = shipment_line.ordsln)
     and (shipment_line.linsts != 'B')
-   join prtftp_dtl
-     on prtftp_dtl.prtnum = prtmst_view.prtnum
-    and prtftp_dtl.prt_client_id = prtmst_view.prt_client_id
-    and prtftp_dtl.wh_id = prtmst_view.wh_id
-    and prtftp_dtl.cas_flg = 1
    join adrmst
      on adrmst.adr_id = ord.st_adr_id
    join wh
@@ -123,6 +118,7 @@ get client in clause for user
                 inventory_view.expire_dte,
                 inventory_view.inv_attr_str1,
                 inventory_view.invsts,
+                inventory_view.ftpcod,
                 sum(inventory_view.catch_qty) as catch_qty,
                 sum(inventory_view.untqty) as untqty
            from all_inventory_view as inventory_view,
@@ -137,8 +133,15 @@ get client in clause for user
                 inventory_view.mandte,
                 inventory_view.expire_dte,
                 inventory_view.inv_attr_str1,
-                inventory_view.invsts) inv
+                inventory_view.invsts,
+                inventory_view.ftpcod) inv
      on (shipment_line.ship_line_id = inv.ship_line_id)
+   join prtftp_dtl
+     on prtftp_dtl.prtnum = prtmst_view.prtnum
+    and prtftp_dtl.prt_client_id = prtmst_view.prt_client_id
+    and prtftp_dtl.wh_id = prtmst_view.wh_id
+    and prtftp_dtl.ftpcod = inv.ftpcod
+    and prtftp_dtl.cas_flg = 1
    left outer
    join (select alloc_rule_hdr.wh_id,
                 alloc_rule_hdr.rule_nam,
