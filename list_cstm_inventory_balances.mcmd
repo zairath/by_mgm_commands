@@ -37,24 +37,24 @@ if (@invtid)
         balance_datas.prt_client_id,
         balance_datas.datetime,
         balance_datas.temp,
-        sum(untqty) untqty,
-        sum(dsp_untqty) dsp_untqty,
+        sum(cast(balance_datas.untqty as bigint)) untqty,
+        sum(cast(balance_datas.dsp_untqty as bigint)) dsp_untqty,
         balance_datas.dsp_untqty_uom,
         balance_datas.stkuom,
         sum(qty_of_pallets) qty_of_pallets,
-        max(balance_datas.carton_weight) + max(balance_datas.catch_qty) as carton_weight
+        sum(cast(balance_datas.carton_weight as decimal(18, 5))) + sum(cast(balance_datas.catch_qty as decimal(18, 5))) as carton_weight
    from (select invlod.wh_id,
                 invdtl.prt_client_id,
                 convert(varchar, sysdate, 111) as datetime,
                 prtfam.prtfamgrp as 'temp',
-                sum(invdtl.untqty) as untqty,
-                sum(decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty)) dsp_untqty,
+                sum(cast(invdtl.untqty as bigint)) as untqty,
+                decode(prtmst_view.dspuom, null, sum(cast(invdtl.untqty as bigint)), sum(cast(invdtl.untqty as bigint)) / max(prtftp_dtl.untqty)) dsp_untqty,
                 decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
                 prtmst_view.stkuom,
-                sum(invdtl.catch_qty) as catch_qty,
-                sum(invdtl.rcv_catch_qty) as rcv_catch_qty,
+                sum(cast(invdtl.catch_qty as decimal(18, 5))) as catch_qty,
+                sum(cast(invdtl.rcv_catch_qty as decimal(18, 5))) as rcv_catch_qty,
                 count(distinct invdtl.revlvl) as qty_of_pallets,
-                max(prtftp_dtl.netwgt) / 35.274 * decode(prtmst_view.dspuom, null, sum(invdtl.untqty), sum(invdtl.untqty / prtftp_dtl.untqty)) as carton_weight
+                max(prtftp_dtl.netwgt) / 35.274 * decode(prtmst_view.dspuom, null, sum(cast(invdtl.untqty as bigint)), sum(cast(invdtl.untqty as bigint)) / max(prtftp_dtl.untqty)) as carton_weight
            from invdtl
            join invsub
              on invsub.subnum = invdtl.subnum
@@ -63,12 +63,8 @@ if (@invtid)
            join locmst
              on locmst.stoloc = invlod.stoloc
             and locmst.wh_id = invlod.wh_id
-           join aremst
-             on aremst.arecod = locmst.arecod
-            and aremst.wh_id = locmst.wh_id
-            and aremst.arecod not in ('ADJS', 'DSPCH', 'B1-RSTG', 'SHIP', 'B2-RSTG', 'B1-OTH-SER', 'B2-OTH-SER', 'EXPR', 'EXPR000009')
-           join loc_typ
-             on locmst.loc_typ_id = loc_typ.loc_typ_id
+            and locmst.stoloc <> 'OTH-SERV-LOC'
+            and loc_typ_id in ('10022', '10020', '10032')
            join prtmst_view
              on prtmst_view.prtnum = invdtl.prtnum
             and prtmst_view.prt_client_id = invdtl.prt_client_id
@@ -94,26 +90,6 @@ if (@invtid)
              on rcvinv.trknum = rcvlin.trknum
             and rcvinv.invnum = rcvlin.invnum
           where rcvinv.completed_date is not null
-            and @client_in_clause:raw
-            and @+invlod.lodnum
-            and @+invsub.subnum
-            and @+invdtl.dtlnum
-            and @+invlod.wh_id
-            and @+invlod.stoloc
-            and @+invdtl.prtnum
-            and @+invdtl.prt_client_id
-            and @+invdtl.lotnum
-            and @+invdtl.orgcod
-            and @+invdtl.revlvl
-            and @+invdtl.supnum
-            and @+invdtl.sup_lotnum
-            and @+invdtl.rttn_id
-            and @+invdtl.expire_dte
-            and @+invdtl.mandte
-            and @+invdtl.wrkref
-            and @+invdtl.ship_line_id
-            and @+invdtl.inv_attr_str1
-            and @+loc_typ.fwiflg
           group by invlod.wh_id,
                 invdtl.prt_client_id,
                 prtfam.prtfamgrp,
@@ -124,14 +100,14 @@ if (@invtid)
                 invdtl.prt_client_id,
                 convert(varchar, sysdate, 111) as datetime,
                 prtfam.prtfamgrp as 'temp',
-                sum(invdtl.untqty) as untqty,
-                sum(decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty)) dsp_untqty,
+                sum(cast(invdtl.untqty as bigint)) as untqty,
+                decode(prtmst_view.dspuom, null, sum(cast(invdtl.untqty as bigint)), sum(cast(invdtl.untqty as bigint)) / max(prtftp_dtl.untqty)) dsp_untqty,
                 decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
                 prtmst_view.stkuom,
-                sum(invdtl.catch_qty) as catch_qty,
-                sum(invdtl.rcv_catch_qty) as rcv_catch_qty,
+                sum(cast(invdtl.catch_qty as decimal(18, 5))) as catch_qty,
+                sum(cast(invdtl.rcv_catch_qty as decimal(18, 5))) as rcv_catch_qty,
                 count(distinct invdtl.revlvl) as qty_of_pallets,
-                max(prtftp_dtl.netwgt) / 35.274 * decode(prtmst_view.dspuom, null, sum(invdtl.untqty), sum(invdtl.untqty / prtftp_dtl.untqty)) as carton_weight
+                max(prtftp_dtl.netwgt) / 35.274 * decode(prtmst_view.dspuom, null, sum(cast(invdtl.untqty as bigint)), sum(cast(invdtl.untqty as bigint)) / max(prtftp_dtl.untqty)) as carton_weight
            from invdtl
            join invsub
              on invsub.subnum = invdtl.subnum
@@ -140,12 +116,8 @@ if (@invtid)
            join locmst
              on locmst.stoloc = invlod.stoloc
             and locmst.wh_id = invlod.wh_id
-           join aremst
-             on aremst.arecod = locmst.arecod
-            and aremst.wh_id = locmst.wh_id
-            and aremst.arecod not in ('ADJS', 'DSPCH', 'B1-RSTG', 'SHIP', 'B2-RSTG', 'B1-OTH-SER', 'B2-OTH-SER', 'EXPR', 'EXPR000009')
-           join loc_typ
-             on locmst.loc_typ_id = loc_typ.loc_typ_id
+            and locmst.stoloc <> 'OTH-SERV-LOC'
+            and loc_typ_id in ('10022', '10020', '10032')
            join prtmst_view
              on prtmst_view.prtnum = invdtl.prtnum
             and prtmst_view.prt_client_id = invdtl.prt_client_id
@@ -171,26 +143,6 @@ if (@invtid)
              on rcvinv.trknum = rcvlin.trknum
             and rcvinv.invnum = rcvlin.invnum
           where rcvinv.completed_date is not null
-            and @client_in_clause:raw
-            and @+invlod.lodnum
-            and @+invsub.subnum
-            and @+invdtl.dtlnum
-            and @+invlod.wh_id
-            and @+invlod.stoloc
-            and @+invdtl.prtnum
-            and @+invdtl.prt_client_id
-            and @+invdtl.lotnum
-            and @+invdtl.orgcod
-            and @+invdtl.revlvl
-            and @+invdtl.supnum
-            and @+invdtl.sup_lotnum
-            and @+invdtl.rttn_id
-            and @+invdtl.expire_dte
-            and @+invdtl.mandte
-            and @+invdtl.wrkref
-            and @+invdtl.ship_line_id
-            and @+invdtl.inv_attr_str1
-            and @+loc_typ.fwiflg
           group by invlod.wh_id,
                 invdtl.prt_client_id,
                 prtfam.prtfamgrp,
