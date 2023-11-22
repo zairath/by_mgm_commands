@@ -10,7 +10,7 @@ get client in clause for user
    and @+start_date
    and @+end_date
 |
-[select trlr_seal1 as customer_order_number,
+[select distinct trlr_seal1 as customer_order_number,
         dc1.lngdsc as type_truck,
         dc2.lngdsc as truck_status,
         carhdr.carnam as expedition,
@@ -21,7 +21,7 @@ get client in clause for user
         end as activity,
         trlr.driver_nam as driver_name,
         trlr.trlr_broker as phone_number,
-        trlr.yard_loc,
+        coalesce(trlr.yard_loc, trlract.yard_loc) yard_loc,
         trlr.trlr_ref,
         (select top 1trndte
            from trlract
@@ -116,6 +116,13 @@ get client in clause for user
     and dc2.colval = trlr.trlr_stat
    join carhdr
      on carhdr.carcod = trlr.carcod
+   join trlract
+     on trlract.trlr_id = trlr.trlr_id
+    and trlract.carcod = trlr.carcod
+    and trlract.trlr_num = trlr.trlr_num
+    and trlract.trlr_stat = trlr.trlr_stat
+    and trlract.yard_loc is not null
+    and trlract.actcod = 'TCHG'
   where trlr.trlr_stat <> 'EX'
     and @+trlr.stoloc_wh_id
     and trlr.arrdte between @start_date:date
