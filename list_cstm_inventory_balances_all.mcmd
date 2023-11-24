@@ -1,0 +1,62 @@
+<command>
+  <name>list cstm inventory balances all</name>
+  <description>list cstm inventory balances all</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+[select all_balances.wh_id,
+        all_balances.prt_client_id,
+        all_balances.datetime,
+        all_balances.temp,
+        sum(cast(all_balances.untqty as bigint)) as untqty,
+        sum(cast(all_balances.dsp_untqty as bigint)) as dsp_untqty,
+        all_balances.dsp_untqty_uom,
+        all_balances.stkuom,
+        sum(cast(all_balances.qty_of_pallets as bigint)) as qty_of_pallets,
+        sum(cast(all_balances.carton_weight as decimal(18, 5))) as carton_weight
+   from (select aib.wh_id,
+                aib.prt_client_id,
+                aib.datetime,
+                aib.temp,
+                sum(cast(aib.untqty as bigint)) as untqty,
+                sum(cast(aib.dsp_untqty as bigint)) as dsp_untqty,
+                aib.dsp_untqty_uom,
+                aib.stkuom,
+                sum(cast(aib.qty_of_pallets as bigint)) as qty_of_pallets,
+                sum(cast(aib.carton_weight as decimal(18, 5))) as carton_weight
+           from api_inventory_balance aib
+          where aib.datetime = @date:date
+          group by aib.wh_id,
+                aib.prt_client_id,
+                aib.datetime,
+                aib.temp,
+                aib.dsp_untqty_uom,
+                aib.stkuom
+         union
+         select aibbu.wh_id,
+                aibbu.prt_client_id,
+                aibbu.datetime,
+                aibbu.temp,
+                sum(cast(aibbu.untqty as bigint)) as untqty,
+                sum(cast(aibbu.dsp_untqty as bigint)) as dsp_untqty,
+                aibbu.dsp_untqty_uom,
+                aibbu.stkuom,
+                sum(cast(aibbu.qty_of_pallets as bigint)) as qty_of_pallets,
+                sum(cast(aibbu.carton_weight as decimal(18, 5))) as carton_weight
+           from api_inventory_balance_by_upload aibbu
+          where aibbu.datetime = @date:date
+          group by aibbu.wh_id,
+                aibbu.prt_client_id,
+                aibbu.datetime,
+                aibbu.temp,
+                aibbu.dsp_untqty_uom,
+                aibbu.stkuom) all_balances
+  group by all_balances.wh_id,
+        all_balances.prt_client_id,
+        all_balances.datetime,
+        all_balances.temp,
+        all_balances.dsp_untqty_uom,
+        all_balances.stkuom]
+]]>
+</local-syntax>
+</command>
