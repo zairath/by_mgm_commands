@@ -77,7 +77,8 @@ get client in clause for user
         av.lodnum,
         av.inv_attr_str1 as batch_code,
         av.inv_attr_str2 as reference_1,
-        av.revlvl
+        av.revlvl,
+        sum(av.catch_qty) as catch_qty
    from pckwrk_hdr phh
    join pckwrk_dtl phd
      on phd.wrkref = phh.wrkref
