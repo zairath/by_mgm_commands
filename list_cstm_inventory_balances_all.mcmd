@@ -6,7 +6,7 @@
 <![CDATA[
 [select all_balances.wh_id,
         all_balances.prt_client_id,
-        all_balances.datetime,
+        convert(varchar, all_balances.datetime, 111) as datetime,
         all_balances.temp,
         sum(cast(all_balances.untqty as bigint)) as untqty,
         sum(cast(all_balances.dsp_untqty as bigint)) as dsp_untqty,
