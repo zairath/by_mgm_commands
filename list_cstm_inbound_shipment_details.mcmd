@@ -25,7 +25,7 @@ get client in clause for user
         max(inbound_datas.dsp_untqty_uom) as dsp_untqty_uom,
         sum(inbound_datas.rem_untqty) as rem_untqty,
         max(inbound_datas.rem_untqty_uom) as rem_untqty_uom,
-        count(inbound_datas.revlvl) as qty_of_pallets
+        count(distinct inbound_datas.revlvl) as qty_of_pallets
    from (
          /* Union live and historical inventory */
          /* Select the Live Inventory */
