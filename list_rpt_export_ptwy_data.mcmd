@@ -7,7 +7,7 @@
 get client in clause for user
  where usr_id = nvl(@usr_id, @@usr_id)
    and @+wh_id
-   and @+client_id
+   and @+prt_client_id
    and @+start_date
    and @+end_date
 |
@@ -68,8 +68,7 @@ get client in clause for user
   where iv.rcvdte > to_date(@start_date, 'YYYYMMDDHH24MISS')
     and iv.rcvdte < to_date(@end_date, 'YYYYMMDDHH24MISS')
     and @+iv.prt_client_id
- -- and rt.trknum = 'MP/RCV/2023'
-]
+    and @+iv.wh_id]
 ]]>
 </local-syntax>
 </command>

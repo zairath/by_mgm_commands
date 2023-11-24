@@ -6,7 +6,7 @@
 <![CDATA[
 get client in clause for user
  where usr_id = nvl(@usr_id, @@usr_id)
-   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+   and wh_id = nvl(@wh_id, @@wh_id)
    and @+start_date
    and @+end_date
 |
@@ -136,6 +136,7 @@ get client in clause for user
      on adr_clt.adr_id = client.adr_id
   where @+phd.ordnum
     and @+phh.client_id
+    and @+phh.wh_id
     and trlr.close_dte between @start_date:date
     and @end_date:date
  /* and trlr.dispatch_dte between @start_date:date
