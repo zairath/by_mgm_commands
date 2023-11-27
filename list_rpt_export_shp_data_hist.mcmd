@@ -58,8 +58,8 @@ get client in clause for user
         phd.ordlin,
         phd.ordsln,
         phd.concod,
-        case when ptv.stkuom = ptv.dspuom then cast(decode(ptv.dspuom, null, max(phh.pckqty), max(phh.pckqty / prtftp_dtl.untqty)) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, ptv.stkuom, ptv.dspuom) as varchar(20))
-             else cast(decode(ptv.dspuom, null, max(phh.pckqty), max(phh.pckqty / prtftp_dtl.untqty)) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, ptv.stkuom, ptv.dspuom) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, cast(null as int), ptv.stkuom, cast(null as int), max(mod(phh.pckqty, prtftp_dtl.untqty))) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, null, ptv.stkuom, null, ptv.stkuom) as varchar(20))
+        case when ptv.stkuom = ptv.dspuom then cast(decode(ptv.dspuom, null, max(av.untqty), max(av.untqty / prtftp_dtl.untqty)) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, ptv.stkuom, ptv.dspuom) as varchar(20))
+             else cast(decode(ptv.dspuom, null, max(av.untqty), max(av.untqty / prtftp_dtl.untqty)) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, ptv.stkuom, ptv.dspuom) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, cast(null as int), ptv.stkuom, cast(null as int), max(mod(phh.pckqty, prtftp_dtl.untqty))) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, null, ptv.stkuom, null, ptv.stkuom) as varchar(20))
         end as quantity_picked,
         cast((select pdtl2.netwgt
                 from prtftp_dtl pdtl2
@@ -75,6 +75,7 @@ get client in clause for user
         stop.car_move_id,
         ptv.catch_unttyp,
         av.lodnum,
+        av.subnum,
         av.inv_attr_str1 as batch_code,
         av.inv_attr_str2 as reference_1,
         av.revlvl,
@@ -101,6 +102,7 @@ get client in clause for user
    join all_inventory_view av
      on av.ship_line_id = phd.ship_line_id
     and av.wrkref_dtl = phd.wrkref_dtl
+    and av.prtnum = phd.prtnum
    left
    join rcvlin rl
      on rl.rcvkey = av.rcvkey
@@ -109,6 +111,7 @@ get client in clause for user
     and rl.wh_id = av.wh_id
    join invdtl_hist
      on invdtl_hist.dtlnum = av.dtlnum
+    and invdtl_hist.subnum = av.subnum
    join prtftp
      on ptv.prtnum = prtftp.prtnum
     and ptv.wh_id = prtftp.wh_id
@@ -191,6 +194,7 @@ get client in clause for user
         stop.car_move_id,
         ptv.catch_unttyp,
         av.lodnum,
+        av.subnum,
         av.inv_attr_str1,
         av.inv_attr_str2,
         av.revlvl
