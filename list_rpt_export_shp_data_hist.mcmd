@@ -79,7 +79,9 @@ get client in clause for user
         av.inv_attr_str1 as batch_code,
         av.inv_attr_str2 as reference_1,
         av.revlvl,
-        sum(av.catch_qty) as catch_qty
+        case when max(av.catch_qty) < max(phd.app_catch_qty) then sum(av.catch_qty)
+             else max(av.catch_qty)
+        end as catch_qty
    from pckwrk_hdr phh
    join pckwrk_dtl phd
      on phd.wrkref = phh.wrkref
