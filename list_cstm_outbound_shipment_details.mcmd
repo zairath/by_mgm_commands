@@ -33,6 +33,7 @@ get client in clause for user
                      else 0
                 end as carton_weight,
                 count(inv.revlvl) as qty_of_pallets,
+                inv.revlvl,
                 prtmst_view.catch_unttyp as catch_unttype,
                 case when exists(select invdtlexist.dtlnum
                                    from invdtl invdtlexist
