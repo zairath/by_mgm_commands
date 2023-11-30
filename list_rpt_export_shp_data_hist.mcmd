@@ -59,15 +59,9 @@ get client in clause for user
         phd.ordsln,
         phd.concod,
         case when ptv.stkuom = ptv.dspuom then cast(decode(ptv.dspuom, null, max(av.untqty), max(av.untqty / prtftp_dtl.untqty)) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, ptv.stkuom, ptv.dspuom) as varchar(20))
-             else cast(decode(ptv.dspuom, null, max(av.untqty), max(av.untqty / prtftp_dtl.untqty)) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, ptv.stkuom, ptv.dspuom) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, cast(null as int), ptv.stkuom, cast(null as int), max(mod(phh.pckqty, prtftp_dtl.untqty))) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, null, ptv.stkuom, null, ptv.stkuom) as varchar(20))
+             else cast(decode(ptv.dspuom, null, max(av.untqty), max(av.untqty / prtftp_dtl.untqty)) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, ptv.stkuom, ptv.dspuom) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, cast(null as int), ptv.stkuom, cast(null as int), max(mod(av.untqty, prtftp_dtl.untqty))) as varchar(20)) + ' ' + cast(decode(ptv.dspuom, null, null, ptv.stkuom, null, ptv.stkuom) as varchar(20))
         end as quantity_picked,
-        cast((select pdtl2.netwgt
-                from prtftp_dtl pdtl2
-               where pdtl2.ftpcod = max(prtftp_dtl.ftpcod)
-                 and pdtl2.prtnum = max(prtftp_dtl.prtnum)
-                 and pdtl2.prt_client_id = max(prtftp_dtl.prt_client_id)
-                 and pdtl2.wh_id = max(prtftp_dtl.wh_id)
-                 and pdtl2.uomcod = nvl(ptv.dspuom, ptv.stkuom)) / 35.274 * decode(ptv.dspuom, null, max(invdtl_hist.untqty), max(invdtl_hist.untqty) / max(prtftp_dtl.untqty)) as decimal(10, 2)) as carton_weight,
+        cast(max(prtftp_dtl.netwgt) / 35.274 * decode(ptv.dspuom, null, max(av.untqty), max(av.untqty) / max(prtftp_dtl.untqty)) as decimal(10, 2)) as carton_weight,
         trlr.trlr_num,
         trlr.carcod,
         trlr.close_dte as loaded_date,
@@ -76,6 +70,7 @@ get client in clause for user
         ptv.catch_unttyp,
         av.lodnum,
         av.subnum,
+        av.dtlnum,
         av.inv_attr_str1 as batch_code,
         av.inv_attr_str2 as reference_1,
         av.revlvl,
@@ -103,23 +98,24 @@ get client in clause for user
     and pdc.locale_id = nvl(@locale_id, @@locale_id)
    join all_inventory_view av
      on av.ship_line_id = phd.ship_line_id
+    and av.wrkref = phd.wrkref
     and av.wrkref_dtl = phd.wrkref_dtl
     and av.prtnum = phd.prtnum
+    and av.wh_id = phd.wh_id
+    and av.prt_client_id = phd.prt_client_id
+    and av.ship_line_id = phd.ship_line_id
    left
    join rcvlin rl
      on rl.rcvkey = av.rcvkey
     and rl.prtnum = av.prtnum
     and rl.prt_client_id = av.prt_client_id
     and rl.wh_id = av.wh_id
-   join invdtl_hist
-     on invdtl_hist.dtlnum = av.dtlnum
-    and invdtl_hist.subnum = av.subnum
    join prtftp
      on ptv.prtnum = prtftp.prtnum
     and ptv.wh_id = prtftp.wh_id
     and ptv.prt_client_id = prtftp.prt_client_id
-    and invdtl_hist.ftpcod = prtftp.ftpcod
-     or prtftp.defftp_flg = decode(invdtl_hist.ftpcod, NULL, 1, cast(null as int))
+    and av.ftpcod = prtftp.ftpcod
+     or prtftp.defftp_flg = decode(av.ftpcod, NULL, 1, cast(null as int))
    join prtftp_dtl
      on prtftp.prtnum = prtftp_dtl.prtnum
     and prtftp.wh_id = prtftp_dtl.wh_id
@@ -197,6 +193,7 @@ get client in clause for user
         ptv.catch_unttyp,
         av.lodnum,
         av.subnum,
+        av.dtlnum,
         av.inv_attr_str1,
         av.inv_attr_str2,
         av.revlvl
