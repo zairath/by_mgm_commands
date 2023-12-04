@@ -26,13 +26,13 @@ get client in clause for user
                 convert(varchar, trlr.close_dte, 111) as datetime,
                 sum(nvl(inv.untqty, 0)) untqty,
                 prtmst_view.stkuom,
-                sum(floor(shipment_line.picked_qty / prtftp_dtl.untqty)) as dspuom_qty,
+                sum(floor(inv.untqty / prtftp_dtl.untqty)) as dspuom_qty,
                 prtmst_view.dspuom,
                 sum(inv.catch_qty) as catch_qty,
-                case when prtmst_view.catch_unttyp is null then sum(cast(prtftp_dtl.netwgt / 35.274 * floor(shipment_line.picked_qty / prtftp_dtl.untqty) as decimal(10, 2)))
+                case when prtmst_view.catch_unttyp is null then sum(cast(prtftp_dtl.netwgt / 35.274 * floor(inv.untqty / prtftp_dtl.untqty) as decimal(10, 2)))
                      else 0
                 end as carton_weight,
-                count(inv.revlvl) as qty_of_pallets,
+                count(distinct inv.revlvl) as qty_of_pallets,
                 inv.revlvl,
                 prtmst_view.catch_unttyp as catch_unttype,
                 case when exists(select invdtlexist.dtlnum
@@ -84,7 +84,8 @@ get client in clause for user
                         invdtl_hist.invsts,
                         invdtl_hist.ftpcod,
                         sum(invdtl_hist.catch_qty) catch_qty,
-                        sum(invdtl_hist.untqty) untqty
+                        sum(invdtl_hist.untqty) untqty,
+                        invdtl_hist.wrkref_dtl
                    from invdtl_hist,
                         shipment_line
                   where shipment_line.ship_line_id = invdtl_hist.ship_line_id
@@ -100,7 +101,8 @@ get client in clause for user
                         invdtl_hist.inv_attr_str2,
                         invdtl_hist.ftpcod,
                         invdtl_hist.catch_qty,
-                        invdtl_hist.invsts) inv
+                        invdtl_hist.invsts,
+                        invdtl_hist.wrkref_dtl) inv
              on (shipment_line.ship_line_id = inv.ship_line_id)
            left outer
            join (select alloc_rule_hdr.wh_id,
@@ -116,6 +118,7 @@ get client in clause for user
            left
            join pckwrk_view pvw
              on pvw.ship_line_id = shipment_line.ship_line_id
+            and pvw.wrkref_dtl = inv.wrkref_dtl
            join prtfam
              on prtfam.prtfam = prtmst_view.prtfam
            join shipment
