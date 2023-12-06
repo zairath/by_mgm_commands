@@ -8,6 +8,7 @@ get client in clause for user
  where usr_id = nvl(@usr_id, @@usr_id)
    and @+wh_id
    and @+client_id
+   and @+prt_client_id
    and @+start_date
    and @+end_date
 |
@@ -15,6 +16,7 @@ get client in clause for user
         dl.dlytrn_id Transaction_ID,
         dl.ordnum outbound_order_number,
         rcvlin.trknum inbound_shipment_number,
+        dl.prt_client_id,
         dl.lodnum from_LPN,
         dl.to_lodnum to_LPN,
         dl.prtnum Material,
@@ -52,16 +54,17 @@ get client in clause for user
    join rcvlin
      on rcvlin.rcvkey = invdtl.rcvkey
   where dl.wh_id = @wh_id
+    and dl.prt_client_id = @prt_client_id
     and dl.trndte > to_date(@start_date, 'YYYYMMDDHH24MISS')
     and dl.trndte < to_date(@end_date, 'YYYYMMDDHH24MISS')
     and dl.actcod = 'FL_XFR'
     and dl.movref = 'STKTRN'
- -- and dl.prtnum = '1000086296'
-] &
-[select dl.trndte Transaction_Date,
+ union
+ select dl.trndte Transaction_Date,
         dl.dlytrn_id Transaction_ID,
         dl.ordnum outbound_order_number,
         rcvlin.trknum inbound_shipment_number,
+        dl.prt_client_id,
         dl.lodnum from_LPN,
         dl.to_lodnum to_LPN,
         dl.prtnum Material,
@@ -106,16 +109,17 @@ get client in clause for user
    join rcvlin
      on rcvlin.rcvkey = invdtl.rcvkey
   where dl.wh_id = @wh_id
+    and dl.prt_client_id = @prt_client_id
     and dl.trndte > to_date(@start_date, 'YYYYMMDDHH24MISS')
     and dl.trndte < to_date(@end_date, 'YYYYMMDDHH24MISS')
     and dl.actcod = 'INVATTCHG'
     and dl.var_nam = 'revlvl'
- -- and dl.prtnum = '1000086296'
-] &
-[select dl.trndte Transaction_Date,
+ union
+ select dl.trndte Transaction_Date,
         dl.dlytrn_id Transaction_ID,
         dl.ordnum outbound_order_number,
         rcvlin.trknum inbound_shipment_number,
+        dl.prt_client_id,
         dl.lodnum from_LPN,
         dl.to_lodnum to_LPN,
         dl.prtnum Material,
@@ -157,16 +161,17 @@ get client in clause for user
    join rcvlin
      on rcvlin.rcvkey = invdtl.rcvkey
   where dl.wh_id = @wh_id
+    and dl.prt_client_id = @prt_client_id
     and dl.trndte > to_date(@start_date, 'YYYYMMDDHH24MISS')
     and dl.trndte < to_date(@end_date, 'YYYYMMDDHH24MISS')
     and dl.actcod = 'INVSTSCHG'
     and dl.movref = 'STATUS_CHANGE'
- --  and dl.prtnum = '1000086296'
-] &
-[select dl.trndte Transaction_Date,
+ union
+ select dl.trndte Transaction_Date,
         dl.dlytrn_id Transaction_ID,
         dl.ordnum outbound_order_number,
         rcvlin.trknum inbound_shipment_number,
+        dl.prt_client_id,
         dl.lodnum from_LPN,
         dl.to_lodnum to_LPN,
         dl.prtnum Material,
@@ -221,12 +226,11 @@ get client in clause for user
    join rcvlin
      on rcvlin.rcvkey = invdtl.rcvkey
   where dl.wh_id = @wh_id
+    and dl.prt_client_id = @prt_client_id
     and dl.trndte > to_date(@start_date, 'YYYYMMDDHH24MISS')
     and dl.trndte < to_date(@end_date, 'YYYYMMDDHH24MISS')
     and dl.actcod in ('IDNTFY_AJ', 'INVDEL')
-    and dl.oprcod = 'INVADJ'
- -- and dl.prtnum = '1000086296'
-]
+    and dl.oprcod = 'INVADJ']
 ]]>
 </local-syntax>
 </command>
