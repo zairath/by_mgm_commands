@@ -124,6 +124,10 @@ if (@skip_it = 0)
            and wh_id = @wh_id
            and adr_id = @adr_id
            and @* catch(@?)
+        |
+        save session variable
+         where name = 'adr_id'
+           and value = @adr_id
     }
 }
 |
@@ -157,9 +161,12 @@ if (@errid != 0)
 }
 else
 {
+    get session variable
+     where name = 'adr_id'
+    |
     publish data
      where client_id = @client_id
-       and adr_id = @adr_id
+       and adr_id = @value
        and message = 'Client was successfully created!'
 }
 ]]>
