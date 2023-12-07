@@ -1,9 +1,3 @@
-<command>
-  <name>api create client master</name>
-  <description>api create client master</description>
-  <type>Local Syntax</type>
-  <local-syntax>
-<![CDATA[
 save session variable
  where name = "skip_it"
    and value = 0
@@ -155,6 +149,10 @@ if (@errid != 0)
      where data = @data
        and message = @msg
 }
-]]>
-</local-syntax>
-</command>
+else
+{
+    publish data
+     where client_id = @client_id
+       and adr_id = @adr_id
+       and message = 'Client was successfully created!'
+}
