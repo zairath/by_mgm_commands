@@ -1,3 +1,9 @@
+<command>
+  <name>api create client master</name>
+  <description>api create client master</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
 save session variable
  where name = "skip_it"
    and value = 0
@@ -156,3 +162,6 @@ else
        and adr_id = @adr_id
        and message = 'Client was successfully created!'
 }
+]]>
+</local-syntax>
+</command>
