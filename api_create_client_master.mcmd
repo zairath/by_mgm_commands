@@ -1,6 +1,6 @@
 <command>
-  <name>list rpt export ptwy data</name>
-  <description>list rpt export ptwy data</description>
+  <name>api create client master</name>
+  <description>api create client master</description>
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
