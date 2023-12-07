@@ -105,22 +105,22 @@ if (@skip_it = 0)
         |
         create address
          where adr_id = @adr_id
-           and adrnam = '@adrnam@'
+           and adrnam = @adrnam
            and adrtyp = 'CLI'
-           and adrln1 = '@adrln1@'
-           and adrln2 = '@adrln2@'
-           and adrln3 = '@adrln3@'
-           and adrcty = '@adrcty@'
-           and phnnum = '@phnnum@'
-           and first_name = '@first_name@'
-           and last_name = '@last_name@'
-           and email_adr = '@email_adr@'
-           and web_adr = '@web_adr@'
+           and adrln1 = @adrln1
+           and adrln2 = @adrln2
+           and adrln3 = @adrln3
+           and adrcty = @adrcty
+           and phnnum = @phnnum
+           and first_name = @first_name
+           and last_name = @last_name
+           and email_adr = @email_adr
+           and web_adr = @web_adr
            and rqst_state_cod = 'ACCEPTED'
            and @* catch(@?)
         |
         create web client
-         where client_id = '@client_id@'
+         where client_id = @client_id
            and wh_id = @wh_id
            and adr_id = @adr_id
            and @* catch(@?)
