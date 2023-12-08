@@ -67,8 +67,116 @@ get client in clause for user
     and iv.prt_client_id = rl.prt_client_id
   where iv.rcvdte > to_date(@start_date, 'YYYYMMDDHH24MISS')
     and iv.rcvdte < to_date(@end_date, 'YYYYMMDDHH24MISS')
+    and @+rv.trknum
     and @+iv.prt_client_id
-    and @+iv.wh_id]
+    and @+iv.wh_id] &
+[select rt.trknum GR#,
+        iv.inv_attr_str1 Batch_code,
+        iv.inv_attr_str2 Refrence_1,
+        rv.wh_id,
+        dlytrn.subnum,
+        rv.client_id Cus_Code,
+        a.adrnam Customer,
+        t.trlr_num Container#,
+        rv.invnum Ref,
+        rv.invdte GR_Date,
+        rl.prtnum SKU,
+        pd.lngdsc,
+        iv.revlvl Batch,
+        dlytrn.lodnum LPN,
+        rv.po_num PO,
+        sum(iv.untqty / iv.untcas) unit_ctn,
+        sum(iv.untqty) QTY,
+        p.stkuom,
+        iv.untcas uom_cas,
+        rl.rcv_catch_qty weight_rcv,
+        p.catch_untwgt,
+        p.catch_unttyp,
+        (select max(dttt.tostol)
+           from dlytrn dttt
+          where dttt.prtnum = dlytrn.prtnum
+            and dttt.prt_client_id = dlytrn.prt_client_id
+            and dttt.subnum = dlytrn.subnum
+            and dttt.actcod in ('RCV', 'FL_XFR_PTWY')) as Putaway_Location,
+        (select max(dttt.last_upd_user_id)
+           from dlytrn dttt
+          where dttt.prtnum = dlytrn.prtnum
+            and dttt.prt_client_id = dlytrn.prt_client_id
+            and dttt.subnum = dlytrn.subnum
+            and dttt.actcod in ('RCV', 'FL_XFR_PTWY')) as Putaway_User,
+        iv.expire_dte,
+        iv.mandte manfac_dte,
+        iv.rcvdte Created_At,
+        (select max(dttt.usr_id)
+           from dlytrn dttt
+          where dttt.prtnum = dlytrn.prtnum
+            and dttt.prt_client_id = dlytrn.prt_client_id
+            and dttt.subnum = dlytrn.subnum
+            and dttt.actcod in ('RCV', 'FL_XFR_PTWY')) as Created_By,
+        rt.mod_usr_id gr_usr
+   from rcvtrk rt
+   join rcvinv rv
+     on rv.trknum = rt.trknum
+    and rv.wh_id = rt.wh_id
+   join rcvlin rl
+     on rl.trknum = rv.trknum
+    and rl.invnum = rv.invnum
+    and rl.client_id = rv.client_id
+    and rl.wh_id = rv.wh_id
+   join adrmst a
+     on a.client_id = rv.client_id
+    and a.adrtyp = 'CLI'
+   join prtmst p
+     on p.prt_client_id = rl.prt_client_id
+    and p.prtnum = rl.prtnum
+    and p.wh_id_tmpl = rl.wh_id
+   join prtdsc pd
+     on pd.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and pd.colval = p.prtnum || '|' || p.prt_client_id || '|' || p.wh_id_tmpl
+   join trlr t
+     on t.trlr_id = rt.trlr_id
+   join historical_inventory_view iv
+     on iv.rcvkey = rl.rcvkey
+    and iv.wh_id = rl.wh_id
+    and iv.prt_client_id = rl.prt_client_id
+    and iv.prtnum = rl.prtnum
+   join dlytrn
+     on dlytrn.to_subnum = iv.subnum
+    and dlytrn.to_lodnum = iv.lodnum
+    and dlytrn.prt_client_id = iv.prt_client_id
+    and dlytrn.prtnum = iv.prtnum
+    and dlytrn.revlvl = iv.revlvl
+  where iv.rcvdte > to_date(@start_date, 'YYYYMMDDHH24MISS')
+    and iv.rcvdte < to_date(@end_date, 'YYYYMMDDHH24MISS')
+    and @+rv.trknum
+    and @+iv.prt_client_id
+    and @+iv.wh_id
+  group by rt.trknum,
+        iv.inv_attr_str1,
+        iv.inv_attr_str2,
+        rv.wh_id,
+        dlytrn.subnum,
+        dlytrn.prtnum,
+        dlytrn.prt_client_id,
+        rv.client_id,
+        a.adrnam,
+        t.trlr_num,
+        rv.invnum,
+        rv.invdte,
+        rl.prtnum,
+        pd.lngdsc,
+        iv.revlvl,
+        dlytrn.lodnum,
+        rv.po_num,
+        p.stkuom,
+        iv.untcas,
+        rl.rcv_catch_qty,
+        p.catch_untwgt,
+        p.catch_unttyp,
+        iv.expire_dte,
+        iv.mandte,
+        iv.rcvdte,
+        rt.mod_usr_id]
 ]]>
 </local-syntax>
 </command>
