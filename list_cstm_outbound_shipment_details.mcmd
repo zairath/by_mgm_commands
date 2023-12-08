@@ -35,10 +35,9 @@ get client in clause for user
                 count(distinct inv.revlvl) as qty_of_pallets,
                 inv.revlvl,
                 prtmst_view.catch_unttyp as catch_unttype,
-                case when exists(select invdtlexist.dtlnum
-                                   from invdtl invdtlexist
-                                  where invdtlexist.revlvl = inv.revlvl) then 'NON-FULL-PALLET'
-                     else 'FULL-PALLET'
+                case when pvw.pck_uom = 'PL' then 'FULL-PALLET'
+                     when pvw.pck_uom is null then 'FULL-PALLET'
+                     else 'NON-FULL-PALLET'
                 end as out_categories
            from prtmst_view
            join ord_line
@@ -154,7 +153,8 @@ get client in clause for user
                 prtmst_view.dspuom,
                 prtmst_view.stkuom,
                 prtmst_view.catch_unttyp,
-                inv.revlvl) outbound_datas
+                inv.revlvl,
+                pvw.pck_uom) outbound_datas
   group by outbound_datas.wh_id,
         outbound_datas.client_id,
         outbound_datas.datetime,
