@@ -28,11 +28,11 @@ get client in clause for user
                    from alloc_search_path_criteria
                   where alloc_search_path_criteria.alloc_search_path_id = max(asp.alloc_search_path_id)
                     and alloc_search_path_criteria.colnam = 'client_id') as client_id,
-                (select d2.lngdsc
+                (select d5.lngdsc
                    from alloc_search_path_criteria
-                   join dscmst d2
-                     on d2.colnam = alloc_search_path_criteria.colnam
-                    and d2.colval = alloc_search_path_criteria.colval
+                   join dscmst d5
+                     on d5.colnam = alloc_search_path_criteria.colnam || '|wh_id'
+                    and d5.colval = alloc_search_path_criteria.colval || '|' || max(asp.wh_id)
                   where alloc_search_path_criteria.alloc_search_path_id = max(asp.alloc_search_path_id)
                     and alloc_search_path_criteria.colnam = 'ordtyp') as order_type,
                 (select d2.lngdsc
@@ -62,7 +62,6 @@ get client in clause for user
              on d3.colnam = 'pck_zone_cod|wh_id'
             and d3.colval = pz.pck_zone_cod || '|' || pz.wh_id
           where asp.search_path_typ = 'PICK'
-         /**where sc.sto_config_id = '000009'**/
           group by asp.alloc_search_path_id,
                 asp.wh_id,
                 asp.srtseq,
