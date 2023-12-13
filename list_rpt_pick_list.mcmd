@@ -168,7 +168,7 @@ if (@oprcod = 'LPCK')
             and m.wh_id = h.wh_id
             and m.prt_client_id = h.prt_client_id
             and m.ftpcod = h.ftpcod
-            and h.uomcod = a.pck_uom
+            and h.uomcod = decode(a.pck_uom, NULL, b.dspuom, a.pck_uom)
            JOIN ord d
              ON d.ordnum = a.ordnum
             and d.wh_id = a.wh_id
@@ -411,7 +411,7 @@ if (@oprcod = 'LPCK')
             and m.wh_id = h.wh_id
             and m.prt_client_id = h.prt_client_id
             and m.ftpcod = h.ftpcod
-            and h.uomcod = a.pck_uom
+            and h.uomcod = decode(a.pck_uom, NULL, b.dspuom, a.pck_uom)
            JOIN ord d
              ON d.ordnum = a.ordnum
             and d.wh_id = a.wh_id
