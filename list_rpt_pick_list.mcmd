@@ -142,7 +142,7 @@ if (@oprcod = 'LPCK')
                 a.srcloc,
                 a.revlvl,
                 zm.wrkzon,
-                a.pck_uom,
+                decode(a.pck_uom, NULL, max(b.dspuom), a.pck_uom) pck_uom,
                 max(invdtl.inv_attr_str1) inv_attr_str1,
                 max(invdtl.inv_attr_str2) inv_attr_str2,
                 max(invdtl.inv_attr_str3) inv_attr_str3
@@ -385,7 +385,7 @@ if (@oprcod = 'LPCK')
                 a.srcloc,
                 max(ivww.revlvl) revlvl,
                 zm.wrkzon,
-                a.pck_uom,
+                decode(a.pck_uom, NULL, max(b.dspuom), a.pck_uom) pck_uom,
                 max(ivww.inv_attr_str1) inv_attr_str1,
                 max(ivww.inv_attr_str2) inv_attr_str2,
                 max(ivww.inv_attr_str3) inv_attr_str3
