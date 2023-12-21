@@ -32,7 +32,7 @@
                 aib.temp,
                 aib.dsp_untqty_uom,
                 aib.stkuom
-         union
+         union all
          select aibbu.wh_id,
                 aibbu.prt_client_id,
                 aibbu.datetime,
