@@ -4,7 +4,7 @@
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
-select balance_datas.wh_id,
+[select balance_datas.wh_id,
         balance_datas.prt_client_id,
         balance_datas.datetime,
         balance_datas.temp,
@@ -14,138 +14,98 @@ select balance_datas.wh_id,
         balance_datas.stkuom,
         sum(balance_datas.qty_of_pallets) qty_of_pallets,
         sum(cast(balance_datas.carton_weight as decimal(18, 5))) + sum(cast(balance_datas.catch_qty as decimal(18, 5))) as carton_weight
-   from (select invlod.wh_id,
-                invdtl.prt_client_id,
+   from (select ivw.wh_id,
+                ivw.prt_client_id,
                 convert(varchar, getdate(), 111) as datetime,
                 prtfam.prtfamgrp as 'temp',
-                sum(cast(invdtl.untqty as bigint)) as untqty,
-                case when prtmst_view.dspuom is null then sum(cast(invdtl.untqty as bigint))
-                     else sum(cast(invdtl.untqty as bigint)) / max(prtftp_dtl.untqty)
+                sum(cast(ivw.untqty as bigint)) as untqty,
+                case when prtmst_view.dspuom is null then sum(cast(ivw.untqty as bigint))
+                     else sum(cast(ivw.untqty as bigint)) / max(prtftp_dtl.untqty)
                 end as dsp_untqty,
                 prtmst_view.dspuom as dsp_untqty_uom,
                 prtmst_view.stkuom,
-                sum(cast(invdtl.catch_qty as decimal(18, 5))) as catch_qty,
-                sum(cast(invdtl.rcv_catch_qty as decimal(18, 5))) as rcv_catch_qty,
-                count(distinct invdtl.revlvl) as qty_of_pallets,
+                sum(cast(ivw.catch_qty as decimal(18, 5))) as catch_qty,
+                count(distinct ivw.revlvl) as qty_of_pallets,
                 '0' as carton_weight
-           from invdtl
-           join invsub
-             on invsub.subnum = invdtl.subnum
-           join invlod
-             on invlod.lodnum = invsub.lodnum
-           join locmst
-             on locmst.stoloc = invlod.stoloc
-            and locmst.wh_id = invlod.wh_id
-            and locmst.stoloc <> 'OTH-SERV-LOC'
-           join zonmst
-             on zonmst.wrk_zone_id = locmst.wrk_zone_id
-            and zonmst.wh_id = locmst.wh_id
-            and zonmst.wrkare in ('WASTOR', 'WADMG')
+           from inventory_view ivw
            join prtmst_view
-             on prtmst_view.prtnum = invdtl.prtnum
-            and prtmst_view.prt_client_id = invdtl.prt_client_id
-            and prtmst_view.wh_id_tmpl = invlod.wh_id
-            and prtmst_view.catch_unttyp is not null
+             on ivw.wh_id = prtmst_view.wh_id
+            and ivw.prtnum = prtmst_view.prtnum
+            and ivw.prt_client_id = prtmst_view.prt_client_id
            join prtfam
              on prtfam.prtfam = prtmst_view.prtfam
-           join prtftp
-             on prtmst_view.prtnum = prtftp.prtnum
-            and prtmst_view.wh_id = prtftp.wh_id
-            and prtmst_view.prt_client_id = prtftp.prt_client_id
-            and invdtl.ftpcod = prtftp.ftpcod
-             or prtftp.defftp_flg =
-                case when invdtl.ftpcod is null then 1
-                     else cast(null as int)
-                end
            join prtftp_dtl
-             on prtftp.prtnum = prtftp_dtl.prtnum
-            and prtftp.wh_id = prtftp_dtl.wh_id
-            and prtftp.prt_client_id = prtftp_dtl.prt_client_id
-            and prtftp.ftpcod = prtftp_dtl.ftpcod
+             on prtmst_view.prtnum = prtftp_dtl.prtnum
+            and prtmst_view.wh_id = prtftp_dtl.wh_id
+            and prtmst_view.prt_client_id = prtftp_dtl.prt_client_id
+            and ivw.ftpcod = prtftp_dtl.ftpcod
             and prtftp_dtl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)
            join rcvlin
-             on rcvlin.rcvkey = invdtl.rcvkey
+             on rcvlin.rcvkey = ivw.rcvkey
            join rcvinv
              on rcvinv.trknum = rcvlin.trknum
             and rcvinv.invnum = rcvlin.invnum
           where rcvinv.completed_date is not null
-          group by invlod.wh_id,
-                invdtl.prt_client_id,
+            and prtmst_view.prtfam <> 'OTH-SERV'
+            and prtmst_view.catch_unttyp is not null
+            and ivw.stoloc not like '%PERM%'
+          group by ivw.wh_id,
+                ivw.prt_client_id,
                 prtfam.prtfamgrp,
                 prtmst_view.stkuom,
                 prtmst_view.dspuom,
-                invdtl.dtlnum
+                ivw.dtlnum
          union all
-         select invlod.wh_id,
-                invdtl.prt_client_id,
+         select ivw.wh_id,
+                ivw.prt_client_id,
                 convert(varchar, getdate(), 111) as datetime,
                 prtfam.prtfamgrp as 'temp',
-                sum(cast(invdtl.untqty as bigint)) as untqty,
-                case when prtmst_view.dspuom is null then sum(cast(invdtl.untqty as bigint))
-                     else sum(cast(invdtl.untqty as bigint)) / max(prtftp_dtl.untqty)
+                sum(cast(ivw.untqty as bigint)) as untqty,
+                case when prtmst_view.dspuom is null then sum(cast(ivw.untqty as bigint))
+                     else sum(cast(ivw.untqty as bigint)) / max(prtftp_dtl.untqty)
                 end as dsp_untqty,
                 prtmst_view.dspuom as dsp_untqty_uom,
                 prtmst_view.stkuom,
                 '0' as catch_qty,
-                sum(cast(invdtl.rcv_catch_qty as decimal(18, 5))) as rcv_catch_qty,
-                count(distinct invdtl.revlvl) as qty_of_pallets,
+                count(distinct ivw.revlvl) as qty_of_pallets,
                 max(prtftp_dtl.netwgt) / 35.274 *
-                case when prtmst_view.dspuom is null then sum(cast(invdtl.untqty as bigint))
-                     else sum(cast(invdtl.untqty as bigint)) / max(prtftp_dtl.untqty)
+                case when prtmst_view.dspuom is null then sum(cast(ivw.untqty as bigint))
+                     else sum(cast(ivw.untqty as bigint)) / max(prtftp_dtl.untqty)
                 end as carton_weight
-           from invdtl
-           join invsub
-             on invsub.subnum = invdtl.subnum
-           join invlod
-             on invlod.lodnum = invsub.lodnum
-           join locmst
-             on locmst.stoloc = invlod.stoloc
-            and locmst.wh_id = invlod.wh_id
-            and locmst.stoloc <> 'OTH-SERV-LOC'
-           join zonmst
-             on zonmst.wrk_zone_id = locmst.wrk_zone_id
-            and zonmst.wh_id = locmst.wh_id
-            and zonmst.wrkare in ('WASTOR', 'WADMG')
+           from inventory_view ivw
            join prtmst_view
-             on prtmst_view.prtnum = invdtl.prtnum
-            and prtmst_view.prt_client_id = invdtl.prt_client_id
-            and prtmst_view.wh_id_tmpl = invlod.wh_id
-            and prtmst_view.catch_unttyp is null
+             on ivw.wh_id = prtmst_view.wh_id
+            and ivw.prtnum = prtmst_view.prtnum
+            and ivw.prt_client_id = prtmst_view.prt_client_id
            join prtfam
              on prtfam.prtfam = prtmst_view.prtfam
-           join prtftp
-             on prtmst_view.prtnum = prtftp.prtnum
-            and prtmst_view.wh_id = prtftp.wh_id
-            and prtmst_view.prt_client_id = prtftp.prt_client_id
-            and invdtl.ftpcod = prtftp.ftpcod
-             or prtftp.defftp_flg =
-                case when invdtl.ftpcod is null then 1
-                     else cast(null as int)
-                end
            join prtftp_dtl
-             on prtftp.prtnum = prtftp_dtl.prtnum
-            and prtftp.wh_id = prtftp_dtl.wh_id
-            and prtftp.prt_client_id = prtftp_dtl.prt_client_id
-            and prtftp.ftpcod = prtftp_dtl.ftpcod
+             on prtmst_view.prtnum = prtftp_dtl.prtnum
+            and prtmst_view.wh_id = prtftp_dtl.wh_id
+            and prtmst_view.prt_client_id = prtftp_dtl.prt_client_id
+            and ivw.ftpcod = prtftp_dtl.ftpcod
             and prtftp_dtl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)
            join rcvlin
-             on rcvlin.rcvkey = invdtl.rcvkey
+             on rcvlin.rcvkey = ivw.rcvkey
            join rcvinv
              on rcvinv.trknum = rcvlin.trknum
             and rcvinv.invnum = rcvlin.invnum
           where rcvinv.completed_date is not null
-          group by invlod.wh_id,
-                invdtl.prt_client_id,
+            and prtmst_view.prtfam <> 'OTH-SERV'
+            and prtmst_view.catch_unttyp is null
+            and ivw.stoloc not like '%PERM%'
+          group by ivw.wh_id,
+                ivw.prt_client_id,
                 prtfam.prtfamgrp,
                 prtmst_view.stkuom,
                 prtmst_view.dspuom,
-                invdtl.dtlnum) as balance_datas
+                ivw.dtlnum) as balance_datas
   group by balance_datas.wh_id,
         balance_datas.prt_client_id,
         balance_datas.datetime,
         balance_datas.temp,
         balance_datas.dsp_untqty_uom,
-        balance_datas.stkuom
+        balance_datas.stkuom]
 ]]>
 </local-syntax>
 </command>
