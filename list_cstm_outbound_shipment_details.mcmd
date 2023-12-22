@@ -28,9 +28,9 @@ get client in clause for user
                 prtmst_view.stkuom,
                 sum(floor(inv.untqty / prtftp_dtl.untqty)) as dspuom_qty,
                 prtmst_view.dspuom,
-                case when sum(inv.catch_qty) is not null then sum(inv.catch_qty)
-                     when sum(inv.catch_qty) is null then sum(cast(prtftp_dtl.netwgt / 35.274 * floor(inv.untqty / prtftp_dtl.untqty) as decimal(10, 2)))
-                     else 0
+                case when sum(inv.catch_qty) > 0 then sum(inv.catch_qty)
+                     when sum(inv.catch_qty) < 1 then sum(cast(prtftp_dtl.netwgt / 35.274 * floor(inv.untqty / prtftp_dtl.untqty) as decimal(10, 2)))
+                     else sum(cast(prtftp_dtl.netwgt / 35.274 * floor(inv.untqty / prtftp_dtl.untqty) as decimal(10, 2)))
                 end as weight,
                 count(distinct inv.revlvl) as qty_of_pallets,
                 inv.revlvl,
