@@ -4,67 +4,100 @@
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
-[select sysdate -1 as date_printed,
-        prtmst_view.wh_id,
+[select DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE())) as date_printed,
         prtmst_view.prt_client_id,
-        adrmst.adrnam as client_name,
-        sspdt.final_pallet as 'init_pallet',
-        count(distinct dtin.lodnum) as inbound_pallet,
-        count(distinct dtout.lodnum) as outbound_pallet,
+        coalesce(sspdt.final_pallet, count(distinct invdtl.revlvl)) as 'init_pallet',
+        (select count(distinct rcvlin.revlvl) pallet_in
+           from rcvlin
+           join rcvtrk
+             on rcvtrk.trknum = rcvlin.trknum
+            and rcvtrk.wh_id = rcvlin.wh_id
+          where rcvtrk.clsdte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
+            and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))
+            and rcvlin.revlvl <> '----'
+            and rcvlin.prt_client_id = prtmst_view.prt_client_id
+            and rcvlin.wh_id = prtmst_view.wh_id) as inbound_pallet,
+        (select count(distinct invdtl_hist.revlvl)
+           from shipment_line
+           join shipment
+             on shipment.ship_id = shipment_line.ship_id
+            and shipment.wh_id = shipment_line.wh_id
+           join invdtl_hist
+             on invdtl_hist.prtnum = shipment_line.prtnum
+            and invdtl_hist.prt_client_id = shipment_line.prt_client_id
+           join pckwrk_view
+             on pckwrk_view.wrkref = invdtl_hist.wrkref
+            and pckwrk_view.wrkref_dtl = invdtl_hist.wrkref_dtl
+            and pckwrk_view.pck_uom is null
+           join stop
+             on stop.stop_id = shipment.stop_id
+           join car_move
+             on car_move.car_move_id = stop.car_move_id
+           join trlr
+             on trlr.trlr_id = car_move.trlr_id
+          where trlr.close_dte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
+            and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))
+            and invdtl_hist.prtnum = max(prtmst_view.prtnum)
+            and invdtl_hist.prt_client_id = max(prtmst_view.prt_client_id)
+            and shipment.wh_id = max(prtmst_view.wh_id)) as outbound_pallet,
         count(distinct dtconsmins.lodnum) as consolidation_pallet_minus,
         count(distinct dtconsplus.lodnum) as consolidation_pallet_plus,
         count(distinct dtaddpl.lodnum) as adjustment_add_pallet,
         count(distinct dtdelpl.lodnum) as adjustment_remove_pallet,
-        count(distinct invlod.lodnum) as final_pallet
-   from prtmst_view
-   join client
-     on client.client_id = prtmst_view.prt_client_id
-   join adrmst
-     on adrmst.adr_id = client.adr_id
-   left
-   join invdtl
-     on invdtl.prtnum = prtmst_view.prtnum
-    and invdtl.prt_client_id = prtmst_view.prt_client_id
+        sspdt.final_pallet + (select count(distinct rcvlin.revlvl) pallet_in
+                                from rcvlin
+                                join rcvtrk
+                                  on rcvtrk.trknum = rcvlin.trknum
+                                 and rcvtrk.wh_id = rcvlin.wh_id
+                               where rcvtrk.clsdte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
+                                 and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))
+                                 and rcvlin.revlvl <> '----'
+                                 and rcvlin.prt_client_id = prtmst_view.prt_client_id
+                                 and rcvlin.wh_id = prtmst_view.wh_id) - (select count(distinct invdtl_hist.revlvl)
+                                                                            from shipment_line
+                                                                            join shipment
+                                                                              on shipment.ship_id = shipment_line.ship_id
+                                                                             and shipment.wh_id = shipment_line.wh_id
+                                                                            join invdtl_hist
+                                                                              on invdtl_hist.prtnum = shipment_line.prtnum
+                                                                             and invdtl_hist.prt_client_id = shipment_line.prt_client_id
+                                                                             and invdtl_hist.revlvl not in (select revlvl
+                                                                                                              from invdtl
+                                                                                                             where invdtl.prt_client_id = invdtl_hist.prt_client_id
+                                                                                                               and invdtl.prtnum = invdtl.prtnum)
+                                                                            join stop
+                                                                              on stop.stop_id = shipment.stop_id
+                                                                            join car_move
+                                                                              on car_move.car_move_id = stop.car_move_id
+                                                                            join trlr
+                                                                              on trlr.trlr_id = car_move.trlr_id
+                                                                           where trlr.close_dte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
+                                                                             and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))
+                                                                             and invdtl_hist.prtnum = max(prtmst_view.prtnum)
+                                                                             and invdtl_hist.prt_client_id = max(prtmst_view.prt_client_id)
+                                                                             and shipment.wh_id = max(prtmst_view.wh_id)) - count(distinct dtconsmins.lodnum) + count(distinct dtconsplus.lodnum) + count(distinct dtaddpl.lodnum) - count(distinct dtdelpl.lodnum) as final_pallet,
+        adrmst.adrnam as client_name,
+        prtmst_view.wh_id
+   from invdtl
    left
    join invsub
      on invsub.subnum = invdtl.subnum
    left
    join invlod
      on invlod.lodnum = invsub.lodnum
-    and invlod.wh_id = prtmst_view.wh_id
     and invlod.prmflg = 0
    left
-   join (select dt_in.lodnum,
-                dt_in.subnum,
-                dt_in.prtnum,
-                dt_in.prt_client_id,
-                dt_in.wh_id
-           from dlytrn dt_in
-          where dt_in.actcod = 'RCV'
-            and dt_in.oprcod = 'UID'
-            and dt_in.trndte between sysdate -1
-            and sysdate) dtin
-     on dtin.prtnum = prtmst_view.prtnum
-    and dtin.prt_client_id = prtmst_view.prt_client_id
-    and dtin.wh_id = prtmst_view.wh_id
+   join prtmst_view
+     on prtmst_view.prtnum = invdtl.prtnum
+    and prtmst_view.prt_client_id = invdtl.prt_client_id
+    and prtmst_view.wh_id = invlod.wh_id
    left
-   join (select dt_out.prtnum,
-                dt_out.prt_client_id,
-                dt_out.wh_id,
-                dt_out.lodnum
-           from dlytrn dt_out
-          where dt_out.actcod = 'LSTPCK'
-            and dt_out.oprcod = 'UPK'
-            and dt_out.fr_arecod in ('B1-RSTG', 'B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-RSTG', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
-            and dt_out.trndte between sysdate -1
-            and sysdate
-          group by dt_out.prtnum,
-                dt_out.prt_client_id,
-                dt_out.wh_id,
-                dt_out.lodnum) dtout
-     on dtout.wh_id = prtmst_view.wh_id
-    and dtout.prt_client_id = prtmst_view.prt_client_id
-    and dtout.prtnum = prtmst_view.prtnum
+   join client
+     on client.client_id = prtmst_view.prt_client_id
+   left
+   join adrmst
+     on adrmst.adr_id = client.adr_id
+    and adrmst.adrtyp = 'CLI'
    left
    join (select dt_cons_min.prtnum,
                 dt_cons_min.prt_client_id,
@@ -74,8 +107,8 @@
           where dt_cons_min.oprcod = 'UTR'
             and dt_cons_min.actcod = 'FL_XFR'
             and dt_cons_min.fr_arecod in ('B1-RSTG', 'B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-RSTG', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
-            and dt_cons_min.trndte between sysdate -1
-            and sysdate
+            and dt_cons_min.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
+            and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))
           group by dt_cons_min.prtnum,
                 dt_cons_min.prt_client_id,
                 dt_cons_min.wh_id,
@@ -92,8 +125,8 @@
           where dt_cons_plus.oprcod = 'UTR'
             and dt_cons_plus.actcod = 'PL_XFR'
             and dt_cons_plus.to_arecod in ('B1-RSTG', 'B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-RSTG', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
-            and dt_cons_plus.trndte between sysdate -1
-            and sysdate
+            and dt_cons_plus.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
+            and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))
           group by dt_cons_plus.prtnum,
                 dt_cons_plus.prt_client_id,
                 dt_cons_plus.wh_id,
@@ -108,10 +141,10 @@
                 dt_add_pl.lodnum
            from dlytrn dt_add_pl
           where dt_add_pl.actcod = 'IDNTFY'
-            and dt_add_pl.lodnum like 'PERM-CRE-LOD-%'
+            and dt_add_pl.lodnum = 'PERM-CRE-LOD-' + dt_add_pl.wh_id
             and dt_add_pl.to_arecod in ('B1-RSTG', 'B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-RSTG', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
-            and dt_add_pl.trndte between sysdate -1
-            and sysdate
+            and dt_add_pl.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
+            and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))
           group by dt_add_pl.prtnum,
                 dt_add_pl.prt_client_id,
                 dt_add_pl.wh_id,
@@ -127,12 +160,12 @@
            from dlytrn dt_del_pl
           where dt_del_pl.oprcod = 'INVADJ'
             and dt_del_pl.actcod = 'INVDEL'
-            and dt_del_pl.to_lodnum like 'PERM-ADJ-LOD-%'
+            and dt_del_pl.to_lodnum = 'PERM-ADJ-LOD-' + dt_del_pl.wh_id
             and dt_del_pl.lodnum not in (select lodnum
                                            from invlod)
             and dt_del_pl.fr_arecod in ('B1-RSTG', 'B1-AIRCON', 'B1-CHILLER', 'B1-DMG', 'B1-DRY', 'B1-FROZEN', 'B2-RSTG', 'B2-AIRCON', 'B2-CHILLER', 'B2-DMG', 'B2-DRY', 'B2-FROZEN')
-            and dt_del_pl.trndte between sysdate -1
-            and sysdate
+            and dt_del_pl.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
+            and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))
           group by dt_del_pl.prtnum,
                 dt_del_pl.prt_client_id,
                 dt_del_pl.wh_id,
@@ -142,21 +175,21 @@
     and dtdelpl.prtnum = prtmst_view.prtnum
    left
    join (select final_pallet,
-                prt_client_id
+                prt_client_id,
+                wh_id
            from soh_sum_pallet_daily_tran
-          where date_printed between sysdate -1
-            and sysdate
+          where date_printed = DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
           group by final_pallet,
-                prt_client_id) sspdt
+                prt_client_id,
+                wh_id) sspdt
      on sspdt.prt_client_id = prtmst_view.prt_client_id
+    and sspdt.wh_id = prtmst_view.wh_id
   where prtmst_view.wh_id not in ('----', 'WMD1')
   group by prtmst_view.wh_id,
         prtmst_view.prt_client_id,
         sspdt.final_pallet,
-        adrmst.adrnam]
-|
-create record
- where table_name = 'soh_sum_pallet_daily_tran'
+        adrmst.adrnam
+  order by prtmst_view.prt_client_id asc]
 ]]>
 </local-syntax>
 </command>
