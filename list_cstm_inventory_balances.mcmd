@@ -4,36 +4,7 @@
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
-get client in clause for user
- where table_prefix = 'invdtl'
-   and usr_id = @@usr_id
-   and client_id = @prt_client_id
-   and prt_client_id_flg = 1
-|
-if (@invtid)
-{
-    get translated inventory identifier
-     where identifier = @invtid
-       and wh_id = @wh_id
-    |
-    if (@colnam = 'dtlnum')
-    {
-        publish data
-         where dtlnum = @invtid
-    }
-    else if (@colnam = 'subnum')
-    {
-        publish data
-         where subnum = @invtid
-    }
-    else
-    {
-        publish data
-         where lodnum = @invtid
-    }
-}
-|
-[select balance_datas.wh_id,
+select balance_datas.wh_id,
         balance_datas.prt_client_id,
         balance_datas.datetime,
         balance_datas.temp,
@@ -41,20 +12,22 @@ if (@invtid)
         sum(cast(balance_datas.dsp_untqty as bigint)) dsp_untqty,
         balance_datas.dsp_untqty_uom,
         balance_datas.stkuom,
-        sum(qty_of_pallets) qty_of_pallets,
+        sum(balance_datas.qty_of_pallets) qty_of_pallets,
         sum(cast(balance_datas.carton_weight as decimal(18, 5))) + sum(cast(balance_datas.catch_qty as decimal(18, 5))) as carton_weight
    from (select invlod.wh_id,
                 invdtl.prt_client_id,
-                convert(varchar, sysdate, 111) as datetime,
+                convert(varchar, getdate(), 111) as datetime,
                 prtfam.prtfamgrp as 'temp',
                 sum(cast(invdtl.untqty as bigint)) as untqty,
-                decode(prtmst_view.dspuom, null, sum(cast(invdtl.untqty as bigint)), sum(cast(invdtl.untqty as bigint)) / max(prtftp_dtl.untqty)) dsp_untqty,
-                decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
+                case when prtmst_view.dspuom is null then sum(cast(invdtl.untqty as bigint))
+                     else sum(cast(invdtl.untqty as bigint)) / max(prtftp_dtl.untqty)
+                end as dsp_untqty,
+                prtmst_view.dspuom as dsp_untqty_uom,
                 prtmst_view.stkuom,
                 sum(cast(invdtl.catch_qty as decimal(18, 5))) as catch_qty,
                 sum(cast(invdtl.rcv_catch_qty as decimal(18, 5))) as rcv_catch_qty,
                 count(distinct invdtl.revlvl) as qty_of_pallets,
-                max(prtftp_dtl.netwgt) / 35.274 * decode(prtmst_view.dspuom, null, sum(cast(invdtl.untqty as bigint)), sum(cast(invdtl.untqty as bigint)) / max(prtftp_dtl.untqty)) as carton_weight
+                '0' as carton_weight
            from invdtl
            join invsub
              on invsub.subnum = invdtl.subnum
@@ -64,7 +37,10 @@ if (@invtid)
              on locmst.stoloc = invlod.stoloc
             and locmst.wh_id = invlod.wh_id
             and locmst.stoloc <> 'OTH-SERV-LOC'
-            and loc_typ_id in ('10022', '10020', '10032')
+           join zonmst
+             on zonmst.wrk_zone_id = locmst.wrk_zone_id
+            and zonmst.wh_id = locmst.wh_id
+            and zonmst.wrkare in ('WASTOR', 'WADMG')
            join prtmst_view
              on prtmst_view.prtnum = invdtl.prtnum
             and prtmst_view.prt_client_id = invdtl.prt_client_id
@@ -77,13 +53,16 @@ if (@invtid)
             and prtmst_view.wh_id = prtftp.wh_id
             and prtmst_view.prt_client_id = prtftp.prt_client_id
             and invdtl.ftpcod = prtftp.ftpcod
-             or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int))
+             or prtftp.defftp_flg =
+                case when invdtl.ftpcod is null then 1
+                     else cast(null as int)
+                end
            join prtftp_dtl
              on prtftp.prtnum = prtftp_dtl.prtnum
             and prtftp.wh_id = prtftp_dtl.wh_id
             and prtftp.prt_client_id = prtftp_dtl.prt_client_id
             and prtftp.ftpcod = prtftp_dtl.ftpcod
-            and prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)
+            and prtftp_dtl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)
            join rcvlin
              on rcvlin.rcvkey = invdtl.rcvkey
            join rcvinv
@@ -94,20 +73,26 @@ if (@invtid)
                 invdtl.prt_client_id,
                 prtfam.prtfamgrp,
                 prtmst_view.stkuom,
-                prtmst_view.dspuom
-         union
+                prtmst_view.dspuom,
+                invdtl.dtlnum
+         union all
          select invlod.wh_id,
                 invdtl.prt_client_id,
-                convert(varchar, sysdate, 111) as datetime,
+                convert(varchar, getdate(), 111) as datetime,
                 prtfam.prtfamgrp as 'temp',
                 sum(cast(invdtl.untqty as bigint)) as untqty,
-                decode(prtmst_view.dspuom, null, sum(cast(invdtl.untqty as bigint)), sum(cast(invdtl.untqty as bigint)) / max(prtftp_dtl.untqty)) dsp_untqty,
-                decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
+                case when prtmst_view.dspuom is null then sum(cast(invdtl.untqty as bigint))
+                     else sum(cast(invdtl.untqty as bigint)) / max(prtftp_dtl.untqty)
+                end as dsp_untqty,
+                prtmst_view.dspuom as dsp_untqty_uom,
                 prtmst_view.stkuom,
-                sum(cast(invdtl.catch_qty as decimal(18, 5))) as catch_qty,
+                '0' as catch_qty,
                 sum(cast(invdtl.rcv_catch_qty as decimal(18, 5))) as rcv_catch_qty,
                 count(distinct invdtl.revlvl) as qty_of_pallets,
-                max(prtftp_dtl.netwgt) / 35.274 * decode(prtmst_view.dspuom, null, sum(cast(invdtl.untqty as bigint)), sum(cast(invdtl.untqty as bigint)) / max(prtftp_dtl.untqty)) as carton_weight
+                max(prtftp_dtl.netwgt) / 35.274 *
+                case when prtmst_view.dspuom is null then sum(cast(invdtl.untqty as bigint))
+                     else sum(cast(invdtl.untqty as bigint)) / max(prtftp_dtl.untqty)
+                end as carton_weight
            from invdtl
            join invsub
              on invsub.subnum = invdtl.subnum
@@ -117,7 +102,10 @@ if (@invtid)
              on locmst.stoloc = invlod.stoloc
             and locmst.wh_id = invlod.wh_id
             and locmst.stoloc <> 'OTH-SERV-LOC'
-            and loc_typ_id in ('10022', '10020', '10032')
+           join zonmst
+             on zonmst.wrk_zone_id = locmst.wrk_zone_id
+            and zonmst.wh_id = locmst.wh_id
+            and zonmst.wrkare in ('WASTOR', 'WADMG')
            join prtmst_view
              on prtmst_view.prtnum = invdtl.prtnum
             and prtmst_view.prt_client_id = invdtl.prt_client_id
@@ -130,13 +118,16 @@ if (@invtid)
             and prtmst_view.wh_id = prtftp.wh_id
             and prtmst_view.prt_client_id = prtftp.prt_client_id
             and invdtl.ftpcod = prtftp.ftpcod
-             or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int))
+             or prtftp.defftp_flg =
+                case when invdtl.ftpcod is null then 1
+                     else cast(null as int)
+                end
            join prtftp_dtl
              on prtftp.prtnum = prtftp_dtl.prtnum
             and prtftp.wh_id = prtftp_dtl.wh_id
             and prtftp.prt_client_id = prtftp_dtl.prt_client_id
             and prtftp.ftpcod = prtftp_dtl.ftpcod
-            and prtftp_dtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)
+            and prtftp_dtl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)
            join rcvlin
              on rcvlin.rcvkey = invdtl.rcvkey
            join rcvinv
@@ -147,13 +138,14 @@ if (@invtid)
                 invdtl.prt_client_id,
                 prtfam.prtfamgrp,
                 prtmst_view.stkuom,
-                prtmst_view.dspuom) as balance_datas
+                prtmst_view.dspuom,
+                invdtl.dtlnum) as balance_datas
   group by balance_datas.wh_id,
         balance_datas.prt_client_id,
         balance_datas.datetime,
         balance_datas.temp,
         balance_datas.dsp_untqty_uom,
-        balance_datas.stkuom]
+        balance_datas.stkuom
 ]]>
 </local-syntax>
 </command>
