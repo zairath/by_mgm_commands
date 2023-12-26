@@ -145,6 +145,10 @@ get client in clause for user
     and inventory_view.stoloc = dtrn.tostol
     and inventory_view.lstmov = dtrn.trndte
   where locmst.stoloc not like '%PERM%'
+    and @+locmst.wh_id
+    and @+prtmst_view.prtnum
+    and @+all_inventory_view.lodnum
+    and @+prtmst_view.prt_client_id
   order by locmst.stoloc]
 ]]>
 </local-syntax>
