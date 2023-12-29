@@ -111,7 +111,7 @@ get client in clause for user
                 end lstdte,
                 null min_days_to_expire,
                 null max_days_to_expire,
-                decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) dsp_untqty,
+                decode(prtmst_view.dspuom, null, invdtl.untqty, convert(decimal(18, 5), invdtl.untqty * 1. / prtftp_dtl.untqty)) dsp_untqty,
                 decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
                 decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), mod(invdtl.untqty, prtftp_dtl.untqty)) rem_untqty,
                 decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) rem_untqty_uom
@@ -293,7 +293,7 @@ get client in clause for user
                 end lstdte,
                 null min_days_to_expire,
                 null max_days_to_expire,
-                decode(prtmst_view.dspuom, null, invdtl.untqty, invdtl.untqty / prtftp_dtl.untqty) dsp_untqty,
+                decode(prtmst_view.dspuom, null, invdtl.untqty, convert(decimal(18, 5), invdtl.untqty * 1. / prtftp_dtl.untqty)) dsp_untqty,
                 decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
                 decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), mod(invdtl.untqty, prtftp_dtl.untqty)) rem_untqty,
                 decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) rem_untqty_uom
