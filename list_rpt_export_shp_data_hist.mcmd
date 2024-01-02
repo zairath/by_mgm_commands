@@ -126,6 +126,7 @@ get client in clause for user
      on trlr.trlr_id = av.stoloc
    join cstmst
      on cstmst.cstnum = phd.stcust
+    and cstmst.client_id = phd.prt_client_id
    join shipment
      on shipment.ship_id = phd.ship_id
    join stop
@@ -136,6 +137,7 @@ get client in clause for user
      on client.client_id = phh.client_id
    join adrmst adr_clt
      on adr_clt.adr_id = client.adr_id
+    and adr_clt.adrtyp = 'CLI'
   where @+phd.ordnum
     and @+phh.client_id
     and @+phh.wh_id

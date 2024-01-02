@@ -113,6 +113,7 @@ get client in clause for user
      on trlr.trlr_id = av.stoloc
    join cstmst
      on cstmst.cstnum = pv.stcust
+    and cstmst.client_id = pv.client_id
    join shipment
      on shipment.ship_id = pv.ship_id
    join stop
