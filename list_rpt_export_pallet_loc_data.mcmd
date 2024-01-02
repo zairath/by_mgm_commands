@@ -59,7 +59,7 @@ get client in clause for user
    from locmst
    join loc_typ
      on loc_typ.loc_typ_id = locmst.loc_typ_id
-    and loc_typ = 'STO'
+    and loc_typ in ('STO', 'SSTG')
    left
    join inventory_view
      on inventory_view.stoloc = locmst.stoloc
