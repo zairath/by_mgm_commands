@@ -151,9 +151,34 @@ get client in clause for user
                 ddmst1.lngdsc as stkuom_lngdsc,
                 ddmst2.lngdsc as dspuom_lngdsc,
                 adrmst.adrnam,
-                dlytrn.tostol,
-                dlytrn.last_upd_user_id,
-                dlytrn.lodnum
+                invdtl_hist.dtlnum,
+                (select max(dlytrn.tostol)
+                   from dlytrn
+                  where invdtl_hist.revlvl = dlytrn.lodnum
+                    and invdtl_hist.subnum = dlytrn.subnum
+                    and invdtl_hist.prtnum = dlytrn.prtnum
+                    and invdtl_hist.prt_client_id = dlytrn.prt_client_id
+                    and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
+                    and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN', 'B1-RSTG', 'B2-RSTG')
+                    and dlytrn.tostol not like '%CHAMBER%') as tostol,
+                (select max(dlytrn.last_upd_user_id)
+                   from dlytrn
+                  where invdtl_hist.revlvl = dlytrn.lodnum
+                    and invdtl_hist.subnum = dlytrn.subnum
+                    and invdtl_hist.prtnum = dlytrn.prtnum
+                    and invdtl_hist.prt_client_id = dlytrn.prt_client_id
+                    and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
+                    and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN', 'B1-RSTG', 'B2-RSTG')
+                    and dlytrn.tostol not like '%CHAMBER%') as last_upd_user_id,
+                (select max(dlytrn.lodnum)
+                   from dlytrn
+                  where invdtl_hist.revlvl = dlytrn.lodnum
+                    and invdtl_hist.subnum = dlytrn.subnum
+                    and invdtl_hist.prtnum = dlytrn.prtnum
+                    and invdtl_hist.prt_client_id = dlytrn.prt_client_id
+                    and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
+                    and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN', 'B1-RSTG', 'B2-RSTG')
+                    and dlytrn.tostol not like '%CHAMBER%') as lodnum
            from prtmst_view
            join prtdsc
              on prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
@@ -199,12 +224,6 @@ get client in clause for user
              on client.client_id = prtmst_view.prt_client_id
            join adrmst
              on adrmst.adr_id = client.adr_id
-           join dlytrn
-             on dlytrn.lodnum = invdtl_hist.revlvl
-            and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
-			and dlytrn.oprcod = 'UTR'
-            and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN', 'B1-RSTG', 'B2-RSTG')
-            and dlytrn.tostol not like '%CHAMBER%'
           where @+prtmst_view.prtnum
             and @+rcvlin.mandte:date
             and @+rcvlin.expire_dte:date
