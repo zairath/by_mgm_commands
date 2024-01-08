@@ -16,7 +16,7 @@
         sum(cast(balance_datas.carton_weight as decimal(18, 5))) + sum(cast(balance_datas.catch_qty as decimal(18, 5))) as carton_weight
    from (select ivw.wh_id,
                 ivw.prt_client_id,
-                convert(varchar, getdate(), 111) as datetime,
+                convert(varchar, getdate() + 1, 111) as datetime,
                 prtfam.prtfamgrp as 'temp',
                 sum(cast(ivw.untqty as bigint)) as untqty,
                 case when prtmst_view.dspuom is null then sum(cast(ivw.untqty as bigint))
@@ -44,16 +44,17 @@
             and prtmst_view.prtfam <> 'OTH-SERV'
             and prtmst_view.catch_unttyp is not null
             and ivw.stoloc not like '%PERM%'
+            and ivw.stoloc not like '%TRL%'
           group by ivw.wh_id,
                 ivw.prt_client_id,
                 prtfam.prtfamgrp,
                 prtmst_view.stkuom,
                 prtmst_view.dspuom,
-                ivw.dtlnum
+                ivw.revlvl
          union all
          select ivw.wh_id,
                 ivw.prt_client_id,
-                convert(varchar, getdate(), 111) as datetime,
+                convert(varchar, getdate() + 1, 111) as datetime,
                 prtfam.prtfamgrp as 'temp',
                 sum(cast(ivw.untqty as bigint)) as untqty,
                 case when prtmst_view.dspuom is null then sum(cast(ivw.untqty as bigint))
@@ -84,12 +85,13 @@
             and prtmst_view.prtfam <> 'OTH-SERV'
             and prtmst_view.catch_unttyp is null
             and ivw.stoloc not like '%PERM%'
+            and ivw.stoloc not like '%TRL%'
           group by ivw.wh_id,
                 ivw.prt_client_id,
                 prtfam.prtfamgrp,
                 prtmst_view.stkuom,
                 prtmst_view.dspuom,
-                ivw.dtlnum) as balance_datas
+                ivw.revlvl) as balance_datas
   group by balance_datas.wh_id,
         balance_datas.prt_client_id,
         balance_datas.datetime,

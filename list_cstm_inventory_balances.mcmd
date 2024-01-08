@@ -16,7 +16,7 @@
         sum(cast(balance_datas.carton_weight as decimal(18, 5))) + sum(cast(balance_datas.catch_qty as decimal(18, 5))) as carton_weight
    from (select ivw.wh_id,
                 ivw.prt_client_id,
-                convert(varchar, getdate(), 111) as datetime,
+                convert(varchar, getdate() + 1, 111) as datetime,
                 prtfam.prtfamgrp as 'temp',
                 sum(cast(ivw.untqty as bigint)) as untqty,
                 case when prtmst_view.dspuom is null then sum(cast(ivw.untqty as bigint))
@@ -25,7 +25,16 @@
                 prtmst_view.dspuom as dsp_untqty_uom,
                 prtmst_view.stkuom,
                 sum(cast(ivw.catch_qty as decimal(18, 5))) as catch_qty,
-                count(distinct ivw.revlvl) as qty_of_pallets,
+                /** count(distinct ivw.revlvl) as qty_of_pallets, **/
+                case when not exists(select 1
+                                       from inventory_view ivw2
+                                      where ivw2.revlvl = ivw.revlvl
+                                        and ivw2.prtnum = max(ivw.prtnum)
+                                        and ivw2.prt_client_id = ivw.prt_client_id
+                                        and ivw2.wh_id = ivw.wh_id
+                                        and ivw2.rcvkey is null) then 1
+                     else 0
+                end as qty_of_pallets,
                 '0' as carton_weight
            from inventory_view ivw
            join prtmst_view
@@ -49,16 +58,17 @@
             and prtmst_view.prtfam <> 'OTH-SERV'
             and prtmst_view.catch_unttyp is not null
             and ivw.stoloc not like '%PERM%'
+            and ivw.stoloc not like '%TRL%'
           group by ivw.wh_id,
                 ivw.prt_client_id,
                 prtfam.prtfamgrp,
                 prtmst_view.stkuom,
                 prtmst_view.dspuom,
-                ivw.dtlnum
+                ivw.revlvl
          union all
          select ivw.wh_id,
                 ivw.prt_client_id,
-                convert(varchar, getdate(), 111) as datetime,
+                convert(varchar, getdate() + 1, 111) as datetime,
                 prtfam.prtfamgrp as 'temp',
                 sum(cast(ivw.untqty as bigint)) as untqty,
                 case when prtmst_view.dspuom is null then sum(cast(ivw.untqty as bigint))
@@ -67,7 +77,16 @@
                 prtmst_view.dspuom as dsp_untqty_uom,
                 prtmst_view.stkuom,
                 '0' as catch_qty,
-                count(distinct ivw.revlvl) as qty_of_pallets,
+                /** count(distinct ivw.revlvl) as qty_of_pallets, **/
+                case when not exists(select 1
+                                       from inventory_view ivw2
+                                      where ivw2.revlvl = ivw.revlvl
+                                        and ivw2.prtnum = max(ivw.prtnum)
+                                        and ivw2.prt_client_id = ivw.prt_client_id
+                                        and ivw2.wh_id = ivw.wh_id
+                                        and ivw2.rcvkey is null) then 1
+                     else 0
+                end as qty_of_pallets,
                 max(prtftp_dtl.netwgt) / 35.274 *
                 case when prtmst_view.dspuom is null then sum(cast(ivw.untqty as bigint))
                      else sum(cast(ivw.untqty as bigint)) / max(prtftp_dtl.untqty)
@@ -94,12 +113,13 @@
             and prtmst_view.prtfam <> 'OTH-SERV'
             and prtmst_view.catch_unttyp is null
             and ivw.stoloc not like '%PERM%'
+            and ivw.stoloc not like '%TRL%'
           group by ivw.wh_id,
                 ivw.prt_client_id,
                 prtfam.prtfamgrp,
                 prtmst_view.stkuom,
                 prtmst_view.dspuom,
-                ivw.dtlnum) as balance_datas
+                ivw.revlvl) as balance_datas
   group by balance_datas.wh_id,
         balance_datas.prt_client_id,
         balance_datas.datetime,
