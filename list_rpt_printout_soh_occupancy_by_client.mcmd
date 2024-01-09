@@ -1,0 +1,18 @@
+<command>
+  <name>list rpt printout soh occupancy by client</name>
+  <description>list rpt printout soh occupancy by client</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+|
+[select *
+   from soh_client_daily_occupancy
+  where datediff(day, date_printed, @date:date) = 0
+    and @+wh_id
+	and @+client_id]
+]]>
+</local-syntax>
+</command>
