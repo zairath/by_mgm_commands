@@ -1,0 +1,127 @@
+<command>
+  <name>list rpt export occupancy by client</name>
+  <description>list rpt export occupancy by client</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+[select DATEADD(dd, 1, DATEDIFF(dd, 0, GETDATE())) as date_printed,
+        occupance_datas.warehouse,
+        occupance_datas.buildings,
+        occupance_datas.client_id,
+        occupance_datas.client_name,
+        occupance_datas.temperature,
+        occupance_datas.item_family_desc,
+        max(occupance_datas.used_capacity) used_capacity
+   from (select locmst.wh_id as warehouse,
+                wrkdsc.lngdsc as buildings,
+                inv.prt_client_id as client_id,
+                adrmst.adrnam as client_name,
+                aredsc.lngdsc as temperature,
+                famdsc.lngdsc as item_family_desc,
+                case when aremst.bldg_id in ('B1', 'B2', 'B3', 'B4', 'B5', 'B6') then count(locmst.stoloc)
+                     else count(distinct inv.revlvl)
+                end as used_capacity
+           from locmst
+           join aremst
+             on aremst.arecod = locmst.arecod
+            and aremst.wh_id = locmst.wh_id
+           join dscmst aredsc
+             on aredsc.colnam = 'arecod|wh_id'
+            and aredsc.colval = aremst.arecod + '|' + aremst.wh_id
+           join zonmst
+             on zonmst.wrk_zone_id = locmst.wrk_zone_id
+            and zonmst.wh_id = locmst.wh_id
+           join dscmst wrkdsc
+             on wrkdsc.colnam = 'wrkzon|wh_id'
+            and wrkdsc.colval = zonmst.wrkzon + '|' + zonmst.wh_id
+           join inventory_view inv
+             on inv.wh_id = locmst.wh_id
+            and inv.stoloc = locmst.stoloc
+           join prtmst_view pmv
+             on pmv.prtnum = inv.prtnum
+            and pmv.prt_client_id = inv.prt_client_id
+            and pmv.wh_id = inv.wh_id
+           join dscmst famdsc
+             on famdsc.colnam = 'prtfam'
+            and famdsc.colval = pmv.prtfam
+           join client
+             on client.client_id = inv.prt_client_id
+           join adrmst
+             on adrmst.adr_id = client.adr_id
+            and adrmst.adrtyp = 'CLI'
+          where aremst.arecod not in ('B1-OTH-SER', 'B2-OTH-SER', 'OTH-SERV')
+            and zonmst.wrkare in ('WASTOR', 'WADMG')
+          group by locmst.wh_id,
+                wrkdsc.lngdsc,
+                aredsc.lngdsc,
+                inv.prt_client_id,
+                adrmst.adrnam,
+                famdsc.lngdsc,
+                aremst.bldg_id
+         union all
+         select locmst.wh_id as warehouse,
+                wrkdsc.lngdsc as buildings,
+                inv.prt_client_id as client_id,
+                adrmst.adrnam as client_name,
+                aredsc.lngdsc as temperature,
+                famdsc.lngdsc as item_family_desc,
+                count(distinct inv.revlvl) as used_capacity
+           from locmst
+           join aremst
+             on aremst.arecod = locmst.arecod
+            and aremst.wh_id = locmst.wh_id
+           join dscmst aredsc
+             on aredsc.colnam = 'arecod|wh_id'
+            and aredsc.colval = aremst.arecod + '|' + aremst.wh_id
+           join zonmst
+             on zonmst.wrk_zone_id = locmst.wrk_zone_id
+            and zonmst.wh_id = locmst.wh_id
+           join dscmst wrkdsc
+             on wrkdsc.colnam = 'wrkzon|wh_id'
+            and wrkdsc.colval = zonmst.wrkzon + '|' + zonmst.wh_id
+           left outer
+           join inventory_view inv
+             on inv.wh_id = locmst.wh_id
+            and inv.stoloc = locmst.stoloc
+           left outer
+           join prtmst_view pmv
+             on pmv.prtnum = inv.prtnum
+            and pmv.prt_client_id = inv.prt_client_id
+            and pmv.wh_id = inv.wh_id
+           left outer
+           join pckwrk_view pv
+             on pv.prtnum = inv.prtnum
+            and pv.prt_client_id = inv.prt_client_id
+            and pv.wh_id = inv.wh_id
+            and pv.ship_line_id = inv.ship_line_id
+           left outer
+           join dscmst famdsc
+             on famdsc.colnam = 'prtfam'
+            and famdsc.colval = pmv.prtfam
+           left outer
+           join client
+             on client.client_id = inv.prt_client_id
+           left outer
+           join adrmst
+             on adrmst.client_id = client.client_id
+            and adrmst.adr_id = client.adr_id
+            and adrmst.adrtyp = 'CLI'
+          where aremst.arecod not in ('B1-OTH-SER', 'B2-OTH-SER', 'OTH-SERV')
+            and zonmst.wrkare = 'WASHIP'
+            and (pv.pck_uom = 'PL' or pv.pck_uom is null)
+          group by locmst.wh_id,
+                wrkdsc.lngdsc,
+                aredsc.lngdsc,
+                inv.prt_client_id,
+                adrmst.adrnam,
+                famdsc.lngdsc,
+                aremst.bldg_id) occupance_datas
+  group by occupance_datas.warehouse,
+        occupance_datas.buildings,
+        occupance_datas.client_id,
+        occupance_datas.client_name,
+        occupance_datas.temperature,
+        occupance_datas.item_family_desc]
+]]>
+</local-syntax>
+</command>

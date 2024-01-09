@@ -1,0 +1,98 @@
+<command>
+  <name>list rpt export occupancy</name>
+  <description>list rpt export occupancy</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+[select DATEADD(dd, 1, DATEDIFF(dd, 0, GETDATE())) as date_printed,
+        occupance_datas.warehouse,
+        occupance_datas.buildings,
+        occupance_datas.temperature,
+        sum(occupance_datas.used_capacity) used_capacity,
+        max(occupance_datas.max_capacity) max_capacity
+   from (select locmst.wh_id as warehouse,
+                wrkdsc.lngdsc as buildings,
+                aredsc.lngdsc as temperature,
+                case when aremst.bldg_id in ('B1', 'B2', 'B3', 'B4', 'B5', 'B6') then count(distinct inv.stoloc)
+                     else count(distinct inv.revlvl)
+                end as used_capacity,
+                (select count(distinct llmst.stoloc)
+                   from locmst llmst
+                  where llmst.wh_id = max(locmst.wh_id)
+                    and llmst.arecod = max(locmst.arecod)
+                    and llmst.wrk_zone_id = max(locmst.wrk_zone_id)) as max_capacity
+           from locmst
+           join aremst
+             on aremst.arecod = locmst.arecod
+            and aremst.wh_id = locmst.wh_id
+           join dscmst aredsc
+             on aredsc.colnam = 'arecod|wh_id'
+            and aredsc.colval = aremst.arecod + '|' + aremst.wh_id
+           join zonmst
+             on zonmst.wrk_zone_id = locmst.wrk_zone_id
+            and zonmst.wh_id = locmst.wh_id
+           join dscmst wrkdsc
+             on wrkdsc.colnam = 'wrkzon|wh_id'
+            and wrkdsc.colval = zonmst.wrkzon + '|' + zonmst.wh_id
+           left outer
+           join inventory_view inv
+             on inv.wh_id = locmst.wh_id
+            and inv.stoloc = locmst.stoloc
+          where aremst.arecod not in ('B1-OTH-SER', 'B2-OTH-SER', 'OTH-SERV')
+            and zonmst.wrkare in ('WASTOR', 'WADMG')
+          group by locmst.wh_id,
+                wrkdsc.lngdsc,
+                aredsc.lngdsc,
+                aremst.bldg_id,
+                aremst.arecod,
+                zonmst.wrkare
+         union
+         select locmst.wh_id as warehouse,
+                wrkdsc.lngdsc as buildings,
+                aredsc.lngdsc as temperature,
+                count(distinct inv.revlvl) as used_capacity,
+                (select count(distinct llmst.stoloc)
+                   from locmst llmst
+                  where llmst.stoloc = max(locmst.stoloc)
+                    and llmst.wh_id = max(locmst.wh_id)
+                    and llmst.arecod = max(locmst.arecod)
+                    and llmst.wrk_zone_id = max(locmst.wrk_zone_id)) as max_capacity
+           from locmst
+           join aremst
+             on aremst.arecod = locmst.arecod
+            and aremst.wh_id = locmst.wh_id
+           join dscmst aredsc
+             on aredsc.colnam = 'arecod|wh_id'
+            and aredsc.colval = aremst.arecod + '|' + aremst.wh_id
+           join zonmst
+             on zonmst.wrk_zone_id = locmst.wrk_zone_id
+            and zonmst.wh_id = locmst.wh_id
+           join dscmst wrkdsc
+             on wrkdsc.colnam = 'wrkzon|wh_id'
+            and wrkdsc.colval = zonmst.wrkzon + '|' + zonmst.wh_id
+           left outer
+           join inventory_view inv
+             on inv.wh_id = locmst.wh_id
+            and inv.stoloc = locmst.stoloc
+           left outer
+           join pckwrk_view pv
+             on pv.prtnum = inv.prtnum
+            and pv.prt_client_id = inv.prt_client_id
+            and pv.wh_id = inv.wh_id
+          where aremst.arecod not in ('B1-OTH-SER', 'B2-OTH-SER', 'OTH-SERV')
+            and zonmst.wrkare = 'WASHIP'
+            and (pv.pck_uom = 'PL' or pv.pck_uom is null)
+          group by locmst.wh_id,
+                wrkdsc.lngdsc,
+                aredsc.lngdsc,
+                aremst.bldg_id,
+                aremst.arecod,
+                zonmst.wrkare) occupance_datas
+  group by occupance_datas.warehouse,
+        occupance_datas.buildings,
+        occupance_datas.temperature
+  order by occupance_datas.warehouse,
+        occupance_datas.buildings asc]
+]]>
+</local-syntax>
+</command>
