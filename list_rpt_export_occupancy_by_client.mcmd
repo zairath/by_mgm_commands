@@ -4,7 +4,7 @@
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
-[select DATEADD(dd, 1, DATEDIFF(dd, 0, GETDATE())) as date_printed,
+[select DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE())) as date_printed,
         occupance_datas.wh_id,
         occupance_datas.buildings,
         occupance_datas.client_id,
@@ -12,7 +12,7 @@
         occupance_datas.temperature,
         occupance_datas.item_family_desc,
         max(occupance_datas.used_capacity) used_capacity
-   from (select locmst.wh_id as warehouse,
+   from (select locmst.wh_id as wh_id,
                 wrkdsc.lngdsc as buildings,
                 inv.prt_client_id as client_id,
                 adrmst.adrnam as client_name,
@@ -59,7 +59,7 @@
                 famdsc.lngdsc,
                 aremst.bldg_id
          union all
-         select locmst.wh_id as warehouse,
+         select locmst.wh_id as wh_id,
                 wrkdsc.lngdsc as buildings,
                 inv.prt_client_id as client_id,
                 adrmst.adrnam as client_name,
@@ -116,13 +116,13 @@
                 adrmst.adrnam,
                 famdsc.lngdsc,
                 aremst.bldg_id) occupance_datas
-  group by occupance_datas.warehouse,
+  group by occupance_datas.wh_id,
         occupance_datas.buildings,
         occupance_datas.client_id,
         occupance_datas.client_name,
         occupance_datas.temperature,
         occupance_datas.item_family_desc
-  order by occupance_datas.warehouse,
+  order by occupance_datas.wh_id,
         occupance_datas.buildings]
 ]]>
 </local-syntax>

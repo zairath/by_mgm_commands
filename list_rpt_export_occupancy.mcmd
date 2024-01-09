@@ -4,13 +4,13 @@
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
-[select DATEADD(dd, 1, DATEDIFF(dd, 0, GETDATE())) as date_printed,
+[select DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE())) as date_printed,
         occupance_datas.wh_id,
         occupance_datas.buildings,
         occupance_datas.temperature,
         sum(occupance_datas.used_capacity) used_capacity,
         max(occupance_datas.max_capacity) max_capacity
-   from (select locmst.wh_id as warehouse,
+   from (select locmst.wh_id as wh_id,
                 wrkdsc.lngdsc as buildings,
                 aredsc.lngdsc as temperature,
                 case when aremst.bldg_id in ('B1', 'B2', 'B3', 'B4', 'B5', 'B6') then count(distinct inv.stoloc)
@@ -47,7 +47,7 @@
                 aremst.arecod,
                 zonmst.wrkare
          union
-         select locmst.wh_id as warehouse,
+         select locmst.wh_id as wh_id,
                 wrkdsc.lngdsc as buildings,
                 aredsc.lngdsc as temperature,
                 count(distinct inv.revlvl) as used_capacity,
@@ -88,10 +88,10 @@
                 aremst.bldg_id,
                 aremst.arecod,
                 zonmst.wrkare) occupance_datas
-  group by occupance_datas.warehouse,
+  group by occupance_datas.wh_id,
         occupance_datas.buildings,
         occupance_datas.temperature
-  order by occupance_datas.warehouse,
+  order by occupance_datas.wh_id,
         occupance_datas.buildings asc]
 ]]>
 </local-syntax>
