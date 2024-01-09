@@ -5,7 +5,7 @@
   <local-syntax>
 <![CDATA[
 [select DATEADD(dd, 1, DATEDIFF(dd, 0, GETDATE())) as date_printed,
-        occupance_datas.warehouse,
+        occupance_datas.wh_id,
         occupance_datas.buildings,
         occupance_datas.client_id,
         occupance_datas.client_name,
@@ -121,7 +121,9 @@
         occupance_datas.client_id,
         occupance_datas.client_name,
         occupance_datas.temperature,
-        occupance_datas.item_family_desc]
+        occupance_datas.item_family_desc
+  order by occupance_datas.warehouse,
+        occupance_datas.buildings]
 ]]>
 </local-syntax>
 </command>

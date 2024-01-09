@@ -5,7 +5,7 @@
   <local-syntax>
 <![CDATA[
 [select DATEADD(dd, 1, DATEDIFF(dd, 0, GETDATE())) as date_printed,
-        occupance_datas.warehouse,
+        occupance_datas.wh_id,
         occupance_datas.buildings,
         occupance_datas.temperature,
         sum(occupance_datas.used_capacity) used_capacity,
