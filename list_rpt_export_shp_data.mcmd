@@ -97,17 +97,11 @@ get client in clause for user
     and rl.wh_id = av.wh_id
    join invdtl
      on invdtl.dtlnum = av.dtlnum
-   join prtftp
-     on ptv.prtnum = prtftp.prtnum
-    and ptv.wh_id = prtftp.wh_id
-    and ptv.prt_client_id = prtftp.prt_client_id
-    and invdtl.ftpcod = prtftp.ftpcod
-     or prtftp.defftp_flg = decode(invdtl.ftpcod, NULL, 1, cast(null as int))
    join prtftp_dtl
-     on prtftp.prtnum = prtftp_dtl.prtnum
-    and prtftp.wh_id = prtftp_dtl.wh_id
-    and prtftp.prt_client_id = prtftp_dtl.prt_client_id
-    and prtftp.ftpcod = prtftp_dtl.ftpcod
+     on ptv.prtnum = prtftp_dtl.prtnum
+    and ptv.wh_id = prtftp_dtl.wh_id
+    and ptv.prt_client_id = prtftp_dtl.prt_client_id
+    and invdtl.ftpcod = prtftp_dtl.ftpcod
     and prtftp_dtl.uomcod = nvl(ptv.dspuom, ptv.stkuom)
    join trlr
      on trlr.trlr_id = av.stoloc
