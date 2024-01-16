@@ -1,0 +1,19 @@
+<command>
+  <name>list rpt report alamat</name>
+  <description>list rpt report alamat</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+[select adrnam as address_name,
+        client_id,
+        adrtyp,
+        adrln1,
+        adrln2,
+        adrln3,
+        adrcty
+   from adrmst
+   where @+client_id
+   and @+adrtyp]
+]]>
+</local-syntax>
+</command>
