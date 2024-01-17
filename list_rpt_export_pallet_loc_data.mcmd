@@ -147,7 +147,7 @@ get client in clause for user
   where locmst.stoloc not like '%PERM%'
     and @+locmst.wh_id
     and @+prtmst_view.prtnum
-    and @+all_inventory_view.lodnum
+    and @+inventory_view.lodnum
     and @+prtmst_view.prt_client_id
   order by locmst.stoloc]
 ]]>
