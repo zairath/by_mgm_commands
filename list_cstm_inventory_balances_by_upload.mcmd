@@ -13,7 +13,7 @@
         balance_datas.dsp_untqty_uom,
         balance_datas.stkuom,
         sum(balance_datas.qty_of_pallets) qty_of_pallets,
-        sum(cast(balance_datas.carton_weight as decimal(18, 5))) + sum(cast(balance_datas.catch_qty as decimal(18, 5))) as carton_weight
+        sum(cast(balance_datas.carton_weight as decimal(18, 2))) + sum(cast(balance_datas.catch_qty as decimal(18, 2))) as carton_weight
    from (select ivw.wh_id,
                 ivw.prt_client_id,
                 convert(varchar, getdate() + 1, 111) as datetime,
