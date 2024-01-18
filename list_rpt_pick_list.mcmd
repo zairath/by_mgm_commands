@@ -21,13 +21,11 @@ if (@oprcod = 'LPCK')
                 zm.bldg_id,
                 q1.lngdsc warehouse,
                 a.client_id,
-                a.ordnum,
                 a.list_id,
                 REPLACE(a.list_id, 'LST', 'TOID') as toid,
                 a.oprcod,
                 REPLACE(a.oprcod, 'LPCK', 'PICKING LIST') as pcktyp,
                 q.lngdsc ordtyp,
-                a.stcust,
                 a.schbat wave_number,
                 g.adrnam customer,
                 g.first_name as customer_name,
@@ -41,7 +39,7 @@ if (@oprcod = 'LPCK')
                            JOIN pcklst e
                              on e.list_id = a.list_id
                            JOIN ord d
-                             ON d.ordnum = a.ordnum
+                             ON d.ordnum = max(a.ordnum)
                           where pckwrk_view.list_id = e.list_id
                             and pckwrk_view.ordnum = d.ordnum
                             and pckwrk_view.pck_uom = a.pck_uom) pckwrk_view) as total_picks,
@@ -55,7 +53,7 @@ if (@oprcod = 'LPCK')
                            JOIN pcklst e
                              on e.list_id = a.list_id
                            JOIN ord d
-                             ON d.ordnum = a.ordnum
+                             ON d.ordnum = max(a.ordnum)
                           where pckwrk_view.list_id = e.list_id
                             and pckwrk_view.ordnum = d.ordnum) pckwrk_view) total_item,
                 nvl((select lngdsc
@@ -70,71 +68,6 @@ if (@oprcod = 'LPCK')
                 e.totvol as total_volume,
                 d.cponum as delivery_slot,
                 to_char(d.cpodte, 'DD/MM/YYYY') as order_date,
-                (select u.nottxt
-                   from ord_note u
-                   join pckwrk_view pck
-                     on pck.ordnum = u.ordnum
-                    and u.ordnum = a.ordnum
-                  where u.notlin = '0000'
-                  GROUP BY u.nottxt) as note1,
-                (select y.nottxt
-                   from ord_note y
-                   join pckwrk_view pckvr
-                     on pckvr.ordnum = y.ordnum
-                    and y.ordnum = a.ordnum
-                  where y.notlin = '0001'
-                  GROUP BY y.nottxt) as note2,
-                (select y.nottxt
-                   from ord_note y
-                   join pckwrk_view pckvr
-                     on pckvr.ordnum = y.ordnum
-                    and y.ordnum = a.ordnum
-                  where y.notlin = '0002'
-                  GROUP BY y.nottxt) as note3,
-                (select y.nottxt
-                   from ord_note y
-                   join pckwrk_view pckvr
-                     on pckvr.ordnum = y.ordnum
-                    and y.ordnum = a.ordnum
-                  where y.notlin = '0003'
-                    and y.nottyp = 'COD'
-                  GROUP BY y.nottxt) as cod_note,
-                (select y.nottxt
-                   from ord_note y
-                   join pckwrk_view pckvr
-                     on pckvr.ordnum = y.ordnum
-                    and y.ordnum = a.ordnum
-                  where y.notlin = '0004'
-                    and y.nottyp = 'DRV'
-                  GROUP BY y.nottxt) as driver_name,
-                (select y.nottxt
-                   from ord_note y
-                   join pckwrk_view pckvr
-                     on pckvr.ordnum = y.ordnum
-                    and y.ordnum = a.ordnum
-                  where y.notlin = '0005'
-                    and y.nottyp = 'ADDR'
-                  GROUP BY y.nottxt) as address_note1,
-                (select y.nottxt
-                   from ord_note y
-                   join pckwrk_view pckvr
-                     on pckvr.ordnum = y.ordnum
-                    and y.ordnum = a.ordnum
-                  where y.notlin = '0006'
-                    and y.nottyp = 'ADDR'
-                  GROUP BY y.nottxt) as address_note2,
-                (select ul.nottxt
-                   from ord_line_note ul
-                  where ul.notlin = '0000'
-                    and ul.ordlin = a.ordlin
-                    and ul.ordnum = a.ordnum
-                  GROUP BY ul.nottxt) as noteline1,
-                (select ux.nottxt
-                   from ord_line_note ux
-                  where ux.notlin = '0001'
-                    and ux.ordlin = a.ordlin
-                    and ux.ordnum = a.ordnum
-                  GROUP BY ux.nottxt) as noteline2,
                 d.cponum as return_text,
                 d.dlvnum as grab_id,
                 d.adddte,
@@ -143,9 +76,9 @@ if (@oprcod = 'LPCK')
                 a.revlvl,
                 zm.wrkzon,
                 decode(a.pck_uom, NULL, max(b.dspuom), a.pck_uom) pck_uom,
-                max(invdtl.inv_attr_str1) inv_attr_str1,
-                max(invdtl.inv_attr_str2) inv_attr_str2,
-                max(invdtl.inv_attr_str3) inv_attr_str3
+                max(ivww.inv_attr_str1) inv_attr_str1,
+                max(ivww.inv_attr_str2) inv_attr_str2,
+                max(ivww.inv_attr_str3) inv_attr_str3
            from pckwrk_view a
            LEFT
            JOIN dscmst f
@@ -200,17 +133,12 @@ if (@oprcod = 'LPCK')
             and dlytrn.wh_id = b.wh_id_tmpl
             and dlytrn.prt_client_id = b.prt_client_id
            left
-           join invlod
-             on invlod.lodnum = dlytrn.lodnum
-            and invlod.stoloc = dlytrn.frstol
-           left
-           join invsub
-             on invsub.lodnum = invlod.lodnum
-            and invsub.subnum = dlytrn.subnum
-           left
-           join invdtl
-             on invdtl.subnum = invsub.subnum
-            and invdtl.dtlnum = dlytrn.dtlnum
+           join inventory_view ivww
+             on ivww.prtnum = a.prtnum
+            and ivww.prt_client_id = a.prt_client_id
+            and ivww.wh_id = a.wh_id
+            and ivww.ftpcod = a.ftpcod
+            and ivww.stoloc = a.srcloc
           where a.list_id is not null
             and m.defftp_flg = '1'
             and @+d.ordnum
@@ -224,10 +152,8 @@ if (@oprcod = 'LPCK')
             and @*
           group by a.wh_id,
                 zm.bldg_id,
-                a.ordnum,
                 a.ordlin,
                 a.prtnum,
-                a.stcust,
                 a.client_id,
                 a.list_id,
                 a.oprcod,
@@ -264,13 +190,11 @@ if (@oprcod = 'LPCK')
                 zm.bldg_id,
                 q1.lngdsc warehouse,
                 a.client_id,
-                a.ordnum,
                 a.list_id,
                 REPLACE(a.list_id, 'LST', 'TOID') as toid,
                 a.oprcod,
                 REPLACE(a.oprcod, 'LPCK', 'PICKING LIST') as pcktyp,
                 q.lngdsc ordtyp,
-                a.stcust,
                 a.schbat wave_number,
                 g.adrnam customer,
                 g.first_name as customer_name,
@@ -284,7 +208,7 @@ if (@oprcod = 'LPCK')
                            JOIN pcklst e
                              on e.list_id = a.list_id
                            JOIN ord d
-                             ON d.ordnum = a.ordnum
+                             ON d.ordnum = max(a.ordnum)
                           where pckwrk_view.list_id = e.list_id
                             and pckwrk_view.ordnum = d.ordnum
                             and pckwrk_view.pck_uom = a.pck_uom) pckwrk_view) as total_picks,
@@ -298,7 +222,7 @@ if (@oprcod = 'LPCK')
                            JOIN pcklst e
                              on e.list_id = a.list_id
                            JOIN ord d
-                             ON d.ordnum = a.ordnum
+                             ON d.ordnum = max(a.ordnum)
                           where pckwrk_view.list_id = e.list_id
                             and pckwrk_view.ordnum = d.ordnum) pckwrk_view) total_item,
                 nvl((select lngdsc
@@ -313,71 +237,6 @@ if (@oprcod = 'LPCK')
                 e.totvol as total_volume,
                 d.cponum as delivery_slot,
                 to_char(d.cpodte, 'DD/MM/YYYY') as order_date,
-                (select u.nottxt
-                   from ord_note u
-                   join pckwrk_view pck
-                     on pck.ordnum = u.ordnum
-                    and u.ordnum = a.ordnum
-                  where u.notlin = '0000'
-                  GROUP BY u.nottxt) as note1,
-                (select y.nottxt
-                   from ord_note y
-                   join pckwrk_view pckvr
-                     on pckvr.ordnum = y.ordnum
-                    and y.ordnum = a.ordnum
-                  where y.notlin = '0001'
-                  GROUP BY y.nottxt) as note2,
-                (select y.nottxt
-                   from ord_note y
-                   join pckwrk_view pckvr
-                     on pckvr.ordnum = y.ordnum
-                    and y.ordnum = a.ordnum
-                  where y.notlin = '0002'
-                  GROUP BY y.nottxt) as note3,
-                (select y.nottxt
-                   from ord_note y
-                   join pckwrk_view pckvr
-                     on pckvr.ordnum = y.ordnum
-                    and y.ordnum = a.ordnum
-                  where y.notlin = '0003'
-                    and y.nottyp = 'COD'
-                  GROUP BY y.nottxt) as cod_note,
-                (select y.nottxt
-                   from ord_note y
-                   join pckwrk_view pckvr
-                     on pckvr.ordnum = y.ordnum
-                    and y.ordnum = a.ordnum
-                  where y.notlin = '0004'
-                    and y.nottyp = 'DRV'
-                  GROUP BY y.nottxt) as driver_name,
-                (select y.nottxt
-                   from ord_note y
-                   join pckwrk_view pckvr
-                     on pckvr.ordnum = y.ordnum
-                    and y.ordnum = a.ordnum
-                  where y.notlin = '0005'
-                    and y.nottyp = 'ADDR'
-                  GROUP BY y.nottxt) as address_note1,
-                (select y.nottxt
-                   from ord_note y
-                   join pckwrk_view pckvr
-                     on pckvr.ordnum = y.ordnum
-                    and y.ordnum = a.ordnum
-                  where y.notlin = '0006'
-                    and y.nottyp = 'ADDR'
-                  GROUP BY y.nottxt) as address_note2,
-                (select ul.nottxt
-                   from ord_line_note ul
-                  where ul.notlin = '0000'
-                    and ul.ordlin = a.ordlin
-                    and ul.ordnum = a.ordnum
-                  GROUP BY ul.nottxt) as noteline1,
-                (select ux.nottxt
-                   from ord_line_note ux
-                  where ux.notlin = '0001'
-                    and ux.ordlin = a.ordlin
-                    and ux.ordnum = a.ordnum
-                  GROUP BY ux.nottxt) as noteline2,
                 d.cponum as return_text,
                 d.dlvnum as grab_id,
                 d.adddte,
@@ -455,10 +314,7 @@ if (@oprcod = 'LPCK')
             and @*
           group by a.wh_id,
                 zm.bldg_id,
-                a.ordnum,
-                a.ordlin,
                 a.prtnum,
-                a.stcust,
                 a.client_id,
                 a.list_id,
                 a.oprcod,
