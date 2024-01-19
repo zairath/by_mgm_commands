@@ -61,12 +61,14 @@ if (@oprcod = 'LPCK')
             AND c.locale_id = nvl(@locale_id, @@locale_id)
            join zonmst zm
              on zm.wrk_zone_id = a.src_wrk_zone_id
-           join inventory_view ivww
+           join historical_inventory_view ivww
              on ivww.prtnum = a.prtnum
             and ivww.prt_client_id = a.prt_client_id
             and ivww.wh_id = a.wh_id
             and ivww.ftpcod = a.ftpcod
-            and ivww.stoloc = a.srcloc
+            and ivww.ship_line_id = a.ship_line_id
+            and ivww.wrkref = a.wrkref
+            and ivww.wrkref_dtl = a.wrkref_dtl
           where a.list_id is not null
             and @+d.ordnum
             and @+e.list_id
@@ -140,7 +142,9 @@ if (@oprcod = 'LPCK')
             and ivww.prt_client_id = a.prt_client_id
             and ivww.wh_id = a.wh_id
             and ivww.ftpcod = a.ftpcod
-            and ivww.stoloc = a.srcloc
+            and ivww.ship_line_id = a.ship_line_id
+            and ivww.wrkref = a.wrkref
+            and ivww.wrkref_dtl = a.wrkref_dtl
           where a.list_id is not null
             and @+d.ordnum
             and @+e.list_id
