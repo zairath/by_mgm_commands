@@ -142,9 +142,7 @@ if (@oprcod = 'LPCK')
             and ivww.prt_client_id = a.prt_client_id
             and ivww.wh_id = a.wh_id
             and ivww.ftpcod = a.ftpcod
-            and ivww.ship_line_id = a.ship_line_id
-            and ivww.wrkref = a.wrkref
-            and ivww.wrkref_dtl = a.wrkref_dtl
+            and ivww.stoloc = a.srcloc
           where a.list_id is not null
             and @+d.ordnum
             and @+e.list_id
