@@ -27,7 +27,7 @@ get client in clause for user
         dt.frstol Picked_Location,
         pw.tot_cas_cnt present_cnts,
         CASE WHEN (pw.pck_uom = 'PC') THEN dt.trnqty
-             ELSE (pw.pckqty / pw.untcas)
+             ELSE (pw.pckqty / NULLIF(pw.untcas, 0))
         END AS CTNS,
         pw.pckdte,
         pw.last_pck_usr_id,
@@ -100,7 +100,7 @@ get client in clause for user
         dt.frstol,
         pw.tot_cas_cnt,
         CASE WHEN (pw.pck_uom = 'PC') THEN dt.trnqty
-             ELSE (pw.pckqty / pw.untcas) END,
+             ELSE (pw.pckqty / NULLIF(pw.untcas, 0)) END,
              pw.pckdte,
              pw.last_pck_usr_id,
              d.dispatch_dte,
