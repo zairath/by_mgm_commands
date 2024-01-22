@@ -9,7 +9,9 @@
         balance_datas.datetime,
         balance_datas.temp,
         sum(cast(balance_datas.untqty as bigint)) untqty,
-        sum(cast(balance_datas.dsp_untqty as bigint)) dsp_untqty,
+        case when balance_datas.dsp_untqty_uom = 'KG' then sum(cast(balance_datas.dsp_untqty as decimal(18, 5)))
+             else sum(cast(balance_datas.dsp_untqty as bigint))
+        end as dsp_untqty,
         balance_datas.dsp_untqty_uom,
         balance_datas.stkuom,
         sum(balance_datas.qty_of_pallets) qty_of_pallets,
@@ -20,11 +22,14 @@
                 prtfam.prtfamgrp as 'temp',
                 sum(cast(ivw.untqty as bigint)) as untqty,
                 case when prtmst_view.dspuom is null then sum(cast(ivw.untqty as bigint))
-                     else sum(cast(ivw.untqty as bigint)) / max(prtftp_dtl.untqty)
+                     else
+                     case when prtmst_view.dspuom = 'KG' then cast((sum(ivw.untqty) * 0.001) as decimal(18, 5))
+                          else sum(cast(ivw.untqty as bigint)) / max(prtftp_dtl.untqty)
+                     end
                 end as dsp_untqty,
                 prtmst_view.dspuom as dsp_untqty_uom,
                 prtmst_view.stkuom,
-                sum(cast(ivw.catch_qty as decimal(18, 5))) as catch_qty,
+                sum(cast(ivw.catch_qty as decimal(18, 3))) as catch_qty,
                 count(distinct ivw.revlvl) as qty_of_pallets,
                 '0' as carton_weight
            from inventory_view ivw
@@ -58,7 +63,10 @@
                 prtfam.prtfamgrp as 'temp',
                 sum(cast(ivw.untqty as bigint)) as untqty,
                 case when prtmst_view.dspuom is null then sum(cast(ivw.untqty as bigint))
-                     else sum(cast(ivw.untqty as bigint)) / max(prtftp_dtl.untqty)
+                     else
+                     case when prtmst_view.dspuom = 'KG' then cast((sum(ivw.untqty) * 0.001) as decimal(18, 5))
+                          else sum(cast(ivw.untqty as bigint)) / max(prtftp_dtl.untqty)
+                     end
                 end as dsp_untqty,
                 prtmst_view.dspuom as dsp_untqty_uom,
                 prtmst_view.stkuom,
@@ -66,7 +74,7 @@
                 count(distinct ivw.revlvl) as qty_of_pallets,
                 max(prtftp_dtl.netwgt) / 35.274 *
                 case when prtmst_view.dspuom is null then sum(cast(ivw.untqty as bigint))
-                     else sum(cast(ivw.untqty as bigint)) / max(prtftp_dtl.untqty)
+                     else cast(sum(cast(ivw.untqty as decimal(18, 2))) / max(prtftp_dtl.untqty) as decimal(18, 2))
                 end as carton_weight
            from inventory_view ivw
            join prtmst_view
