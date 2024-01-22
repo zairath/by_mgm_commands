@@ -25,8 +25,8 @@ if (@oprcod = 'LPCK')
                 REPLACE(a.oprcod, 'LPCK', 'PICKING LIST') as pcktyp,
                 a.schbat wave_number,
                 g.adrnam customer,
-                decode(max(b.dspuom), null, sum(a.pckqty), sum(a.pckqty) / max(h.untqty)) pick_qty,
-                sum(a.pckqty) as pick_qty2,
+                decode(max(b.dspuom), null, sum(a.pckqty), sum(ivww.untqty) / max(h.untqty)) pick_qty,
+                sum(ivww.untqty) as pick_qty2,
                 a.prtnum item_number,
                 c.lngdsc item_description,
                 a.srcloc,
@@ -55,6 +55,7 @@ if (@oprcod = 'LPCK')
              on client.client_id = d.client_id
            JOIN adrmst g
              ON g.adr_id = client.adr_id
+            and g.adrtyp = 'CLI'
            JOIN prtdsc c
              ON c.colval = /*=varchar(*/ a.prtnum || '|' || b.prt_client_id || '|' || b.wh_id_tmpl /*=)*/
             AND c.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
