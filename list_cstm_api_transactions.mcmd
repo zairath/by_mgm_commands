@@ -1,0 +1,119 @@
+<command>
+  <name>list cstm api transactions</name>
+  <description>Check API Transaction lists</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+publish data
+ where hours = nvl(@hours, null)
+|
+if (@hours != '' or @hours != null)
+{
+    [select cre_dt as transaction_date,
+            ifd_id as integration_name,
+            case when proc_err_flg = 'T' then CAST('TRUE' AS CHAR(4))
+                 else CAST('FALSE' AS CHAR(5))
+            end as error_flag,
+            comm_cmnt as error_message,
+            dwnld_seq as download_sequences
+       from (select idh.ifd_data_seq ifd_data_seq,
+                    idh.dwnld_seq dwnld_seq,
+                    idh.evt_data_seq evt_data_seq,
+                    idh.ifd_id ifd_id,
+                    idh.ifd_ver ifd_ver,
+                    id.ifd_descr ifd_descr,
+                    id.ifd_tag ifd_tag,
+                    id.eo_id eo_id,
+                    id.eo_ver eo_ver,
+                    idh.sys_id sys_id,
+                    idh.cre_dt cre_dt,
+                    idh.cmpl_dt cmpl_dt,
+                    idh.snd_dt snd_dt,
+                    idh.proc_err_flg proc_err_flg,
+                    ismd.comm_mode_cd comm_mode_cd,
+                    ismd.comm_mthd_id comm_mode_id,
+                    ismd.snd_ordr snd_ordr,
+                    id.ifd_typ_cd ifd_typ_cd,
+                    idh.comm_cmnt comm_cmnt,
+                    d.dwnld_info dwnld_info,
+                    idh.ifd_action_cd ifd_action_cd,
+                    ed.evt_stat_cd evt_stat_cd,
+                    idh.modified_flg modified_flg
+               FROM SL_IFD_DEF id,
+                    SL_IFD_DATA_HDR idh
+               LEFT OUTER
+               JOIN SL_DWNLD d
+                 ON d.DWNLD_SEQ = idh.DWNLD_SEQ
+               LEFT OUTER
+               JOIN SL_EVT_DATA ed
+                 ON ed.EVT_DATA_SEQ = idh.EVT_DATA_SEQ
+               LEFT OUTER
+               JOIN SL_IFD_SYS_MAP_DATA ismd
+                 ON ismd.EVT_DATA_SEQ = idh.EVT_DATA_SEQ
+                AND ismd.IFD_ID = idh.IFD_ID
+                AND ismd.IFD_VER = idh.IFD_VER
+                AND ismd.SYS_ID = idh.SYS_ID
+              WHERE id.IFD_ID = idh.IFD_ID
+                AND id.IFD_VER = idh.IFD_VER) tmp
+      where @+dwnld_seq
+        and cre_dt >= sysdate - (@hours:raw)
+        and dwnld_seq is not null
+        and @+proc_err_flg
+      order by ifd_data_seq desc]
+}
+else
+{
+    [select cre_dt as transaction_date,
+            ifd_id as integration_name,
+            case when proc_err_flg = 'T' then CAST('TRUE' AS CHAR(4))
+                 else CAST('FALSE' AS CHAR(5))
+            end as error_flag,
+            comm_cmnt as error_message,
+            dwnld_seq as download_sequences
+       from (select idh.ifd_data_seq ifd_data_seq,
+                    idh.dwnld_seq dwnld_seq,
+                    idh.evt_data_seq evt_data_seq,
+                    idh.ifd_id ifd_id,
+                    idh.ifd_ver ifd_ver,
+                    id.ifd_descr ifd_descr,
+                    id.ifd_tag ifd_tag,
+                    id.eo_id eo_id,
+                    id.eo_ver eo_ver,
+                    idh.sys_id sys_id,
+                    idh.cre_dt cre_dt,
+                    idh.cmpl_dt cmpl_dt,
+                    idh.snd_dt snd_dt,
+                    idh.proc_err_flg proc_err_flg,
+                    ismd.comm_mode_cd comm_mode_cd,
+                    ismd.comm_mthd_id comm_mode_id,
+                    ismd.snd_ordr snd_ordr,
+                    id.ifd_typ_cd ifd_typ_cd,
+                    idh.comm_cmnt comm_cmnt,
+                    d.dwnld_info dwnld_info,
+                    idh.ifd_action_cd ifd_action_cd,
+                    ed.evt_stat_cd evt_stat_cd,
+                    idh.modified_flg modified_flg
+               FROM SL_IFD_DEF id,
+                    SL_IFD_DATA_HDR idh
+               LEFT OUTER
+               JOIN SL_DWNLD d
+                 ON d.DWNLD_SEQ = idh.DWNLD_SEQ
+               LEFT OUTER
+               JOIN SL_EVT_DATA ed
+                 ON ed.EVT_DATA_SEQ = idh.EVT_DATA_SEQ
+               LEFT OUTER
+               JOIN SL_IFD_SYS_MAP_DATA ismd
+                 ON ismd.EVT_DATA_SEQ = idh.EVT_DATA_SEQ
+                AND ismd.IFD_ID = idh.IFD_ID
+                AND ismd.IFD_VER = idh.IFD_VER
+                AND ismd.SYS_ID = idh.SYS_ID
+              WHERE id.IFD_ID = idh.IFD_ID
+                AND id.IFD_VER = idh.IFD_VER) tmp
+      where @+dwnld_seq
+        and dwnld_seq is not null
+        and @+proc_err_flg
+      order by ifd_data_seq desc]
+}
+]]>
+</local-syntax>
+</command>
