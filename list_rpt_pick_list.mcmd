@@ -32,7 +32,7 @@ if (@oprcod = 'LPCK')
                 a.ftpcod,
                 g.adrln1 || ' ' || g.adrln2 || ' ' || g.adrln3 as customer_address,
                 g.phnnum as phone_number,
-                decode(max(b.dspuom), null, sum(a.pckqty), sum(a.pckqty) / sum(h.untqty)) pick_qty,
+                decode(max(b.dspuom), null, sum(a.pckqty), sum(a.pckqty) / max(h.untqty)) pick_qty,
                 (select sum(pckwrk_view.pckqty)
                    from (select pckwrk_view.pckqty
                            from pckwrk_view
@@ -188,7 +188,7 @@ if (@oprcod = 'LPCK')
                 a.ftpcod,
                 g.adrln1 || ' ' || g.adrln2 || ' ' || g.adrln3 as customer_address,
                 g.phnnum as phone_number,
-                decode(max(b.dspuom), null, sum(a.pckqty), sum(a.pckqty) / sum(h.untqty)) pick_qty,
+                decode(max(b.dspuom), null, sum(a.pckqty), sum(a.pckqty) / max(h.untqty)) pick_qty,
                 (select sum(pckwrk_view.pckqty)
                    from (select pckwrk_view.pckqty
                            from pckwrk_view
