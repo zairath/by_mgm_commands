@@ -67,7 +67,7 @@ get client in clause for user
                  and pdtl2.prtnum = max(prtftp_dtl.prtnum)
                  and pdtl2.prt_client_id = max(prtftp_dtl.prt_client_id)
                  and pdtl2.wh_id = max(prtftp_dtl.wh_id)
-                 and pdtl2.uomcod = nvl(max(ptv.dspuom), max(ptv.stkuom))) / 35.274 * decode(max(ptv.dspuom), null, max(invdtl.untqty), max(invdtl.untqty) / max(prtftp_dtl.untqty)) as decimal(10, 2)) as carton_weight,
+                 and pdtl2.uomcod = nvl(max(ptv.dspuom), max(ptv.stkuom))) / 35.274 * decode(max(ptv.dspuom), null, max(av.untqty), max(av.untqty) / max(prtftp_dtl.untqty)) as decimal(10, 2)) as carton_weight,
         trlr.trlr_num,
         trlr.carcod,
         trlr.close_dte as loaded_date,
@@ -86,7 +86,7 @@ get client in clause for user
      on pdc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
     and pdc.colval = /*=varchar(*/ pv.prtnum || '|' || pv.prt_client_id || '|' || pv.wh_id /*=)*/
     and pdc.locale_id = nvl(@locale_id, @@locale_id)
-   join all_inventory_view av
+   join inventory_view av
      on av.ship_line_id = pv.ship_line_id
     and av.wrkref_dtl = pv.wrkref_dtl
    left
@@ -95,13 +95,11 @@ get client in clause for user
     and rl.prtnum = av.prtnum
     and rl.prt_client_id = av.prt_client_id
     and rl.wh_id = av.wh_id
-   join invdtl
-     on invdtl.dtlnum = av.dtlnum
    join prtftp_dtl
      on ptv.prtnum = prtftp_dtl.prtnum
     and ptv.wh_id = prtftp_dtl.wh_id
     and ptv.prt_client_id = prtftp_dtl.prt_client_id
-    and invdtl.ftpcod = prtftp_dtl.ftpcod
+    and av.ftpcod = prtftp_dtl.ftpcod
     and prtftp_dtl.uomcod = nvl(ptv.dspuom, ptv.stkuom)
    join trlr
      on trlr.trlr_id = av.stoloc
