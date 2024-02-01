@@ -143,14 +143,15 @@ get client in clause for user
     and prtftp_dtl.ftpcod = inv.ftpcod
     and prtftp_dtl.cas_flg = 1
    left outer
-   join (select alloc_rule_hdr.wh_id,
-                alloc_rule_hdr.rule_nam,
-                alloc_rule_dtl.value,
-                alloc_rule_dtl.field_name
-           from alloc_rule_dtl,
-                alloc_rule_hdr
-          where alloc_rule_hdr.cplx_flg = 0
-            and alloc_rule_dtl.rule_nam = alloc_rule_hdr.rule_nam) alcrule
+   join(select alloc_rule_hdr.wh_id,
+            alloc_rule_hdr.rule_nam,
+            alloc_rule_dtl.value,
+            alloc_rule_dtl.field_name
+       from alloc_rule_dtl,
+            alloc_rule_hdr
+      where alloc_rule_hdr.cplx_flg = 0
+        and alloc_rule_dtl.rule_nam = alloc_rule_hdr.rule_nam
+        and alloc_rule_dtl.wh_id = alloc_rule_hdr.wh_id) alcrule
      on (ord_line.rule_nam = alcrule.rule_nam)
     and (alcrule.wh_id = ord.wh_id)
   where ord_line.non_alc_flg = '0'
