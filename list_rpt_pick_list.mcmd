@@ -73,12 +73,12 @@ if (@oprcod = 'LPCK')
                 d.adddte,
                 a.pcksts,
                 a.srcloc,
-                a.revlvl,
+                coalesce(a.revlvl, max(ivww.revlvl)) revlvl,
                 zm.wrkzon,
                 decode(a.pck_uom, NULL, max(b.dspuom), a.pck_uom) pck_uom,
-                max(ivww.inv_attr_str1) inv_attr_str1,
-                max(ivww.inv_attr_str2) inv_attr_str2,
-                max(ivww.inv_attr_str3) inv_attr_str3
+                coalesce(max(a.inv_attr_str1), max(ivww.inv_attr_str1)) inv_attr_str1,
+                coalesce(max(a.inv_attr_str2), max(ivww.inv_attr_str2)) inv_attr_str2,
+                coalesce(max(a.inv_attr_str3), max(ivww.inv_attr_str3)) inv_attr_str3
            from pckwrk_view a
            LEFT
            JOIN dscmst f
@@ -128,6 +128,7 @@ if (@oprcod = 'LPCK')
             and ivww.ftpcod = a.ftpcod
             and ivww.wrkref = a.wrkref
             and ivww.wrkref_dtl = a.wrkref_dtl
+            and (ivww.inv_attr_str1 = a.inv_attr_str1 or ivww.inv_attr_str2 = a.inv_attr_str2 or ivww.inv_attr_str3 = a.inv_attr_str3)
           where a.list_id is not null
             and @+d.ordnum
             and @+e.list_id
@@ -229,12 +230,12 @@ if (@oprcod = 'LPCK')
                 d.adddte,
                 a.pcksts,
                 a.srcloc,
-                max(ivww.revlvl) revlvl,
+                coalesce(a.revlvl, max(ivww.revlvl)) revlvl,
                 zm.wrkzon,
                 decode(a.pck_uom, NULL, max(b.dspuom), a.pck_uom) pck_uom,
-                max(ivww.inv_attr_str1) inv_attr_str1,
-                max(ivww.inv_attr_str2) inv_attr_str2,
-                max(ivww.inv_attr_str3) inv_attr_str3
+                coalesce(max(a.inv_attr_str1), max(ivww.inv_attr_str1)) inv_attr_str1,
+                coalesce(max(a.inv_attr_str2), max(ivww.inv_attr_str2)) inv_attr_str2,
+                coalesce(max(a.inv_attr_str3), max(ivww.inv_attr_str3)) inv_attr_str3
            from pckwrk_view a
            LEFT
            JOIN dscmst f
@@ -283,6 +284,7 @@ if (@oprcod = 'LPCK')
             and ivww.wh_id = a.wh_id
             and ivww.ftpcod = a.ftpcod
             and ivww.stoloc = a.srcloc
+            and (ivww.inv_attr_str1 = a.inv_attr_str1 or ivww.inv_attr_str2 = a.inv_attr_str2 or ivww.inv_attr_str3 = a.inv_attr_str3)
           where a.list_id is not null
             and @+d.ordnum
             and @+e.list_id
