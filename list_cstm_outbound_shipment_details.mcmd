@@ -18,9 +18,9 @@ get client in clause for user
         outbound_datas.stkuom,
         sum(outbound_datas.dspuom_qty) dspuom_qty,
         outbound_datas.dspuom,
-        sum(outbound_datas.weight) as carton_weight,
+        sum(outbound_datas.weight) carton_weight,
         sum(outbound_datas.qty_of_pallets) qty_of_pallets,
-        outbound_datas.out_categories as categories
+        outbound_datas.out_categories categories
    from (select distinct shipment_line.wh_id,
                 shipment_line.client_id,
                 convert(varchar, trlr.close_dte, 111) as datetime,
@@ -34,8 +34,35 @@ get client in clause for user
                 end as weight,
                 count(distinct inv.revlvl) as qty_of_pallets,
                 inv.revlvl,
-                case when pvw.pck_uom = 'PL' then 'FULL-PALLET'
-                     when pvw.pck_uom is null then 'FULL-PALLET'
+                /**case when pvw.pck_uom = 'PL' then 'FULL-PALLET'
+                   when pvw.pck_uom is null then 'FULL-PALLET'
+                   else 'NON-FULL-PALLET'
+                   end as out_categories,**/
+                case when prtmst_view.catch_unttyp is null
+                 and exists(select 1
+                              from invdtl
+                             where invdtl.revlvl = inv.revlvl
+                               and invdtl.subnum not like 'PERM%'
+                            /**and invdtl.rcvkey = inv.rcvkey**/) then 'NON-FULL-PALLET'
+                     when prtmst_view.catch_unttyp is null
+                 and not exists(select 1
+                                  from invdtl
+                                 where invdtl.revlvl = inv.revlvl
+                                   and invdtl.subnum not like 'PERM%'
+                                /**and invdtl.rcvkey = inv.rcvkey**/) then 'FULL-PALLET'
+                     when prtmst_view.catch_unttyp is not null
+                 and prtmst_view.lodlvl = 'S' then
+                     case when exists(select 1
+                                        from invdtl
+                                       where invdtl.revlvl = inv.revlvl
+                                         and invdtl.subnum not like 'PERM%'
+                                      /**and invdtl.rcvkey = inv.rcvkey**/) then 'NON-FULL-PALLET'
+                          else 'FULL-PALLET'
+                     end
+                     when prtmst_view.catch_unttyp is not null
+                 and prtmst_view.lodlvl = 'L'
+                 and pvw.pck_uom = 'PL'
+                  or pvw.pck_uom is null then 'FULL-PALLET'
                      else 'NON-FULL-PALLET'
                 end as out_categories
            from prtmst_view
@@ -83,7 +110,8 @@ get client in clause for user
                         invdtl_hist.ftpcod,
                         sum(invdtl_hist.catch_qty) catch_qty,
                         sum(invdtl_hist.untqty) untqty,
-                        invdtl_hist.wrkref_dtl
+                        invdtl_hist.wrkref_dtl,
+                        invdtl_hist.rcvkey
                    from invdtl_hist,
                         shipment_line
                   where shipment_line.ship_line_id = invdtl_hist.ship_line_id
@@ -100,7 +128,8 @@ get client in clause for user
                         invdtl_hist.ftpcod,
                         invdtl_hist.catch_qty,
                         invdtl_hist.invsts,
-                        invdtl_hist.wrkref_dtl) inv
+                        invdtl_hist.wrkref_dtl,
+                        invdtl_hist.rcvkey) inv
              on (shipment_line.ship_line_id = inv.ship_line_id)
            left outer
            join (select alloc_rule_hdr.wh_id,
@@ -110,7 +139,8 @@ get client in clause for user
                    from alloc_rule_dtl,
                         alloc_rule_hdr
                   where alloc_rule_hdr.cplx_flg = 0
-                    and alloc_rule_dtl.rule_nam = alloc_rule_hdr.rule_nam) alcrule
+                    and alloc_rule_dtl.rule_nam = alloc_rule_hdr.rule_nam
+                    and alloc_rule_dtl.wh_id = alloc_rule_hdr.wh_id) alcrule
              on (ord_line.rule_nam = alcrule.rule_nam)
             and (alcrule.wh_id = ord.wh_id)
            left
@@ -153,7 +183,9 @@ get client in clause for user
                 prtmst_view.stkuom,
                 prtmst_view.catch_unttyp,
                 inv.revlvl,
-                pvw.pck_uom) outbound_datas
+                pvw.pck_uom,
+                inv.rcvkey,
+                prtmst_view.lodlvl) outbound_datas
   group by outbound_datas.wh_id,
         outbound_datas.client_id,
         outbound_datas.datetime,
