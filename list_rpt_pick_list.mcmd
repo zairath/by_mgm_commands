@@ -169,7 +169,8 @@ if (@oprcod = 'LPCK')
                 a.srcloc,
                 a.revlvl,
                 zm.wrkzon,
-                a.pck_uom
+                a.pck_uom,
+                a.wrkref
           order by a.srcloc]
     }
     else
@@ -327,7 +328,8 @@ if (@oprcod = 'LPCK')
                 a.srcloc,
                 a.revlvl,
                 zm.wrkzon,
-                a.pck_uom
+                a.pck_uom,
+                a.wrkref
           order by a.srcloc]
     }
 }
