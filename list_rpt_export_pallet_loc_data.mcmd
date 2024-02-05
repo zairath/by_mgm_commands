@@ -8,268 +8,150 @@ get client in clause for user
  where usr_id = nvl(@usr_id, @@usr_id)
    and wh_id = nvl(@wh_id, @@wh_id)
 |
-if (@prt_client_id)
-{
-    [select distinct locmst.stoloc,
-            locmst.aisle_id,
-            locmst.arecod,
-            adr.adrnam,
-            inventory_view.prt_client_id,
-            inventory_view.lodnum,
-            inventory_view.subnum,
-            inventory_view.prtnum,
-            prtmst_view.prtfam,
-            prtdsc.lngdsc,
-            inventory_view.revlvl,
-            inventory_view.untqty,
-            inventory_view.untcas,
-            case when prtmst_view.dspuom is null then inventory_view.untqty
-                 else inventory_view.untqty / prtftp_dtl.untqty
-            end as dsp_untqty,
-            case when prtmst_view.dspuom is null then prtmst_view.stkuom
-                 else prtmst_view.dspuom
-            end as dsp_untqty_uom,
-            case when prtmst_view.dspuom is null then cast(null as int)
-                 else inventory_view.untqty%prtftp_dtl.untqty
-            end as rem_untqty,
-            case when prtmst_view.dspuom is null then null
-                 when prtmst_view.stkuom is null then null
-                 else prtmst_view.stkuom
-            end as rem_untqty_uom,
-            inventory_view.catch_qty,
-            prtmst_view.catch_unttyp,
-            inventory_view.invsts,
-            inv_stat.lngdsc as invsts_desc,
-            prtmst_view.stkuom,
-            inventory_view.mandte,
-            inventory_view.expire_dte,
-            inventory_view.rcvdte,
-            rcvtrk.mod_usr_id as create_user,
-            rcvlin.mod_usr_id as gr_user,
-            rcvlin.trknum,
-            trlr.trlr_num,
-            sz_desc.lngdsc as storage_zone,
-            inventory_view.inv_attr_str1 as batch_code,
-            inventory_view.inv_attr_str2 as reference_1,
-            inventory_view.inv_attr_str3 as reference_2,
-            dtrn.usr_id as putaway_user,
-            cast(prtftp_dtl.netwgt / 35.274 *
-                 case when prtmst_view.dspuom is null then inventory_view.untqty
-                      else inventory_view.untqty / prtftp_dtl.untqty
-                 end as decimal(20, 5)) as carton_weight,
-            inventory_view.dtlnum
-       from locmst
-       join loc_typ
-         on loc_typ.loc_typ_id = locmst.loc_typ_id
-        and loc_typ in ('STO', 'SSTG', 'RSTG')
-       join aremst
-         on aremst.wh_id = locmst.wh_id
-        and aremst.arecod = locmst.arecod
-       join sto_zone sz
-         on sz.sto_zone_id = locmst.sto_zone_id
-       join dscmst sz_desc
-         on sz_desc.colnam = 'sto_zone_cod|wh_id'
-        and sz_desc.colval = sz.sto_zone_cod + '|' + locmst.wh_id
-       join inventory_view
-         on inventory_view.stoloc = locmst.stoloc
-        and inventory_view.wh_id = locmst.wh_id
-        and inventory_view.prtnum != 'RETURNPART'
-       join prtmst_view
-         on prtmst_view.prtnum = inventory_view.prtnum
-        and prtmst_view.prt_client_id = inventory_view.prt_client_id
-        and prtmst_view.wh_id = inventory_view.wh_id
-       join prtdsc
-         on prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
-        and prtdsc.colval = prtmst_view.prtnum + '|' + prtmst_view.prt_client_id + '|' + prtmst_view.wh_id_tmpl
-        and prtdsc.locale_id = 'US_ENGLISH'
-       join prtftp_dtl
-         on prtmst_view.prtnum = prtftp_dtl.prtnum
-        and prtmst_view.wh_id = prtftp_dtl.wh_id
-        and prtmst_view.prt_client_id = prtftp_dtl.prt_client_id
-        and inventory_view.ftpcod = prtftp_dtl.ftpcod
-        and prtftp_dtl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)
-       join dscmst inv_stat
-         on inv_stat.colnam = 'invsts'
-        and inv_stat.colval = inventory_view.invsts
-       join client cli
-         on cli.client_id = inventory_view.prt_client_id
-       join adrmst adr
-         on adr.adr_id = cli.adr_id
-       left
-       join rcvlin
-         on rcvlin.rcvkey = inventory_view.rcvkey
-       left
-       join rcvtrk
-         on rcvtrk.trknum = rcvlin.trknum
-       left
-       join trlr
-         on trlr.trlr_id = rcvtrk.trlr_id
-       left
-       join (select lodnum,
-                    subnum,
-                    tostol,
-                    usr_id,
-                    trndte
-               from dlytrn
-               join locmst
-                 on locmst.wh_id = dlytrn.wh_id
-                and locmst.stoloc = dlytrn.tostol
-               join zonmst
-                 on zonmst.wrk_zone_id = locmst.wrk_zone_id
-                and zonmst.wh_id = locmst.wh_id
-              where dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
-                and zonmst.wrkare in ('WASTOR', 'WADMG')
-                and dlytrn.tostol not like '%CHAMBER%'
-              group by lodnum,
-                    subnum,
-                    tostol,
-                    usr_id,
-                    trndte) dtrn
-         on inventory_view.lodnum = dtrn.lodnum
-        and inventory_view.subnum = dtrn.subnum
-        and inventory_view.stoloc = dtrn.tostol
-        and inventory_view.lstmov = dtrn.trndte
-      where locmst.stoloc not like '%PERM%'
-        and @+locmst.wh_id
-        and @+inventory_view.prtnum
-        and @+inventory_view.lodnum
-        and @+inventory_view.prt_client_id
-      order by locmst.stoloc]
-}
-else
-{
-    [select distinct locmst.stoloc,
-            locmst.aisle_id,
-            locmst.arecod,
-            adr.adrnam,
-            inventory_view.prt_client_id,
-            inventory_view.lodnum,
-            inventory_view.subnum,
-            inventory_view.prtnum,
-            prtmst_view.prtfam,
-            prtdsc.lngdsc,
-            inventory_view.revlvl,
-            inventory_view.untqty,
-            inventory_view.untcas,
-            case when prtmst_view.dspuom is null then inventory_view.untqty
-                 else inventory_view.untqty / prtftp_dtl.untqty
-            end as dsp_untqty,
-            case when prtmst_view.dspuom is null then prtmst_view.stkuom
-                 else prtmst_view.dspuom
-            end as dsp_untqty_uom,
-            case when prtmst_view.dspuom is null then cast(null as int)
-                 else inventory_view.untqty%prtftp_dtl.untqty
-            end as rem_untqty,
-            case when prtmst_view.dspuom is null then null
-                 when prtmst_view.stkuom is null then null
-                 else prtmst_view.stkuom
-            end as rem_untqty_uom,
-            inventory_view.catch_qty,
-            prtmst_view.catch_unttyp,
-            inventory_view.invsts,
-            inv_stat.lngdsc as invsts_desc,
-            prtmst_view.stkuom,
-            inventory_view.mandte,
-            inventory_view.expire_dte,
-            inventory_view.rcvdte,
-            rcvtrk.mod_usr_id as create_user,
-            rcvlin.mod_usr_id as gr_user,
-            rcvlin.trknum,
-            trlr.trlr_num,
-            sz_desc.lngdsc as storage_zone,
-            inventory_view.inv_attr_str1 as batch_code,
-            inventory_view.inv_attr_str2 as reference_1,
-            inventory_view.inv_attr_str3 as reference_2,
-            dtrn.usr_id as putaway_user,
-            cast(prtftp_dtl.netwgt / 35.274 *
-                 case when prtmst_view.dspuom is null then inventory_view.untqty
-                      else inventory_view.untqty / prtftp_dtl.untqty
-                 end as decimal(20, 5)) as carton_weight,
-            inventory_view.dtlnum
-       from locmst
-       join loc_typ
-         on loc_typ.loc_typ_id = locmst.loc_typ_id
-        and loc_typ in ('STO', 'SSTG', 'RSTG')
-       join aremst
-         on aremst.wh_id = locmst.wh_id
-        and aremst.arecod = locmst.arecod
-       join sto_zone sz
-         on sz.sto_zone_id = locmst.sto_zone_id
-       join dscmst sz_desc
-         on sz_desc.colnam = 'sto_zone_cod|wh_id'
-        and sz_desc.colval = sz.sto_zone_cod + '|' + locmst.wh_id
-       left
-       join inventory_view
-         on inventory_view.stoloc = locmst.stoloc
-        and inventory_view.wh_id = locmst.wh_id
-        and inventory_view.prtnum != 'RETURNPART'
-       left
-       join prtmst_view
-         on prtmst_view.prtnum = inventory_view.prtnum
-        and prtmst_view.prt_client_id = inventory_view.prt_client_id
-        and prtmst_view.wh_id = inventory_view.wh_id
-       left
-       join prtdsc
-         on prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
-        and prtdsc.colval = prtmst_view.prtnum + '|' + prtmst_view.prt_client_id + '|' + prtmst_view.wh_id_tmpl
-        and prtdsc.locale_id = 'US_ENGLISH'
-       left
-       join prtftp_dtl
-         on prtmst_view.prtnum = prtftp_dtl.prtnum
-        and prtmst_view.wh_id = prtftp_dtl.wh_id
-        and prtmst_view.prt_client_id = prtftp_dtl.prt_client_id
-        and inventory_view.ftpcod = prtftp_dtl.ftpcod
-        and prtftp_dtl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)
-       left
-       join client cli
-         on cli.client_id = inventory_view.prt_client_id
-       left
-       join adrmst adr
-         on adr.adr_id = cli.adr_id
-       left
-       join rcvlin
-         on rcvlin.rcvkey = inventory_view.rcvkey
-       left
-       join rcvtrk
-         on rcvtrk.trknum = rcvlin.trknum
-       left
-       join trlr
-         on trlr.trlr_id = rcvtrk.trlr_id
-       left
-       join dscmst inv_stat
-         on inv_stat.colnam = 'invsts'
-        and inv_stat.colval = inventory_view.invsts
-       left
-       join (select lodnum,
-                    subnum,
-                    tostol,
-                    usr_id,
-                    trndte
-               from dlytrn
-               join locmst
-                 on locmst.wh_id = dlytrn.wh_id
-                and locmst.stoloc = dlytrn.tostol
-               join zonmst
-                 on zonmst.wrk_zone_id = locmst.wrk_zone_id
-                and zonmst.wh_id = locmst.wh_id
-              where dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
-                and zonmst.wrkare in ('WASTOR', 'WADMG')
-                and dlytrn.tostol not like '%CHAMBER%'
-              group by lodnum,
-                    subnum,
-                    tostol,
-                    usr_id,
-                    trndte) dtrn
-         on inventory_view.lodnum = dtrn.lodnum
-        and inventory_view.subnum = dtrn.subnum
-        and inventory_view.stoloc = dtrn.tostol
-        and inventory_view.lstmov = dtrn.trndte
-      where locmst.stoloc not like '%PERM%'
-        and @+locmst.wh_id
-        and @+inventory_view.prtnum
-        and @+inventory_view.lodnum
-      order by locmst.stoloc]
-}
+[select distinct locmst.stoloc,
+        locmst.aisle_id,
+        locmst.arecod,
+        adr.adrnam,
+        inventory_view.prt_client_id,
+        inventory_view.lodnum,
+        inventory_view.subnum,
+        inventory_view.prtnum,
+        prtmst_view.prtfam,
+        prtdsc.lngdsc,
+        inventory_view.revlvl,
+        inventory_view.untqty,
+        inventory_view.untcas,
+        case when prtmst_view.dspuom is null then inventory_view.untqty
+             else inventory_view.untqty / prtftp_dtl.untqty
+        end as dsp_untqty,
+        case when prtmst_view.dspuom is null then prtmst_view.stkuom
+             else prtmst_view.dspuom
+        end as dsp_untqty_uom,
+        case when prtmst_view.dspuom is null then cast(null as int)
+             else inventory_view.untqty%prtftp_dtl.untqty
+        end as rem_untqty,
+        case when prtmst_view.dspuom is null then null
+             when prtmst_view.stkuom is null then null
+             else prtmst_view.stkuom
+        end as rem_untqty_uom,
+        inventory_view.catch_qty,
+        prtmst_view.catch_unttyp,
+        inventory_view.invsts,
+        inv_stat.lngdsc as invsts_desc,
+        prtmst_view.stkuom,
+        inventory_view.mandte,
+        inventory_view.expire_dte,
+        inventory_view.rcvdte,
+        rcvtrk.mod_usr_id as create_user,
+        rcvlin.mod_usr_id as gr_user,
+        rcvlin.trknum,
+        trlr.trlr_num,
+        sz_desc.lngdsc as storage_zone,
+        inventory_view.inv_attr_str1 as batch_code,
+        inventory_view.inv_attr_str2 as reference_1,
+        inventory_view.inv_attr_str3 as reference_2,
+        dtrn.usr_id as putaway_user,
+        cast(prtftp_dtl.netwgt / 35.274 *
+             case when prtmst_view.dspuom is null then inventory_view.untqty
+                  else inventory_view.untqty / prtftp_dtl.untqty
+             end as decimal(20, 5)) as carton_weight,
+        inventory_view.dtlnum
+   from locmst
+   left
+   join inventory_view
+     on inventory_view.stoloc = locmst.stoloc
+    and inventory_view.wh_id = locmst.wh_id
+    and inventory_view.prtnum != 'RETURNPART'
+   left
+   join prtmst_view
+     on prtmst_view.prtnum = inventory_view.prtnum
+    and prtmst_view.prt_client_id = inventory_view.prt_client_id
+    and prtmst_view.wh_id = inventory_view.wh_id
+   left
+   join prtdsc
+     on prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and prtdsc.colval = prtmst_view.prtnum + '|' + prtmst_view.prt_client_id + '|' + prtmst_view.wh_id_tmpl
+    and prtdsc.locale_id = 'US_ENGLISH'
+   left
+   join prtftp_dtl
+     on prtmst_view.prtnum = prtftp_dtl.prtnum
+    and prtmst_view.wh_id = prtftp_dtl.wh_id
+    and prtmst_view.prt_client_id = prtftp_dtl.prt_client_id
+    and inventory_view.ftpcod = prtftp_dtl.ftpcod
+    and prtftp_dtl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)
+   left
+   join client cli
+     on cli.client_id = inventory_view.prt_client_id
+   left
+   join adrmst adr
+     on adr.adr_id = cli.adr_id
+    and adr.adrtyp = 'CLI'
+   left
+   join rcvlin
+     on rcvlin.rcvkey = inventory_view.rcvkey
+    and rcvlin.supnum = inventory_view.supnum
+    and rcvlin.wh_id = locmst.wh_id
+   left
+   join rcvtrk
+     on rcvtrk.trknum = rcvlin.trknum
+    and rcvtrk.wh_id = locmst.wh_id
+   left
+   join trlr
+     on trlr.trlr_id = rcvtrk.trlr_id
+   left
+   join sto_zone sz
+     on sz.sto_zone_id = locmst.sto_zone_id
+    and sz.wh_id = locmst.wh_id
+   left
+   join dscmst sz_desc
+     on sz_desc.colnam = 'sto_zone_cod|wh_id'
+    and sz_desc.colval = sz.sto_zone_cod + '|' + locmst.wh_id
+   left
+   join dscmst inv_stat
+     on inv_stat.colnam = 'invsts'
+    and inv_stat.colval = inventory_view.invsts
+   join loc_typ
+     on loc_typ.loc_typ_id = locmst.loc_typ_id
+    and loc_typ.wh_id = locmst.wh_id
+    and loc_typ in ('STO', 'SSTG', 'RSTG')
+   left
+   join aremst
+     on aremst.wh_id = locmst.wh_id
+    and aremst.arecod = locmst.arecod
+   left
+   join (select lodnum,
+                subnum,
+                tostol,
+                usr_id,
+                trndte,
+                dlytrn.wh_id
+           from dlytrn
+           join locmst
+             on locmst.wh_id = dlytrn.wh_id
+            and locmst.stoloc = dlytrn.tostol
+           join zonmst
+             on zonmst.wrk_zone_id = locmst.wrk_zone_id
+            and zonmst.wh_id = locmst.wh_id
+          where dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
+            and zonmst.wrkare in ('WASTOR', 'WADMG')
+            and dlytrn.tostol not like '%CHAMBER%'
+          group by lodnum,
+                subnum,
+                tostol,
+                usr_id,
+                trndte,
+                dlytrn.wh_id) dtrn
+     on inventory_view.lodnum = dtrn.lodnum
+    and inventory_view.subnum = dtrn.subnum
+    and inventory_view.stoloc = dtrn.tostol
+    and inventory_view.lstmov = dtrn.trndte
+    and locmst.wh_id = dtrn.wh_id
+  where locmst.stoloc not like '%PERM%'
+    and @+locmst.wh_id
+    and @+inventory_view.prtnum
+    and @+inventory_view.lodnum
+    and @+inventory_view.prt_client_id
+  order by locmst.stoloc]
 ]]>
 </local-syntax>
 </command>
