@@ -19,14 +19,14 @@ get client in clause for user
         ord_line.sales_ordnum,
         ord_line.sales_ordlin,
         ord_line.cstprt,
-        decode(alcrule.field_name, 'lotnum', alcrule.value, null) requested_lotnum,
-        decode(alcrule.field_name, 'sup_lotnum', alcrule.value, null) requested_sup_lotnum,
-        decode(alcrule.field_name, 'orgcod', alcrule.value, null) requested_orgcod,
-        decode(alcrule.field_name, 'revlvl', alcrule.value, null) requested_revlvl,
-        decode(alcrule.field_name, 'mandte', alcrule.value, null) requested_mandte,
-        decode(alcrule.field_name, 'expire_dte', alcrule.value, null) requested_expire_dte,
-        decode(alcrule.field_name, 'inv_attr_str1', alcrule.value, null) requested_inv_attr_str1,
-        ord_line.invsts_prg requested_invsts_prg,
+        /**decode(alcrule.field_name, 'lotnum', alcrule.value, null) requested_lotnum,
+           decode(alcrule.field_name, 'sup_lotnum', alcrule.value, null) requested_sup_lotnum,
+           decode(alcrule.field_name, 'orgcod', alcrule.value, null) requested_orgcod,
+           decode(alcrule.field_name, 'revlvl', alcrule.value, null) requested_revlvl,
+           decode(alcrule.field_name, 'mandte', alcrule.value, null) requested_mandte,
+           decode(alcrule.field_name, 'expire_dte', alcrule.value, null) requested_expire_dte,
+           decode(alcrule.field_name, 'inv_attr_str1', alcrule.value, null) requested_inv_attr_str1,
+           ord_line.invsts_prg requested_invsts_prg,**/
         ord_line.invsts_prg invsts_prg,
         ord_line.bckflg bckflg,
         inv.lotnum,
@@ -135,15 +135,15 @@ get client in clause for user
                 inventory_view.subnum) inv
      on (shipment_line.ship_line_id = inv.ship_line_id)
    left outer
-   join(select alloc_rule_hdr.wh_id,
-            alloc_rule_hdr.rule_nam,
-            alloc_rule_dtl.value,
-            alloc_rule_dtl.field_name
-       from alloc_rule_dtl,
-            alloc_rule_hdr
-      where alloc_rule_hdr.cplx_flg = 0
-        and alloc_rule_dtl.rule_nam = alloc_rule_hdr.rule_nam
-        and alloc_rule_dtl.wh_id = alloc_rule_hdr.wh_id) alcrule
+   join (select alloc_rule_hdr.wh_id,
+                alloc_rule_hdr.rule_nam,
+                alloc_rule_dtl.value,
+                alloc_rule_dtl.field_name
+           from alloc_rule_dtl,
+                alloc_rule_hdr
+          where alloc_rule_hdr.cplx_flg = 0
+            and alloc_rule_dtl.rule_nam = alloc_rule_hdr.rule_nam
+            and alloc_rule_dtl.wh_id = alloc_rule_hdr.wh_id) alcrule
      on (ord_line.rule_nam = alcrule.rule_nam)
     and (alcrule.wh_id = ord.wh_id)
   where ord_line.non_alc_flg = '0'
