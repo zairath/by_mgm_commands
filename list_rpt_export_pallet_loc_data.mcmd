@@ -89,7 +89,6 @@ get client in clause for user
    left
    join rcvlin
      on rcvlin.rcvkey = inventory_view.rcvkey
-    and rcvlin.supnum = inventory_view.supnum
     and rcvlin.wh_id = locmst.wh_id
    left
    join rcvtrk
