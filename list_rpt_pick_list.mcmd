@@ -66,11 +66,8 @@ if (@oprcod = 'LPCK')
                                                                                   and dscmst.colnam = 'uomcod'
                                                                                   and dscmst.locale_id = nvl(@locale_id, @@locale_id))) uom,
                 e.totvol as total_volume,
-                d.cponum as delivery_slot,
-                to_char(d.cpodte, 'DD/MM/YYYY') as order_date,
                 d.cponum as return_text,
                 d.dlvnum as grab_id,
-                d.adddte,
                 a.pcksts,
                 a.srcloc,
                 coalesce(a.revlvl, max(ivww.revlvl)) revlvl,
@@ -108,6 +105,7 @@ if (@oprcod = 'LPCK')
              on client.client_id = d.client_id
            JOIN adrmst g
              ON g.adr_id = client.adr_id
+            and g.adrtyp = 'CLI'
            JOIN prtdsc c
              ON c.colval = /*=varchar(*/ a.prtnum || '|' || b.prt_client_id || '|' || b.wh_id_tmpl /*=)*/
             AND c.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
@@ -158,19 +156,15 @@ if (@oprcod = 'LPCK')
                 g.phnnum,
                 b.stkuom,
                 e.totvol,
-                d.cponum,
-                d.cpodte,
                 q1.lngdsc,
                 d.cponum,
                 d.dlvnum,
                 g.first_name,
-                d.adddte,
                 a.pcksts,
                 a.srcloc,
                 a.revlvl,
                 zm.wrkzon,
-                a.pck_uom,
-                a.wrkref
+                a.pck_uom
           order by a.srcloc]
     }
     else
@@ -224,11 +218,7 @@ if (@oprcod = 'LPCK')
                                                                                   and dscmst.colnam = 'uomcod'
                                                                                   and dscmst.locale_id = nvl(@locale_id, @@locale_id))) uom,
                 e.totvol as total_volume,
-                d.cponum as delivery_slot,
-                to_char(d.cpodte, 'DD/MM/YYYY') as order_date,
-                d.cponum as return_text,
                 d.dlvnum as grab_id,
-                d.adddte,
                 a.pcksts,
                 a.srcloc,
                 coalesce(a.revlvl, max(ivww.revlvl)) revlvl,
@@ -266,6 +256,7 @@ if (@oprcod = 'LPCK')
              on client.client_id = d.client_id
            JOIN adrmst g
              ON g.adr_id = client.adr_id
+            and g.adrtyp = 'CLI'
            JOIN prtdsc c
              ON c.colval = /*=varchar(*/ a.prtnum || '|' || b.prt_client_id || '|' || b.wh_id_tmpl /*=)*/
             AND c.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
@@ -317,19 +308,14 @@ if (@oprcod = 'LPCK')
                 h.len,
                 h.wid,
                 h.hgt,
-                d.cponum,
-                d.cpodte,
                 q1.lngdsc,
-                d.cponum,
                 d.dlvnum,
                 g.first_name,
-                d.adddte,
                 a.pcksts,
                 a.srcloc,
                 a.revlvl,
                 zm.wrkzon,
-                a.pck_uom,
-                a.wrkref
+                a.pck_uom
           order by a.srcloc]
     }
 }
