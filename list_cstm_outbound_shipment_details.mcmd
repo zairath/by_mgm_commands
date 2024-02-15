@@ -34,35 +34,35 @@ get client in clause for user
                 end as weight,
                 count(distinct inv.revlvl) as qty_of_pallets,
                 inv.revlvl,
-                /**case when pvw.pck_uom = 'PL' then 'FULL-PALLET'
-                   when pvw.pck_uom is null then 'FULL-PALLET'
+                /*case when prtmst_view.catch_unttyp is null
+                   and exists(select 1
+                   from invdtl
+                   where invdtl.revlvl = inv.revlvl
+                   and invdtl.subnum not like 'PERM%'
+                   /* and invdtl.rcvkey = inv.rcvkey * /) then 'NON-FULL-PALLET'
+                   when prtmst_view.catch_unttyp is null
+                   and not exists(select 1
+                   from invdtl
+                   where invdtl.revlvl = inv.revlvl
+                   and invdtl.subnum not like 'PERM%'
+                   /* and invdtl.rcvkey = inv.rcvkey * /) then 'FULL-PALLET'
+                   when prtmst_view.catch_unttyp is not null
+                   and prtmst_view.lodlvl = 'S' then
+                   case when exists(select 1
+                   from invdtl
+                   where invdtl.revlvl = inv.revlvl
+                   and invdtl.subnum not like 'PERM%'
+                   /* and invdtl.rcvkey = inv.rcvkey * /) then 'NON-FULL-PALLET'
+                   else 'FULL-PALLET'
+                   end
+                   when prtmst_view.catch_unttyp is not null
+                   and prtmst_view.lodlvl = 'L'
+                   and pvw.pck_uom = 'PL'
+                   or pvw.pck_uom is null then 'FULL-PALLET'
                    else 'NON-FULL-PALLET'
-                   end as out_categories,**/
-                case when prtmst_view.catch_unttyp is null
-                 and exists(select 1
-                              from invdtl
-                             where invdtl.revlvl = inv.revlvl
-                               and invdtl.subnum not like 'PERM%'
-                            /**and invdtl.rcvkey = inv.rcvkey**/) then 'NON-FULL-PALLET'
-                     when prtmst_view.catch_unttyp is null
-                 and not exists(select 1
-                                  from invdtl
-                                 where invdtl.revlvl = inv.revlvl
-                                   and invdtl.subnum not like 'PERM%'
-                                /**and invdtl.rcvkey = inv.rcvkey**/) then 'FULL-PALLET'
-                     when prtmst_view.catch_unttyp is not null
-                 and prtmst_view.lodlvl = 'S' then
-                     case when exists(select 1
-                                        from invdtl
-                                       where invdtl.revlvl = inv.revlvl
-                                         and invdtl.subnum not like 'PERM%'
-                                      /**and invdtl.rcvkey = inv.rcvkey**/) then 'NON-FULL-PALLET'
-                          else 'FULL-PALLET'
-                     end
-                     when prtmst_view.catch_unttyp is not null
-                 and prtmst_view.lodlvl = 'L'
-                 and pvw.pck_uom = 'PL'
-                  or pvw.pck_uom is null then 'FULL-PALLET'
+                   end as out_categories*/
+                case when pvw.pck_uom = 'PL' then 'FULL-PALLET'
+                     when pvw.pck_uom is null then 'FULL-PALLET'
                      else 'NON-FULL-PALLET'
                 end as out_categories
            from prtmst_view
