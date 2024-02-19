@@ -4,7 +4,7 @@
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
-[select DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE())) as date_printed,
+[select DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE())) as date_printed,
         il.wh_id,
         id.prt_client_id,
         adrmst.adrnam as client_name,
@@ -146,7 +146,8 @@
                  and pdtl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 *
              case when prtmst_view.dspuom is null then sum(id.untqty)
                   else sum(id.untqty / prtftp_dtl.untqty)
-             end as numeric(15, 4)) as final_carton_weight
+             end as numeric(15, 4)) as final_carton_weight,
+        GETDATE() as inserted_time
    from prtmst_view
    join prtdsc pdc
      on pdc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
@@ -167,8 +168,11 @@
     and prtmst_view.prt_client_id = prtftp_dtl.prt_client_id
     and id.ftpcod = prtftp_dtl.ftpcod
     and prtftp_dtl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)
+   join client
+     on client.client_id = id.prt_client_id
    join adrmst
-     on adrmst.client_id = id.prt_client_id
+     on adrmst.client_id = client.client_id
+    and adrmst.adr_id = client.adr_id
     and adrmst.adrtyp = 'CLI'
    left
    join (select final_stock,
