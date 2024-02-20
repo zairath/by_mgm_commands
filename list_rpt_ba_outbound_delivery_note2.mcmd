@@ -58,6 +58,7 @@ get client in clause for user
                  and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, inv.untqty, inv.untqty / prtftp_dtl.untqty) as decimal(10, 2)) as carton_weight,
         (adrmst.adrln1 + adrmst.adrln2 + adrmst.adrln3) as alamat,
         adrmst.adrcty,
+        b.adrcty as wh_city,
         adrmst.adrnam as nama_customer,
         adrmst.adrpsz,
         trlr.trlr_num,
