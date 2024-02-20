@@ -12,6 +12,7 @@ get client in clause for user
         rcvLineDtl.client_id as customer,
         rcvLineDtl.client_name,
         rcvLineDtl.supnum,
+        rcvLineDtl.wh_city,
         rcvLineDtl.sadnum,
         rcvLineDtl.waybil,
         rcvLineDtl.invnum as nomor_po,
@@ -120,6 +121,7 @@ get client in clause for user
                 dscinv.lngdsc as inventory_status,
                 dsctrlr.lngdsc as truck_type,
                 carhdr.carnam as transporter_name,
+                b.adrcty as wh_city,
                 adrmst.adrnam as client_name
            from prtdsc
            join prtmst_view
@@ -165,6 +167,10 @@ get client in clause for user
              on client.client_id = rcvinv.client_id
            join adrmst
              on adrmst.adr_id = client.adr_id
+           join wh
+             on wh.wh_id = rcvinv.wh_id
+           join adrmst b
+             on b.adr_id = wh.adr_id
           where @+prtmst_view.prtnum
             and @+rcvlin.mandte:date
             and @+rcvlin.expire_dte:date
@@ -194,6 +200,7 @@ get client in clause for user
   group by rcvLineDtl.trknum,
         rcvLineDtl.client_id,
         rcvLineDtl.client_name,
+        rcvLineDtl.wh_city,
         rcvLineDtl.supnum,
         rcvLineDtl.sadnum,
         rcvLinedtl.waybil,
