@@ -46,7 +46,8 @@ get client in clause for user
         phh.last_upd_dt,
         phh.ins_user_id,
         phh.last_upd_user_id,
-        max(phd.pckqty) dtl_pckqty,
+        /**max(phd.pckqty) dtl_pckqty,**/
+        max(av.untqty) dtl_pckqty,
         max(phd.pck_catch_qty) dtl_pck_catch_qty,
         max(phd.appqty) dtl_appqty,
         max(phd.app_catch_qty) dtl_app_catch_qty,

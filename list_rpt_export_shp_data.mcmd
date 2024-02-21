@@ -30,6 +30,7 @@ get client in clause for user
         ptv.stkuom,
         pv.pck_mthd_id,
         max(pv.pckqty) pckqty,
+        max(av.untqty) dtl_pckqty,
         max(pv.pck_catch_qty) pck_catch_qty,
         max(pv.appqty) appqty,
         max(pv.app_catch_qty) app_catch_qty,
