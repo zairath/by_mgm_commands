@@ -25,9 +25,13 @@ get client in clause for user
                 shipment_line.client_id,
                 convert(varchar, trlr.close_dte, 111) as datetime,
                 /**sum(nvl(inv.untqty, 0)) untqty,**/
-                mod(max(inv.untqty), max(prtftp_dtl.untqty)) untqty,
+                case when prtmst_view.stkuom != prtmst_view.dspuom then sum(mod(inv.untqty, prtftp_dtl.untqty))
+                     else sum(inv.untqty)
+                end as untqty,
                 prtmst_view.stkuom,
-                floor(max(inv.untqty) / max(prtftp_dtl.untqty)) as dspuom_qty,
+                case when prtmst_view.stkuom != prtmst_view.dspuom then floor(sum(inv.untqty / prtftp_dtl.untqty))
+                     else sum(inv.untqty)
+                end as dspuom_qty,
                 prtmst_view.dspuom,
                 case when sum(inv.catch_qty) > 0 then sum(inv.catch_qty)
                      when sum(inv.catch_qty) < 1 then sum(cast(prtftp_dtl.netwgt / 35.274 * floor(inv.untqty / prtftp_dtl.untqty) as decimal(10, 2)))
