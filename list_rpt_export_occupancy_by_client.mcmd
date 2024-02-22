@@ -12,15 +12,14 @@
         occupance_datas.temperature,
         occupance_datas.item_family_desc,
         max(occupance_datas.used_capacity) used_capacity
-   from (select locmst.wh_id as wh_id,
-                wrkdsc.lngdsc as buildings,
-                inv.prt_client_id as client_id,
-                adrmst.adrnam as client_name,
-                aredsc.lngdsc as temperature,
-                famdsc.lngdsc as item_family_desc,
-                case when aremst.bldg_id in ('B1', 'B2', 'B3', 'B4', 'B5', 'B6') then count(locmst.stoloc)
-                     else count(distinct inv.revlvl)
-                end as used_capacity
+   from (SELECT locmst.wh_id AS wh_id,
+                wrkdsc.lngdsc AS buildings,
+                inv.prt_client_id AS client_id,
+                adrmst.adrnam AS client_name,
+                aredsc.lngdsc AS temperature,
+                famdsc.lngdsc AS item_family_desc,
+                CASE WHEN aremst.bldg_id IN ('B1', 'B2', 'B3', 'B4', 'B5', 'B6') THEN count(distinct (inv.revlvl))
+                END AS used_capacity
            from locmst
            join aremst
              on aremst.arecod = locmst.arecod
