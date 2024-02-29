@@ -10,8 +10,10 @@ get client in clause for user
 |
 [select *
    from soh_daily_occupancy
-  where datediff(day, date_printed, @date:date) = 0
-    and @+wh_id]
+  where date_printed between @start_date:date
+    and @end_date:date
+    and @+wh_id
+  order by date_printed asc]
 ]]>
 </local-syntax>
 </command>
