@@ -1,0 +1,28 @@
+<command>
+  <name>list cstm picking confirmation</name>
+  <description>list cstm picking confirmation for ULI API</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and @+wh_id
+|
+[/*#api-query*/
+ select pckwrk_view.wh_id as WH_ID,
+        pckwrk_view.ordnum as ORDNUM,
+        pckwrk_view.ship_id as SHIP_ID,
+        pckwrk_view.ordlin as ORDLIN,
+        pckwrk_view.prtnum as PRTNUM,
+        pckwrk_view.pckqty / invdtl.untcas as STGQTY,
+        invdtl.expire_dte as EXPIRE_DTE,
+        invdtl.inv_attr_str1 as INV_ATTR_STR1
+   from pckwrk_view
+   join invdtl
+     on invdtl.wrkref = pckwrk_view.wrkref
+    and invdtl.wrkref_dtl = pckwrk_view.wrkref_dtl
+  where ship_id = @ship_id
+    and @+pckwrk_view.wh_id]
+]]>
+</local-syntax>
+</command>
