@@ -1,0 +1,1629 @@
+<command>
+  <name>retrieve inventory reconciliation uli</name>
+  <description>retrieve inventory reconciliation uli</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get warehouse id
+ where wh_id = @wh_id
+   and id.prt_client_id LIKE '%00001%'
+|
+/* Based on the values configured in INVENTORY policy
+ * build the invattribute clause, which will be appended
+ * in select and groupby clause in the below select statements 
+ */
+list policies
+ where polcod = 'INVENTORY'
+   and polvar = 'GROUPING'
+   and polval = 'GROUP-BY' catch(-1403) >> polRes
+|
+[[
+            import com.redprairie.moca.*
+            import com.redprairie.moca.util.*
+
+            invattr_clause = ""
+
+            while(polRes.next())
+            {
+                if (polRes.getValue("rtstr1") != null && polRes.getValue("rtstr1").contains("invdtl"))
+                {
+                    invattr_clause +=  
+                        polRes.getValue("rtstr1").replaceFirst("invdtl.", "id.") + ", ";
+                }
+                else if (polRes.getValue("rtstr1") != null && polRes.getValue("rtstr1").contains("prtlot"))
+                {
+                    invattr_clause +=
+                            polRes.getValue("rtstr1").replaceFirst("prtlot.", "pl.") + ", ";
+                }
+            }
+
+        ]]
+|
+publish data
+ where invattr_clause = @invattr_clause
+|
+publish data
+ where override = 0
+|
+if (@wh_id != '----')
+{
+    [select count(*) cnt
+       from poldat_view
+      where polcod = 'HOST-TRANS'
+        and polvar = 'AREA-HOST-LEVEL'
+        and wh_id = @wh_id
+        and ovrd_flg = 1]
+    |
+    if (@cnt > 0)
+    {
+        publish data
+         where override = 1
+    }
+}
+|
+if (@override = 1)
+{
+    list policies
+     where polcod = 'HOST-TRANS'
+       and polvar = 'AREA-HOST-LEVEL'
+       and wh_id = @wh_id
+       and ovrd_flg = 1
+}
+else
+{
+    list policies
+     where polcod = 'HOST-TRANS'
+       and polvar = 'AREA-HOST-LEVEL'
+       and wh_id = @wh_id
+}
+|
+if (@polval = 'XXXX')
+{
+    [select '%' polval
+       from dual]
+}
+else
+{
+    [select @polval polval
+       from dual]
+}
+|
+[select count(*) invcnt
+   from invdtl dtl,
+        invsub sub,
+        invlod lod,
+        locmst loc,
+        loc_typ lt
+  where dtl.subnum = sub.subnum
+    and sub.lodnum = lod.lodnum
+    and lod.stoloc = loc.stoloc
+    and lod.wh_id = loc.wh_id
+    and loc.loc_typ_id = lt.loc_typ_id
+    and loc.wh_id = @wh_id
+    and lt.fwiflg = '1'
+    and loc.arecod like @polval]
+|
+if (@invcnt > 0)
+{
+    if (@rtstr2 = 'invsts')
+    {
+        [select lm.arecod,
+                id.prtnum prtnum,
+                id.prt_client_id prt_client_id,
+                id.invsts,
+                id.hld_flg,
+                @invattr_clause:raw pm.stkuom,
+                sum(id.untqty) untqty,
+                sum(id.catch_qty) catch_qty,
+                pm.catch_unttyp,
+                lm.wh_id,
+                id.inv_attr_str1,
+                id.expire_dte
+           from prtmst_view pm
+           join prtmst_wh pm_wh
+             on pm.wh_id = pm_wh.wh_id
+            and pm.prtnum = pm_wh.prtnum
+            and pm.prt_client_id = pm_wh.prt_client_id
+           join invdtl id
+             on pm.prtnum = id.prtnum
+            and pm.prt_client_id = id.prt_client_id
+           join invsub ins
+             on id.subnum = ins.subnum
+           join invlod il
+             on ins.lodnum = il.lodnum
+            and il.wh_id = pm.wh_id
+           join locmst lm
+             on il.stoloc = lm.stoloc
+            and il.wh_id = lm.wh_id
+           join loc_typ lt
+             on lt.loc_typ_id = lm.loc_typ_id
+           left
+           join prtlot pl
+             on pm.prtnum = pl.prtnum
+            and pm.prt_client_id = pl.prt_client_id
+            and pm.wh_id = pl.wh_id
+            and id.lotnum = pl.lotnum
+          where pm.prdflg = '1'
+            and lt.fwiflg = '1'
+            and lm.arecod like @polval
+            and @+id.prtnum
+            and @+id.prt_client_id
+            and @+lm.arecod
+            and @+lm.stoloc
+            and @+lm.wh_id
+            and @+il.lodnum
+            and @+ins.subnum
+            and @+id.dtlnum
+            and @+lm.cntdte:date
+            and @+lm.lstdte:date
+            and @+id.fifdte:date
+            and @+id.mandte:date
+            and @+id.adddte:date
+            and @+id.lstdte:date
+            and @+ins.adddte:date
+            and @+ins.lstdte:date
+            and @+ins.uccdte:date
+            and @+il.adddte:date
+            and @+il.lstdte:date
+            and @+il.uccdte:date
+            and @+pm_wh.lstrcv:date
+            and @+pm_wh.cntdte:date
+            and @+lm.lstdte:date
+            and @+id.inv_attr_dte1:date
+            and @+id.inv_attr_dte2:date
+            and @+lm.loc_typ_id
+            and @*
+          group by lm.arecod,
+                id.invsts,
+                id.hld_flg,
+                id.prtnum,
+                id.prt_client_id,
+                @invattr_clause:raw pm.stkuom,
+                pm.catch_unttyp,
+                lm.wh_id,
+                id.inv_attr_str1,
+                id.expire_dte
+          order by id.prtnum,
+                id.prt_client_id]
+        |
+        publish data
+         where polval = @arecod
+        |
+        [select max(rtstr1) pol_hstacc
+           from poldat
+          where polcod = 'HOST-TRANS'
+            and polvar = 'AREA-HOST-LOCATION'
+            and polval = nvl(@arecod, rtrim(' ')) || '_invsts_' || nvl(@invsts, rtrim(' '))
+            and wh_id_tmpl = nvl(@wh_id, @@wh_id)] catch(@?)
+        |
+        publish data
+         where arecod = @arecod
+           and hstacc = nvl(@pol_hstacc, @invsts)
+           and prtnum = @prtnum
+           and prt_client_id = @prt_client_id
+           and invsts = @invsts
+           and hld_flg = @hld_flg
+           and lotnum = @lotnum
+           and sup_lotnum = @sup_lotnum
+           and orgcod = @orgcod
+           and revlvl = @revlvl
+           and mandte = @mandte
+           and expire_dte = @expire_dte
+           and stkuom = @stkuom
+           and untqty = @untqty
+           and catch_qty = @catch_qty
+           and catch_unttyp = @catch_unttyp
+           and wh_id = @wh_id
+           and inv_attr_str1 = @inv_attr_str1
+           and inv_attr_str2 = @inv_attr_str2
+           and inv_attr_str3 = @inv_attr_str3
+           and inv_attr_str4 = @inv_attr_str4
+           and inv_attr_str5 = @inv_attr_str5
+           and inv_attr_str6 = @inv_attr_str6
+           and inv_attr_str7 = @inv_attr_str7
+           and inv_attr_str8 = @inv_attr_str8
+           and inv_attr_str9 = @inv_attr_str9
+           and inv_attr_str10 = @inv_attr_str10
+           and inv_attr_str11 = @inv_attr_str11
+           and inv_attr_str12 = @inv_attr_str12
+           and inv_attr_str13 = @inv_attr_str13
+           and inv_attr_str14 = @inv_attr_str14
+           and inv_attr_str15 = @inv_attr_str15
+           and inv_attr_str16 = @inv_attr_str16
+           and inv_attr_str17 = @inv_attr_str17
+           and inv_attr_str18 = @inv_attr_str18
+           and inv_attr_int1 = @inv_attr_int1
+           and inv_attr_int2 = @inv_attr_int2
+           and inv_attr_int3 = @inv_attr_int3
+           and inv_attr_int4 = @inv_attr_int4
+           and inv_attr_int5 = @inv_attr_int5
+           and inv_attr_flt1 = @inv_attr_flt1
+           and inv_attr_flt2 = @inv_attr_flt2
+           and inv_attr_flt3 = @inv_attr_flt3
+           and inv_attr_dte1 = @inv_attr_dte1
+           and inv_attr_dte2 = @inv_attr_dte2
+           and cstms_cnsgnmnt_id = @cstms_cnsgnmnt_id
+           and rttn_id = @rttn_id
+           and cstms_bond_flg = @cstms_bond_flg
+           and dty_stmp_flg = @dty_stmp_flg
+           and lot_sts = @lot_sts
+    }
+    else if (@rtstr2 = 'revlvl')
+    {
+        [select lm.arecod,
+                id.prtnum prtnum,
+                id.prt_client_id prt_client_id,
+                id.invsts,
+                id.hld_flg,
+                @invattr_clause:raw pm.stkuom,
+                sum(id.untqty) untqty,
+                sum(id.catch_qty) catch_qty,
+                pm.catch_unttyp,
+                lm.wh_id
+           from prtmst_view pm
+           join prtmst_wh pm_wh
+             on pm.wh_id = pm_wh.wh_id
+            and pm.prtnum = pm_wh.prtnum
+            and pm.prt_client_id = pm_wh.prt_client_id
+           join invdtl id
+             on pm.prtnum = id.prtnum
+            and pm.prt_client_id = id.prt_client_id
+           join invsub ins
+             on id.subnum = ins.subnum
+           join invlod il
+             on ins.lodnum = il.lodnum
+            and il.wh_id = pm.wh_id
+           join locmst lm
+             on il.stoloc = lm.stoloc
+            and il.wh_id = lm.wh_id
+           join loc_typ lt
+             on lt.loc_typ_id = lm.loc_typ_id
+           left
+           join prtlot pl
+             on pm.prtnum = pl.prtnum
+            and pm.prt_client_id = pl.prt_client_id
+            and pm.wh_id = pl.wh_id
+            and id.lotnum = pl.lotnum
+          where pm.prdflg = '1'
+            and lt.fwiflg = '1'
+            and lm.arecod like @polval
+            and @+id.prtnum
+            and @+id.prt_client_id
+            and @+lm.arecod
+            and @+lm.stoloc
+            and @+lm.wh_id
+            and @+il.lodnum
+            and @+ins.subnum
+            and @+id.dtlnum
+            and @+lm.cntdte:date
+            and @+lm.lstdte:date
+            and @+id.fifdte:date
+            and @+id.mandte:date
+            and @+id.adddte:date
+            and @+id.lstdte:date
+            and @+ins.adddte:date
+            and @+ins.lstdte:date
+            and @+ins.uccdte:date
+            and @+il.adddte:date
+            and @+il.lstdte:date
+            and @+il.uccdte:date
+            and @+pm_wh.lstrcv:date
+            and @+pm_wh.cntdte:data
+            and @+lm.lstdte:data
+            and @+id.inv_attr_dte1:date
+            and @+id.inv_attr_dte2:date
+            and @+lm.loc_typ_id
+            and @*
+          group by lm.arecod,
+                id.invsts,
+                id.hld_flg,
+                id.prtnum,
+                id.prt_client_id,
+                @invattr_clause:raw pm.stkuom,
+                pm.catch_unttyp,
+                lm.wh_id
+          order by prtnum,
+                prt_client_id]
+        |
+        publish data
+         where polval = @arecod
+        |
+        [select max(rtstr1) pol_hstacc
+           from poldat
+          where polcod = 'HOST-TRANS'
+            and polvar = 'AREA-HOST-LOCATION'
+            and polval = nvl(@arecod, rtrim(' ')) || '_revlvl_' || nvl(@revlvl, rtrim(' '))
+            and wh_id_tmpl = nvl(@wh_id, @@wh_id)] catch(@?)
+        |
+        publish data
+         where arecod = @arecod
+           and hstacc = nvl(@pol_hstacc, @revlvl)
+           and prtnum = @prtnum
+           and prt_client_id = @prt_client_id
+           and invsts = @invsts
+           and hld_flg = @hld_flg
+           and lotnum = @lotnum
+           and sup_lotnum = @sup_lotnum
+           and orgcod = @orgcod
+           and revlvl = @revlvl
+           and mandte = @mandte
+           and expire_dte = @expire_dte
+           and stkuom = @stkuom
+           and untqty = @untqty
+           and catch_qty = @catch_qty
+           and catch_unttyp = @catch_unttyp
+           and wh_id = @wh_id
+           and inv_attr_str1 = @inv_attr_str1
+           and inv_attr_str2 = @inv_attr_str2
+           and inv_attr_str3 = @inv_attr_str3
+           and inv_attr_str4 = @inv_attr_str4
+           and inv_attr_str5 = @inv_attr_str5
+           and inv_attr_str6 = @inv_attr_str6
+           and inv_attr_str7 = @inv_attr_str7
+           and inv_attr_str8 = @inv_attr_str8
+           and inv_attr_str9 = @inv_attr_str9
+           and inv_attr_str10 = @inv_attr_str10
+           and inv_attr_str11 = @inv_attr_str11
+           and inv_attr_str12 = @inv_attr_str12
+           and inv_attr_str13 = @inv_attr_str13
+           and inv_attr_str14 = @inv_attr_str14
+           and inv_attr_str15 = @inv_attr_str15
+           and inv_attr_str16 = @inv_attr_str16
+           and inv_attr_str17 = @inv_attr_str17
+           and inv_attr_str18 = @inv_attr_str18
+           and inv_attr_int1 = @inv_attr_int1
+           and inv_attr_int2 = @inv_attr_int2
+           and inv_attr_int3 = @inv_attr_int3
+           and inv_attr_int4 = @inv_attr_int4
+           and inv_attr_int5 = @inv_attr_int5
+           and inv_attr_flt1 = @inv_attr_flt1
+           and inv_attr_flt2 = @inv_attr_flt2
+           and inv_attr_flt3 = @inv_attr_flt3
+           and inv_attr_dte1 = @inv_attr_dte1
+           and inv_attr_dte2 = @inv_attr_dte2
+           and cstms_cnsgnmnt_id = @cstms_cnsgnmnt_id
+           and rttn_id = @rttn_id
+           and cstms_bond_flg = @cstms_bond_flg
+           and dty_stmp_flg = @dty_stmp_flg
+           and lot_sts = @lot_sts
+    }
+    else if (@rtstr2 = 'orgcod')
+    {
+        [select lm.arecod,
+                id.prtnum prtnum,
+                id.prt_client_id prt_client_id,
+                id.invsts,
+                id.hld_flg,
+                @invattr_clause:raw pm.stkuom,
+                sum(id.untqty) untqty,
+                sum(id.catch_qty) catch_qty,
+                pm.catch_unttyp,
+                lm.wh_id
+           from prtmst_view pm
+           join prtmst_wh pm_wh
+             on pm.wh_id = pm_wh.wh_id
+            and pm.prtnum = pm_wh.prtnum
+            and pm.prt_client_id = pm_wh.prt_client_id
+           join invdtl id
+             on pm.prtnum = id.prtnum
+            and pm.prt_client_id = id.prt_client_id
+           join invsub ins
+             on id.subnum = ins.subnum
+           join invlod il
+             on ins.lodnum = il.lodnum
+            and il.wh_id = pm.wh_id
+           join locmst lm
+             on il.stoloc = lm.stoloc
+            and il.wh_id = lm.wh_id
+           join loc_typ lt
+             on lt.loc_typ_id = lm.loc_typ_id
+           left
+           join prtlot pl
+             on pm.prtnum = pl.prtnum
+            and pm.prt_client_id = pl.prt_client_id
+            and pm.wh_id = pl.wh_id
+            and id.lotnum = pl.lotnum
+          where pm.prdflg = '1'
+            and lt.fwiflg = '1'
+            and lm.arecod like @polval
+            and @+id.prtnum
+            and @+id.prt_client_id
+            and @+lm.arecod
+            and @+lm.stoloc
+            and @+lm.wh_id
+            and @+il.lodnum
+            and @+ins.subnum
+            and @+id.dtlnum
+            and @+lm.cntdte:date
+            and @+lm.lstdte:date
+            and @+id.fifdte:date
+            and @+id.mandte:date
+            and @+id.adddte:date
+            and @+id.lstdte:date
+            and @+ins.adddte:date
+            and @+ins.lstdte:date
+            and @+ins.uccdte:date
+            and @+il.adddte:date
+            and @+il.lstdte:date
+            and @+il.uccdte:date
+            and @+pm_wh.lstrcv:date
+            and @+pm_wh.cntdte:data
+            and @+lm.lstdte:data
+            and @+id.inv_attr_dte1:date
+            and @+id.inv_attr_dte2:date
+            and @+lm.loc_typ_id
+            and @*
+          group by lm.arecod,
+                id.invsts,
+                id.hld_flg,
+                id.prtnum,
+                id.prt_client_id,
+                @invattr_clause:raw pm.stkuom,
+                pm.catch_unttyp,
+                lm.wh_id
+          order by prtnum,
+                prt_client_id]
+        |
+        publish data
+         where polval = @arecod
+        |
+        [select max(rtstr1) pol_hstacc
+           from poldat
+          where polcod = 'HOST-TRANS'
+            and polvar = 'AREA-HOST-LOCATION'
+            and polval = nvl(@arecod, rtrim(' ')) || '_orgcod_' || nvl(@orgcod, rtrim(' '))
+            and wh_id_tmpl = nvl(@wh_id, @@wh_id)] catch(@?)
+        |
+        publish data
+         where arecod = @arecod
+           and hstacc = nvl(@pol_hstacc, @orgcod)
+           and prtnum = @prtnum
+           and prt_client_id = @prt_client_id
+           and invsts = @invsts
+           and hld_flg = @hld_flg
+           and lotnum = @lotnum
+           and orgcod = @orgcod
+           and revlvl = @revlvl
+           and mandte = @mandte
+           and expire_dte = @expire_dte
+           and stkuom = @stkuom
+           and untqty = @untqty
+           and catch_qty = @catch_qty
+           and catch_unttyp = @catch_unttyp
+           and wh_id = @wh_id
+           and inv_attr_str1 = @inv_attr_str1
+           and inv_attr_str2 = @inv_attr_str2
+           and inv_attr_str3 = @inv_attr_str3
+           and inv_attr_str4 = @inv_attr_str4
+           and inv_attr_str5 = @inv_attr_str5
+           and inv_attr_str6 = @inv_attr_str6
+           and inv_attr_str7 = @inv_attr_str7
+           and inv_attr_str8 = @inv_attr_str8
+           and inv_attr_str9 = @inv_attr_str9
+           and inv_attr_str10 = @inv_attr_str10
+           and inv_attr_str11 = @inv_attr_str11
+           and inv_attr_str12 = @inv_attr_str12
+           and inv_attr_str13 = @inv_attr_str13
+           and inv_attr_str14 = @inv_attr_str14
+           and inv_attr_str15 = @inv_attr_str15
+           and inv_attr_str16 = @inv_attr_str16
+           and inv_attr_str17 = @inv_attr_str17
+           and inv_attr_str18 = @inv_attr_str18
+           and inv_attr_int1 = @inv_attr_int1
+           and inv_attr_int2 = @inv_attr_int2
+           and inv_attr_int3 = @inv_attr_int3
+           and inv_attr_int4 = @inv_attr_int4
+           and inv_attr_int5 = @inv_attr_int5
+           and inv_attr_flt1 = @inv_attr_flt1
+           and inv_attr_flt2 = @inv_attr_flt2
+           and inv_attr_flt3 = @inv_attr_flt3
+           and inv_attr_dte1 = @inv_attr_dte1
+           and inv_attr_dte2 = @inv_attr_dte2
+           and cstms_cnsgnmnt_id = @cstms_cnsgnmnt_id
+           and rttn_id = @rttn_id
+           and cstms_bond_flg = @cstms_bond_flg
+           and dty_stmp_flg = @dty_stmp_flg
+           and lot_sts = @lot_sts
+    }
+    else if (@rtstr2 = 'lotnum')
+    {
+        [select lm.arecod,
+                id.prtnum prtnum,
+                id.prt_client_id prt_client_id,
+                id.invsts,
+                id.hld_flg,
+                @invattr_clause:raw pm.stkuom,
+                sum(id.untqty) untqty,
+                sum(id.catch_qty) catch_qty,
+                pm.catch_unttyp,
+                lm.wh_id
+           from prtmst_view pm
+           join prtmst_wh pm_wh
+             on pm.wh_id = pm_wh.wh_id
+            and pm.prtnum = pm_wh.prtnum
+            and pm.prt_client_id = pm_wh.prt_client_id
+           join invdtl id
+             on pm.prtnum = id.prtnum
+            and pm.prt_client_id = id.prt_client_id
+           join invsub ins
+             on id.subnum = ins.subnum
+           join invlod il
+             on ins.lodnum = il.lodnum
+            and il.wh_id = pm.wh_id
+           join locmst lm
+             on il.stoloc = lm.stoloc
+            and il.wh_id = lm.wh_id
+           join loc_typ lt
+             on lt.loc_typ_id = lm.loc_typ_id
+           left
+           join prtlot pl
+             on pm.prtnum = pl.prtnum
+            and pm.prt_client_id = pl.prt_client_id
+            and pm.wh_id = pl.wh_id
+            and id.lotnum = pl.lotnum
+          where pm.prdflg = '1'
+            and lt.fwiflg = '1'
+            and lm.arecod like @polval
+            and @+id.prtnum
+            and @+id.prt_client_id
+            and @+lm.arecod
+            and @+lm.stoloc
+            and @+lm.wh_id
+            and @+il.lodnum
+            and @+ins.subnum
+            and @+id.dtlnum
+            and @+lm.cntdte:date
+            and @+lm.lstdte:date
+            and @+id.fifdte:date
+            and @+id.mandte:date
+            and @+id.adddte:date
+            and @+id.lstdte:date
+            and @+ins.adddte:date
+            and @+ins.lstdte:date
+            and @+ins.uccdte:date
+            and @+il.adddte:date
+            and @+il.lstdte:date
+            and @+il.uccdte:date
+            and @+pm_wh.lstrcv:date
+            and @+pm_wh.cntdte:data
+            and @+lm.lstdte:data
+            and @+id.inv_attr_dte1:date
+            and @+id.inv_attr_dte2:date
+            and @+lm.loc_typ_id
+            and @*
+          group by lm.arecod,
+                id.invsts,
+                id.hld_flg,
+                id.prtnum,
+                id.prt_client_id,
+                @invattr_clause:raw pm.stkuom,
+                pm.catch_unttyp,
+                lm.wh_id
+          order by prtnum,
+                prt_client_id]
+        |
+        publish data
+         where polval = @arecod
+        |
+        [select max(rtstr1) pol_hstacc
+           from poldat
+          where polcod = 'HOST-TRANS'
+            and polvar = 'AREA-HOST-LOCATION'
+            and polval = nvl(@arecod, rtrim(' ')) || '_lotnum_' || nvl(@lotnum, rtrim(' '))
+            and wh_id_tmpl = nvl(@wh_id, @@wh_id)] catch(@?)
+        |
+        publish data
+         where arecod = @arecod
+           and hstacc = nvl(@pol_hstacc, @lotnum)
+           and prtnum = @prtnum
+           and prt_client_id = @prt_client_id
+           and invsts = @invsts
+           and hld_flg = @hld_flg
+           and lotnum = @lotnum
+           and orgcod = @orgcod
+           and revlvl = @revlvl
+           and mandte = @mandte
+           and expire_dte = @expire_dte
+           and stkuom = @stkuom
+           and untqty = @untqty
+           and catch_qty = @catch_qty
+           and catch_unttyp = @catch_unttyp
+           and wh_id = @wh_id
+           and inv_attr_str1 = @inv_attr_str1
+           and inv_attr_str2 = @inv_attr_str2
+           and inv_attr_str3 = @inv_attr_str3
+           and inv_attr_str4 = @inv_attr_str4
+           and inv_attr_str5 = @inv_attr_str5
+           and inv_attr_str6 = @inv_attr_str6
+           and inv_attr_str7 = @inv_attr_str7
+           and inv_attr_str8 = @inv_attr_str8
+           and inv_attr_str9 = @inv_attr_str9
+           and inv_attr_str10 = @inv_attr_str10
+           and inv_attr_str11 = @inv_attr_str11
+           and inv_attr_str12 = @inv_attr_str12
+           and inv_attr_str13 = @inv_attr_str13
+           and inv_attr_str14 = @inv_attr_str14
+           and inv_attr_str15 = @inv_attr_str15
+           and inv_attr_str16 = @inv_attr_str16
+           and inv_attr_str17 = @inv_attr_str17
+           and inv_attr_str18 = @inv_attr_str18
+           and inv_attr_int1 = @inv_attr_int1
+           and inv_attr_int2 = @inv_attr_int2
+           and inv_attr_int3 = @inv_attr_int3
+           and inv_attr_int4 = @inv_attr_int4
+           and inv_attr_int5 = @inv_attr_int5
+           and inv_attr_flt1 = @inv_attr_flt1
+           and inv_attr_flt2 = @inv_attr_flt2
+           and inv_attr_flt3 = @inv_attr_flt3
+           and inv_attr_dte1 = @inv_attr_dte1
+           and inv_attr_dte2 = @inv_attr_dte2
+           and cstms_cnsgnmnt_id = @cstms_cnsgnmnt_id
+           and rttn_id = @rttn_id
+           and cstms_bond_flg = @cstms_bond_flg
+           and dty_stmp_flg = @dty_stmp_flg
+           and lot_sts = @lot_sts
+    }
+    else if (@rtstr2 = 'mandte')
+    {
+        [select lm.arecod,
+                id.prtnum prtnum,
+                id.prt_client_id prt_client_id,
+                id.invsts,
+                id.hld_flg,
+                @invattr_clause:raw pm.stkuom,
+                sum(id.untqty) untqty,
+                sum(id.catch_qty) catch_qty,
+                pm.catch_unttyp,
+                lm.wh_id
+           from prtmst_view pm
+           join prtmst_wh pm_wh
+             on pm.wh_id = pm_wh.wh_id
+            and pm.prtnum = pm_wh.prtnum
+            and pm.prt_client_id = pm_wh.prt_client_id
+           join invdtl id
+             on pm.prtnum = id.prtnum
+            and pm.prt_client_id = id.prt_client_id
+           join invsub ins
+             on id.subnum = ins.subnum
+           join invlod il
+             on ins.lodnum = il.lodnum
+            and il.wh_id = pm.wh_id
+           join locmst lm
+             on il.stoloc = lm.stoloc
+            and il.wh_id = lm.wh_id
+           join loc_typ lt
+             on lt.loc_typ_id = lm.loc_typ_id
+           left
+           join prtlot pl
+             on pm.prtnum = pl.prtnum
+            and pm.prt_client_id = pl.prt_client_id
+            and pm.wh_id = pl.wh_id
+            and id.lotnum = pl.lotnum
+          where pm.prdflg = '1'
+            and lt.fwiflg = '1'
+            and lm.arecod like @polval
+            and @+id.prtnum
+            and @+id.prt_client_id
+            and @+lm.arecod
+            and @+lm.stoloc
+            and @+lm.wh_id
+            and @+il.lodnum
+            and @+ins.subnum
+            and @+id.dtlnum
+            and @+lm.cntdte:date
+            and @+lm.lstdte:date
+            and @+id.fifdte:date
+            and @+id.mandte:date
+            and @+id.adddte:date
+            and @+id.lstdte:date
+            and @+ins.adddte:date
+            and @+ins.lstdte:date
+            and @+ins.uccdte:date
+            and @+il.adddte:date
+            and @+il.lstdte:date
+            and @+il.uccdte:date
+            and @+pm_wh.lstrcv:date
+            and @+pm_wh.cntdte:data
+            and @+lm.lstdte:data
+            and @+id.inv_attr_dte1:date
+            and @+id.inv_attr_dte2:date
+            and @+lm.loc_typ_id
+            and @*
+          group by lm.arecod,
+                id.invsts,
+                id.hld_flg,
+                id.prtnum,
+                id.prt_client_id,
+                @invattr_clause:raw pm.stkuom,
+                pm.catch_unttyp,
+                lm.wh_id
+          order by prtnum,
+                prt_client_id]
+        |
+        publish data
+         where polval = @arecod
+        |
+        [select max(rtstr1) pol_hstacc
+           from poldat
+          where polcod = 'HOST-TRANS'
+            and polvar = 'AREA-HOST-LOCATION'
+            and polval = nvl(@arecod, rtrim(' ')) || '_mandte_' || nvl(@mandte, rtrim(' '))
+            and wh_id_tmpl = nvl(@wh_id, @@wh_id)] catch(@?)
+        |
+        publish data
+         where arecod = @arecod
+           and hstacc = nvl(@pol_hstacc, @mandte)
+           and prtnum = @prtnum
+           and prt_client_id = @prt_client_id
+           and invsts = @invsts
+           and hld_flg = @hld_flg
+           and lotnum = @lotnum
+           and orgcod = @orgcod
+           and revlvl = @revlvl
+           and mandte = @mandte
+           and expire_dte = @expire_dte
+           and stkuom = @stkuom
+           and untqty = @untqty
+           and catch_qty = @catch_qty
+           and catch_unttyp = @catch_unttyp
+           and wh_id = @wh_id
+           and inv_attr_str1 = @inv_attr_str1
+           and inv_attr_str2 = @inv_attr_str2
+           and inv_attr_str3 = @inv_attr_str3
+           and inv_attr_str4 = @inv_attr_str4
+           and inv_attr_str5 = @inv_attr_str5
+           and inv_attr_str6 = @inv_attr_str6
+           and inv_attr_str7 = @inv_attr_str7
+           and inv_attr_str8 = @inv_attr_str8
+           and inv_attr_str9 = @inv_attr_str9
+           and inv_attr_str10 = @inv_attr_str10
+           and inv_attr_str11 = @inv_attr_str11
+           and inv_attr_str12 = @inv_attr_str12
+           and inv_attr_str13 = @inv_attr_str13
+           and inv_attr_str14 = @inv_attr_str14
+           and inv_attr_str15 = @inv_attr_str15
+           and inv_attr_str16 = @inv_attr_str16
+           and inv_attr_str17 = @inv_attr_str17
+           and inv_attr_str18 = @inv_attr_str18
+           and inv_attr_int1 = @inv_attr_int1
+           and inv_attr_int2 = @inv_attr_int2
+           and inv_attr_int3 = @inv_attr_int3
+           and inv_attr_int4 = @inv_attr_int4
+           and inv_attr_int5 = @inv_attr_int5
+           and inv_attr_flt1 = @inv_attr_flt1
+           and inv_attr_flt2 = @inv_attr_flt2
+           and inv_attr_flt3 = @inv_attr_flt3
+           and inv_attr_dte1 = @inv_attr_dte1
+           and inv_attr_dte2 = @inv_attr_dte2
+           and cstms_cnsgnmnt_id = @cstms_cnsgnmnt_id
+           and rttn_id = @rttn_id
+           and cstms_bond_flg = @cstms_bond_flg
+           and dty_stmp_flg = @dty_stmp_flg
+           and lot_sts = @lot_sts
+    }
+    else if (@rtstr2 = 'expire_dte')
+    {
+        [select lm.arecod,
+                id.prtnum prtnum,
+                id.prt_client_id prt_client_id,
+                id.invsts,
+                id.hld_flg,
+                @invattr_clause:raw pm.stkuom,
+                sum(id.untqty) untqty,
+                sum(id.catch_qty) catch_qty,
+                pm.catch_unttyp,
+                lm.wh_id
+           from prtmst_view pm
+           join prtmst_wh pm_wh
+             on pm.wh_id = pm_wh.wh_id
+            and pm.prtnum = pm_wh.prtnum
+            and pm.prt_client_id = pm_wh.prt_client_id
+           join invdtl id
+             on pm.prtnum = id.prtnum
+            and pm.prt_client_id = id.prt_client_id
+           join invsub ins
+             on id.subnum = ins.subnum
+           join invlod il
+             on ins.lodnum = il.lodnum
+            and il.wh_id = pm.wh_id
+           join locmst lm
+             on il.stoloc = lm.stoloc
+            and il.wh_id = lm.wh_id
+           join loc_typ lt
+             on lt.loc_typ_id = lm.loc_typ_id
+           left
+           join prtlot pl
+             on pm.prtnum = pl.prtnum
+            and pm.prt_client_id = pl.prt_client_id
+            and pm.wh_id = pl.wh_id
+            and id.lotnum = pl.lotnum
+          where pm.prdflg = '1'
+            and lt.fwiflg = '1'
+            and lm.arecod like @polval
+            and @+id.prtnum
+            and @+id.prt_client_id
+            and @+lm.arecod
+            and @+lm.stoloc
+            and @+lm.wh_id
+            and @+il.lodnum
+            and @+ins.subnum
+            and @+id.dtlnum
+            and @+lm.cntdte:date
+            and @+lm.lstdte:date
+            and @+id.fifdte:date
+            and @+id.mandte:date
+            and @+id.adddte:date
+            and @+id.lstdte:date
+            and @+ins.adddte:date
+            and @+ins.lstdte:date
+            and @+ins.uccdte:date
+            and @+il.adddte:date
+            and @+il.lstdte:date
+            and @+il.uccdte:date
+            and @+pm_wh.lstrcv:date
+            and @+pm_wh.cntdte:data
+            and @+lm.lstdte:data
+            and @+id.inv_attr_dte1:date
+            and @+id.inv_attr_dte2:date
+            and @+lm.loc_typ_id
+            and @*
+          group by lm.arecod,
+                id.invsts,
+                id.hld_flg,
+                id.prtnum,
+                id.prt_client_id,
+                @invattr_clause:raw pm.stkuom,
+                pm.catch_unttyp,
+                lm.wh_id
+          order by prtnum,
+                prt_client_id]
+        |
+        publish data
+         where polval = @arecod
+        |
+        [select max(rtstr1) pol_hstacc
+           from poldat
+          where polcod = 'HOST-TRANS'
+            and polvar = 'AREA-HOST-LOCATION'
+            and polval = nvl(@arecod, rtrim(' ')) || '_expire_dte_' || nvl(@expire_dte, rtrim(' '))
+            and wh_id_tmpl = nvl(@wh_id, @@wh_id)] catch(@?)
+        |
+        publish data
+         where arecod = @arecod
+           and hstacc = nvl(@pol_hstacc, @expire_dte)
+           and prtnum = @prtnum
+           and prt_client_id = @prt_client_id
+           and invsts = @invsts
+           and hld_flg = @hld_flg
+           and lotnum = @lotnum
+           and orgcod = @orgcod
+           and revlvl = @revlvl
+           and mandte = @mandte
+           and expire_dte = @expire_dte
+           and stkuom = @stkuom
+           and untqty = @untqty
+           and catch_qty = @catch_qty
+           and catch_unttyp = @catch_unttyp
+           and wh_id = @wh_id
+           and inv_attr_str1 = @inv_attr_str1
+           and inv_attr_str2 = @inv_attr_str2
+           and inv_attr_str3 = @inv_attr_str3
+           and inv_attr_str4 = @inv_attr_str4
+           and inv_attr_str5 = @inv_attr_str5
+           and inv_attr_str6 = @inv_attr_str6
+           and inv_attr_str7 = @inv_attr_str7
+           and inv_attr_str8 = @inv_attr_str8
+           and inv_attr_str9 = @inv_attr_str9
+           and inv_attr_str10 = @inv_attr_str10
+           and inv_attr_str11 = @inv_attr_str11
+           and inv_attr_str12 = @inv_attr_str12
+           and inv_attr_str13 = @inv_attr_str13
+           and inv_attr_str14 = @inv_attr_str14
+           and inv_attr_str15 = @inv_attr_str15
+           and inv_attr_str16 = @inv_attr_str16
+           and inv_attr_str17 = @inv_attr_str17
+           and inv_attr_str18 = @inv_attr_str18
+           and inv_attr_int1 = @inv_attr_int1
+           and inv_attr_int2 = @inv_attr_int2
+           and inv_attr_int3 = @inv_attr_int3
+           and inv_attr_int4 = @inv_attr_int4
+           and inv_attr_int5 = @inv_attr_int5
+           and inv_attr_flt1 = @inv_attr_flt1
+           and inv_attr_flt2 = @inv_attr_flt2
+           and inv_attr_flt3 = @inv_attr_flt3
+           and inv_attr_dte1 = @inv_attr_dte1
+           and inv_attr_dte2 = @inv_attr_dte2
+           and cstms_cnsgnmnt_id = @cstms_cnsgnmnt_id
+           and rttn_id = @rttn_id
+           and cstms_bond_flg = @cstms_bond_flg
+           and dty_stmp_flg = @dty_stmp_flg
+           and lot_sts = @lot_sts
+    }
+    else if (@rtstr2 = 'cstms_cnsgnmnt_id')
+    {
+        [select lm.arecod,
+                id.prtnum prtnum,
+                id.prt_client_id prt_client_id,
+                id.invsts,
+                id.hld_flg,
+                @invattr_clause:raw pm.stkuom,
+                sum(id.untqty) untqty,
+                sum(id.catch_qty) catch_qty,
+                pm.catch_unttyp,
+                lm.wh_id
+           from prtmst_view pm
+           join prtmst_wh pm_wh
+             on pm.wh_id = pm_wh.wh_id
+            and pm.prtnum = pm_wh.prtnum
+            and pm.prt_client_id = pm_wh.prt_client_id
+           join invdtl id
+             on pm.prtnum = id.prtnum
+            and pm.prt_client_id = id.prt_client_id
+           join invsub ins
+             on id.subnum = ins.subnum
+           join invlod il
+             on ins.lodnum = il.lodnum
+            and il.wh_id = pm.wh_id
+           join locmst lm
+             on il.stoloc = lm.stoloc
+            and il.wh_id = lm.wh_id
+           join loc_typ lt
+             on lt.loc_typ_id = lm.loc_typ_id
+           left
+           join prtlot pl
+             on pm.prtnum = pl.prtnum
+            and pm.prt_client_id = pl.prt_client_id
+            and pm.wh_id = pl.wh_id
+            and id.lotnum = pl.lotnum
+          where pm.prdflg = '1'
+            and lt.fwiflg = '1'
+            and lm.arecod like @polval
+            and @+id.prtnum
+            and @+id.prt_client_id
+            and @+lm.arecod
+            and @+lm.stoloc
+            and @+lm.wh_id
+            and @+il.lodnum
+            and @+ins.subnum
+            and @+id.dtlnum
+            and @+lm.cntdte:date
+            and @+lm.lstdte:date
+            and @+id.fifdte:date
+            and @+id.mandte:date
+            and @+id.adddte:date
+            and @+id.lstdte:date
+            and @+ins.adddte:date
+            and @+ins.lstdte:date
+            and @+ins.uccdte:date
+            and @+il.adddte:date
+            and @+il.lstdte:date
+            and @+il.uccdte:date
+            and @+pm_wh.lstrcv:date
+            and @+pm_wh.cntdte:data
+            and @+lm.lstdte:data
+            and @+id.inv_attr_dte1:date
+            and @+id.inv_attr_dte2:date
+            and @+lm.loc_typ_id
+            and @*
+          group by lm.arecod,
+                id.invsts,
+                id.hld_flg,
+                id.prtnum,
+                id.prt_client_id,
+                @invattr_clause:raw pm.stkuom,
+                pm.catch_unttyp,
+                lm.wh_id
+          order by prtnum,
+                prt_client_id]
+        |
+        publish data
+         where polval = @arecod
+        |
+        [select max(rtstr1) pol_hstacc
+           from poldat
+          where polcod = 'HOST-TRANS'
+            and polvar = 'AREA-HOST-LOCATION'
+            and polval = nvl(@arecod, rtrim(' ')) || '_cstms_cnsgnmnt_id_' || nvl(@cstms_cnsgnmnt_id, rtrim(' '))
+            and wh_id_tmpl = nvl(@wh_id, @@wh_id)] catch(@?)
+        |
+        publish data
+         where arecod = @arecod
+           and hstacc = nvl(@pol_hstacc, @cstms_cnsgnmnt_id)
+           and prtnum = @prtnum
+           and prt_client_id = @prt_client_id
+           and invsts = @invsts
+           and hld_flg = @hld_flg
+           and lotnum = @lotnum
+           and orgcod = @orgcod
+           and revlvl = @revlvl
+           and mandte = @mandte
+           and expire_dte = @expire_dte
+           and stkuom = @stkuom
+           and untqty = @untqty
+           and catch_qty = @catch_qty
+           and catch_unttyp = @catch_unttyp
+           and wh_id = @wh_id
+           and inv_attr_str1 = @inv_attr_str1
+           and inv_attr_str2 = @inv_attr_str2
+           and inv_attr_str3 = @inv_attr_str3
+           and inv_attr_str4 = @inv_attr_str4
+           and inv_attr_str5 = @inv_attr_str5
+           and inv_attr_str6 = @inv_attr_str6
+           and inv_attr_str7 = @inv_attr_str7
+           and inv_attr_str8 = @inv_attr_str8
+           and inv_attr_str9 = @inv_attr_str9
+           and inv_attr_str10 = @inv_attr_str10
+           and inv_attr_str11 = @inv_attr_str11
+           and inv_attr_str12 = @inv_attr_str12
+           and inv_attr_str13 = @inv_attr_str13
+           and inv_attr_str14 = @inv_attr_str14
+           and inv_attr_str15 = @inv_attr_str15
+           and inv_attr_str16 = @inv_attr_str16
+           and inv_attr_str17 = @inv_attr_str17
+           and inv_attr_str18 = @inv_attr_str18
+           and inv_attr_int1 = @inv_attr_int1
+           and inv_attr_int2 = @inv_attr_int2
+           and inv_attr_int3 = @inv_attr_int3
+           and inv_attr_int4 = @inv_attr_int4
+           and inv_attr_int5 = @inv_attr_int5
+           and inv_attr_flt1 = @inv_attr_flt1
+           and inv_attr_flt2 = @inv_attr_flt2
+           and inv_attr_flt3 = @inv_attr_flt3
+           and inv_attr_dte1 = @inv_attr_dte1
+           and inv_attr_dte2 = @inv_attr_dte2
+           and cstms_cnsgnmnt_id = @cstms_cnsgnmnt_id
+           and rttn_id = @rttn_id
+           and cstms_bond_flg = @cstms_bond_flg
+           and dty_stmp_flg = @dty_stmp_flg
+           and lot_sts = @lot_sts
+    }
+    else if (@rtstr2 = 'rttn_id')
+    {
+        [select lm.arecod,
+                id.prtnum prtnum,
+                id.prt_client_id prt_client_id,
+                id.invsts,
+                id.hld_flg,
+                @invattr_clause:raw pm.stkuom,
+                sum(id.untqty) untqty,
+                sum(id.catch_qty) catch_qty,
+                pm.catch_unttyp,
+                lm.wh_id
+           from prtmst_view pm
+           join prtmst_wh pm_wh
+             on pm.wh_id = pm_wh.wh_id
+            and pm.prtnum = pm_wh.prtnum
+            and pm.prt_client_id = pm_wh.prt_client_id
+           join invdtl id
+             on pm.prtnum = id.prtnum
+            and pm.prt_client_id = id.prt_client_id
+           join invsub ins
+             on id.subnum = ins.subnum
+           join invlod il
+             on ins.lodnum = il.lodnum
+            and il.wh_id = pm.wh_id
+           join locmst lm
+             on il.stoloc = lm.stoloc
+            and il.wh_id = lm.wh_id
+           join loc_typ lt
+             on lt.loc_typ_id = lm.loc_typ_id
+           left
+           join prtlot pl
+             on pm.prtnum = pl.prtnum
+            and pm.prt_client_id = pl.prt_client_id
+            and pm.wh_id = pl.wh_id
+            and id.lotnum = pl.lotnum
+          where pm.prdflg = '1'
+            and lt.fwiflg = '1'
+            and lm.arecod like @polval
+            and @+id.prtnum
+            and @+id.prt_client_id
+            and @+lm.arecod
+            and @+lm.stoloc
+            and @+lm.wh_id
+            and @+il.lodnum
+            and @+ins.subnum
+            and @+id.dtlnum
+            and @+lm.cntdte:date
+            and @+lm.lstdte:date
+            and @+id.fifdte:date
+            and @+id.mandte:date
+            and @+id.adddte:date
+            and @+id.lstdte:date
+            and @+ins.adddte:date
+            and @+ins.lstdte:date
+            and @+ins.uccdte:date
+            and @+il.adddte:date
+            and @+il.lstdte:date
+            and @+il.uccdte:date
+            and @+pm_wh.lstrcv:date
+            and @+pm_wh.cntdte:data
+            and @+lm.lstdte:data
+            and @+id.inv_attr_dte1:date
+            and @+id.inv_attr_dte2:date
+            and @+lm.loc_typ_id
+            and @*
+          group by lm.arecod,
+                id.invsts,
+                id.hld_flg,
+                id.prtnum,
+                id.prt_client_id,
+                @invattr_clause:raw pm.stkuom,
+                pm.catch_unttyp,
+                lm.wh_id
+          order by prtnum,
+                prt_client_id]
+        |
+        publish data
+         where polval = @arecod
+        |
+        [select max(rtstr1) pol_hstacc
+           from poldat
+          where polcod = 'HOST-TRANS'
+            and polvar = 'AREA-HOST-LOCATION'
+            and polval = nvl(@arecod, rtrim(' ')) || '_rttn_id_' || nvl(@rttn_id, rtrim(' '))
+            and wh_id_tmpl = nvl(@wh_id, @@wh_id)] catch(@?)
+        |
+        publish data
+         where arecod = @arecod
+           and hstacc = nvl(@pol_hstacc, @rttn_id)
+           and prtnum = @prtnum
+           and prt_client_id = @prt_client_id
+           and invsts = @invsts
+           and hld_flg = @hld_flg
+           and lotnum = @lotnum
+           and orgcod = @orgcod
+           and revlvl = @revlvl
+           and mandte = @mandte
+           and expire_dte = @expire_dte
+           and stkuom = @stkuom
+           and untqty = @untqty
+           and catch_qty = @catch_qty
+           and catch_unttyp = @catch_unttyp
+           and wh_id = @wh_id
+           and inv_attr_str1 = @inv_attr_str1
+           and inv_attr_str2 = @inv_attr_str2
+           and inv_attr_str3 = @inv_attr_str3
+           and inv_attr_str4 = @inv_attr_str4
+           and inv_attr_str5 = @inv_attr_str5
+           and inv_attr_str6 = @inv_attr_str6
+           and inv_attr_str7 = @inv_attr_str7
+           and inv_attr_str8 = @inv_attr_str8
+           and inv_attr_str9 = @inv_attr_str9
+           and inv_attr_str10 = @inv_attr_str10
+           and inv_attr_str11 = @inv_attr_str11
+           and inv_attr_str12 = @inv_attr_str12
+           and inv_attr_str13 = @inv_attr_str13
+           and inv_attr_str14 = @inv_attr_str14
+           and inv_attr_str15 = @inv_attr_str15
+           and inv_attr_str16 = @inv_attr_str16
+           and inv_attr_str17 = @inv_attr_str17
+           and inv_attr_str18 = @inv_attr_str18
+           and inv_attr_int1 = @inv_attr_int1
+           and inv_attr_int2 = @inv_attr_int2
+           and inv_attr_int3 = @inv_attr_int3
+           and inv_attr_int4 = @inv_attr_int4
+           and inv_attr_int5 = @inv_attr_int5
+           and inv_attr_flt1 = @inv_attr_flt1
+           and inv_attr_flt2 = @inv_attr_flt2
+           and inv_attr_flt3 = @inv_attr_flt3
+           and inv_attr_dte1 = @inv_attr_dte1
+           and inv_attr_dte2 = @inv_attr_dte2
+           and cstms_cnsgnmnt_id = @cstms_cnsgnmnt_id
+           and rttn_id = @rttn_id
+           and cstms_bond_flg = @cstms_bond_flg
+           and dty_stmp_flg = @dty_stmp_flg
+           and lot_sts = @lot_sts
+    }
+    else if (@rtstr2 = 'cstms_bond_flg')
+    {
+        [select lm.arecod,
+                id.prtnum prtnum,
+                id.prt_client_id prt_client_id,
+                id.invsts,
+                id.hld_flg,
+                @invattr_clause:raw pm.stkuom,
+                sum(id.untqty) untqty,
+                sum(id.catch_qty) catch_qty,
+                pm.catch_unttyp,
+                lm.wh_id
+           from prtmst_view pm
+           join prtmst_wh pm_wh
+             on pm.wh_id = pm_wh.wh_id
+            and pm.prtnum = pm_wh.prtnum
+            and pm.prt_client_id = pm_wh.prt_client_id
+           join invdtl id
+             on pm.prtnum = id.prtnum
+            and pm.prt_client_id = id.prt_client_id
+           join invsub ins
+             on id.subnum = ins.subnum
+           join invlod il
+             on ins.lodnum = il.lodnum
+            and il.wh_id = pm.wh_id
+           join locmst lm
+             on il.stoloc = lm.stoloc
+            and il.wh_id = lm.wh_id
+           join loc_typ lt
+             on lt.loc_typ_id = lm.loc_typ_id
+           left
+           join prtlot pl
+             on pm.prtnum = pl.prtnum
+            and pm.prt_client_id = pl.prt_client_id
+            and pm.wh_id = pl.wh_id
+            and id.lotnum = pl.lotnum
+          where pm.prdflg = '1'
+            and lt.fwiflg = '1'
+            and lm.arecod like @polval
+            and @+id.prtnum
+            and @+id.prt_client_id
+            and @+lm.arecod
+            and @+lm.stoloc
+            and @+lm.wh_id
+            and @+il.lodnum
+            and @+ins.subnum
+            and @+id.dtlnum
+            and @+lm.cntdte:date
+            and @+lm.lstdte:date
+            and @+id.fifdte:date
+            and @+id.mandte:date
+            and @+id.adddte:date
+            and @+id.lstdte:date
+            and @+ins.adddte:date
+            and @+ins.lstdte:date
+            and @+ins.uccdte:date
+            and @+il.adddte:date
+            and @+il.lstdte:date
+            and @+il.uccdte:date
+            and @+pm_wh.lstrcv:date
+            and @+pm_wh.cntdte:data
+            and @+lm.lstdte:data
+            and @+id.inv_attr_dte1:date
+            and @+id.inv_attr_dte2:date
+            and @+lm.loc_typ_id
+            and @*
+          group by lm.arecod,
+                id.invsts,
+                id.hld_flg,
+                id.prtnum,
+                id.prt_client_id,
+                @invattr_clause:raw pm.stkuom,
+                pm.catch_unttyp,
+                lm.wh_id
+          order by prtnum,
+                prt_client_id]
+        |
+        publish data
+         where polval = @arecod
+        |
+        [select max(rtstr1) pol_hstacc
+           from poldat
+          where polcod = 'HOST-TRANS'
+            and polvar = 'AREA-HOST-LOCATION'
+            and polval = nvl(@arecod, rtrim(' ')) || '_cstms_bond_flg_' || nvl(@cstms_bond_flg, rtrim(' '))
+            and wh_id_tmpl = nvl(@wh_id, @@wh_id)] catch(@?)
+        |
+        publish data
+         where arecod = @arecod
+           and hstacc = nvl(@pol_hstacc, @cstms_bond_flg)
+           and prtnum = @prtnum
+           and prt_client_id = @prt_client_id
+           and invsts = @invsts
+           and hld_flg = @hld_flg
+           and lotnum = @lotnum
+           and orgcod = @orgcod
+           and revlvl = @revlvl
+           and mandte = @mandte
+           and expire_dte = @expire_dte
+           and stkuom = @stkuom
+           and untqty = @untqty
+           and catch_qty = @catch_qty
+           and catch_unttyp = @catch_unttyp
+           and wh_id = @wh_id
+           and inv_attr_str1 = @inv_attr_str1
+           and inv_attr_str2 = @inv_attr_str2
+           and inv_attr_str3 = @inv_attr_str3
+           and inv_attr_str4 = @inv_attr_str4
+           and inv_attr_str5 = @inv_attr_str5
+           and inv_attr_str6 = @inv_attr_str6
+           and inv_attr_str7 = @inv_attr_str7
+           and inv_attr_str8 = @inv_attr_str8
+           and inv_attr_str9 = @inv_attr_str9
+           and inv_attr_str10 = @inv_attr_str10
+           and inv_attr_str11 = @inv_attr_str11
+           and inv_attr_str12 = @inv_attr_str12
+           and inv_attr_str13 = @inv_attr_str13
+           and inv_attr_str14 = @inv_attr_str14
+           and inv_attr_str15 = @inv_attr_str15
+           and inv_attr_str16 = @inv_attr_str16
+           and inv_attr_str17 = @inv_attr_str17
+           and inv_attr_str18 = @inv_attr_str18
+           and inv_attr_int1 = @inv_attr_int1
+           and inv_attr_int2 = @inv_attr_int2
+           and inv_attr_int3 = @inv_attr_int3
+           and inv_attr_int4 = @inv_attr_int4
+           and inv_attr_int5 = @inv_attr_int5
+           and inv_attr_flt1 = @inv_attr_flt1
+           and inv_attr_flt2 = @inv_attr_flt2
+           and inv_attr_flt3 = @inv_attr_flt3
+           and inv_attr_dte1 = @inv_attr_dte1
+           and inv_attr_dte2 = @inv_attr_dte2
+           and cstms_cnsgnmnt_id = @cstms_cnsgnmnt_id
+           and rttn_id = @rttn_id
+           and cstms_bond_flg = @cstms_bond_flg
+           and dty_stmp_flg = @dty_stmp_flg
+           and lot_sts = @lot_sts
+    }
+    else if (@rtstr2 = 'dty_stmp_flg')
+    {
+        [select lm.arecod,
+                id.prtnum prtnum,
+                id.prt_client_id prt_client_id,
+                id.invsts,
+                id.hld_flg,
+                @invattr_clause:raw pm.stkuom,
+                sum(id.untqty) untqty,
+                sum(id.catch_qty) catch_qty,
+                pm.catch_unttyp,
+                lm.wh_id
+           from prtmst_view pm
+           join prtmst_wh pm_wh
+             on pm.wh_id = pm_wh.wh_id
+            and pm.prtnum = pm_wh.prtnum
+            and pm.prt_client_id = pm_wh.prt_client_id
+           join invdtl id
+             on pm.prtnum = id.prtnum
+            and pm.prt_client_id = id.prt_client_id
+           join invsub ins
+             on id.subnum = ins.subnum
+           join invlod il
+             on ins.lodnum = il.lodnum
+            and il.wh_id = pm.wh_id
+           join locmst lm
+             on il.stoloc = lm.stoloc
+            and il.wh_id = lm.wh_id
+           join loc_typ lt
+             on lt.loc_typ_id = lm.loc_typ_id
+           left
+           join prtlot pl
+             on pm.prtnum = pl.prtnum
+            and pm.prt_client_id = pl.prt_client_id
+            and pm.wh_id = pl.wh_id
+            and id.lotnum = pl.lotnum
+          where pm.prdflg = '1'
+            and lt.fwiflg = '1'
+            and lm.arecod like @polval
+            and @+id.prtnum
+            and @+id.prt_client_id
+            and @+lm.arecod
+            and @+lm.stoloc
+            and @+lm.wh_id
+            and @+il.lodnum
+            and @+ins.subnum
+            and @+id.dtlnum
+            and @+lm.cntdte:date
+            and @+lm.lstdte:date
+            and @+id.fifdte:date
+            and @+id.mandte:date
+            and @+id.adddte:date
+            and @+id.lstdte:date
+            and @+ins.adddte:date
+            and @+ins.lstdte:date
+            and @+ins.uccdte:date
+            and @+il.adddte:date
+            and @+il.lstdte:date
+            and @+il.uccdte:date
+            and @+pm_wh.lstrcv:date
+            and @+pm_wh.cntdte:data
+            and @+lm.lstdte:data
+            and @+id.inv_attr_dte1:date
+            and @+id.inv_attr_dte2:date
+            and @+lm.loc_typ_id
+            and @*
+          group by lm.arecod,
+                id.invsts,
+                id.hld_flg,
+                id.prtnum,
+                id.prt_client_id,
+                @invattr_clause:raw pm.stkuom,
+                pm.catch_unttyp,
+                lm.wh_id
+          order by prtnum,
+                prt_client_id]
+        |
+        publish data
+         where polval = @arecod
+        |
+        [select max(rtstr1) pol_hstacc
+           from poldat
+          where polcod = 'HOST-TRANS'
+            and polvar = 'AREA-HOST-LOCATION'
+            and polval = nvl(@arecod, rtrim(' ')) || '_dty_stmp_flg_' || nvl(@dty_stmp_flg, rtrim(' '))
+            and wh_id_tmpl = nvl(@wh_id, @@wh_id)] catch(@?)
+        |
+        publish data
+         where arecod = @arecod
+           and hstacc = nvl(@pol_hstacc, @dty_stmp_flg)
+           and prtnum = @prtnum
+           and prt_client_id = @prt_client_id
+           and invsts = @invsts
+           and hld_flg = @hld_flg
+           and lotnum = @lotnum
+           and orgcod = @orgcod
+           and revlvl = @revlvl
+           and mandte = @mandte
+           and expire_dte = @expire_dte
+           and stkuom = @stkuom
+           and untqty = @untqty
+           and catch_qty = @catch_qty
+           and catch_unttyp = @catch_unttyp
+           and wh_id = @wh_id
+           and inv_attr_str1 = @inv_attr_str1
+           and inv_attr_str2 = @inv_attr_str2
+           and inv_attr_str3 = @inv_attr_str3
+           and inv_attr_str4 = @inv_attr_str4
+           and inv_attr_str5 = @inv_attr_str5
+           and inv_attr_str6 = @inv_attr_str6
+           and inv_attr_str7 = @inv_attr_str7
+           and inv_attr_str8 = @inv_attr_str8
+           and inv_attr_str9 = @inv_attr_str9
+           and inv_attr_str10 = @inv_attr_str10
+           and inv_attr_str11 = @inv_attr_str11
+           and inv_attr_str12 = @inv_attr_str12
+           and inv_attr_str13 = @inv_attr_str13
+           and inv_attr_str14 = @inv_attr_str14
+           and inv_attr_str15 = @inv_attr_str15
+           and inv_attr_str16 = @inv_attr_str16
+           and inv_attr_str17 = @inv_attr_str17
+           and inv_attr_str18 = @inv_attr_str18
+           and inv_attr_int1 = @inv_attr_int1
+           and inv_attr_int2 = @inv_attr_int2
+           and inv_attr_int3 = @inv_attr_int3
+           and inv_attr_int4 = @inv_attr_int4
+           and inv_attr_int5 = @inv_attr_int5
+           and inv_attr_flt1 = @inv_attr_flt1
+           and inv_attr_flt2 = @inv_attr_flt2
+           and inv_attr_flt3 = @inv_attr_flt3
+           and inv_attr_dte1 = @inv_attr_dte1
+           and inv_attr_dte2 = @inv_attr_dte2
+           and cstms_cnsgnmnt_id = @cstms_cnsgnmnt_id
+           and rttn_id = @rttn_id
+           and cstms_bond_flg = @cstms_bond_flg
+           and dty_stmp_flg = @dty_stmp_flg
+           and lot_sts = @lot_sts
+    }
+    else if (@rtstr2 is null)
+    {
+        [select lm.arecod,
+                id.prtnum prtnum,
+                id.prt_client_id prt_client_id,
+                id.invsts,
+                id.hld_flg,
+                @invattr_clause:raw pm.stkuom,
+                sum(id.untqty) untqty,
+                sum(id.catch_qty) catch_qty,
+                pm.catch_unttyp,
+                lm.wh_id,
+                id.inv_attr_str1,
+                id.expire_dte
+           from prtmst_view pm
+           join prtmst_wh pm_wh
+             on pm.wh_id = pm_wh.wh_id
+            and pm.prtnum = pm_wh.prtnum
+            and pm.prt_client_id = pm_wh.prt_client_id
+           join invdtl id
+             on pm.prtnum = id.prtnum
+            and pm.prt_client_id = id.prt_client_id
+           join invsub ins
+             on id.subnum = ins.subnum
+           join invlod il
+             on ins.lodnum = il.lodnum
+            and il.wh_id = pm.wh_id
+           join locmst lm
+             on il.stoloc = lm.stoloc
+            and il.wh_id = lm.wh_id
+           join loc_typ lt
+             on lt.loc_typ_id = lm.loc_typ_id
+           left
+           join prtlot pl
+             on pm.prtnum = pl.prtnum
+            and pm.prt_client_id = pl.prt_client_id
+            and pm.wh_id = pl.wh_id
+            and id.lotnum = pl.lotnum
+          where pm.prdflg = '1'
+            and lt.fwiflg = '1'
+            and lm.arecod like @polval
+            and @+id.prtnum
+            and @+id.prt_client_id
+            and @+lm.arecod
+            and @+lm.stoloc
+            and @+lm.wh_id
+            and @+il.lodnum
+            and @+ins.subnum
+            and @+id.dtlnum
+            and @+lm.cntdte:date
+            and @+lm.lstdte:date
+            and @+id.fifdte:date
+            and @+id.mandte:date
+            and @+id.adddte:date
+            and @+id.lstdte:date
+            and @+ins.adddte:date
+            and @+ins.lstdte:date
+            and @+ins.uccdte:date
+            and @+il.adddte:date
+            and @+il.lstdte:date
+            and @+il.uccdte:date
+            and @+pm_wh.lstrcv:date
+            and @+pm_wh.cntdte:data
+            and @+lm.lstdte:data
+            and @+id.inv_attr_dte1:date
+            and @+id.inv_attr_dte2:date
+            and @+lm.loc_typ_id
+            and @*
+          group by lm.arecod,
+                id.invsts,
+                id.hld_flg,
+                id.prtnum,
+                id.prt_client_id,
+                @invattr_clause:raw pm.stkuom,
+                pm.catch_unttyp,
+                lm.wh_id,
+                id.inv_attr_str1,
+                id.expire_dte
+          order by prtnum,
+                prt_client_id]
+        |
+        publish data
+         where arecod = @arecod
+           and hstacc = ''
+           and prtnum = @prtnum
+           and prt_client_id = @prt_client_id
+           and invsts = @invsts
+           and hld_flg = @hld_flg
+           and lotnum = @lotnum
+           and orgcod = @orgcod
+           and revlvl = @revlvl
+           and mandte = @mandte
+           and expire_dte = @expire_dte
+           and stkuom = @stkuom
+           and untqty = @untqty
+           and catch_qty = @catch_qty
+           and catch_unttyp = @catch_unttyp
+           and wh_id = @wh_id
+           and inv_attr_str1 = @inv_attr_str1
+           and inv_attr_str2 = @inv_attr_str2
+           and inv_attr_str3 = @inv_attr_str3
+           and inv_attr_str4 = @inv_attr_str4
+           and inv_attr_str5 = @inv_attr_str5
+           and inv_attr_str6 = @inv_attr_str6
+           and inv_attr_str7 = @inv_attr_str7
+           and inv_attr_str8 = @inv_attr_str8
+           and inv_attr_str9 = @inv_attr_str9
+           and inv_attr_str10 = @inv_attr_str10
+           and inv_attr_str11 = @inv_attr_str11
+           and inv_attr_str12 = @inv_attr_str12
+           and inv_attr_str13 = @inv_attr_str13
+           and inv_attr_str14 = @inv_attr_str14
+           and inv_attr_str15 = @inv_attr_str15
+           and inv_attr_str16 = @inv_attr_str16
+           and inv_attr_str17 = @inv_attr_str17
+           and inv_attr_str18 = @inv_attr_str18
+           and inv_attr_int1 = @inv_attr_int1
+           and inv_attr_int2 = @inv_attr_int2
+           and inv_attr_int3 = @inv_attr_int3
+           and inv_attr_int4 = @inv_attr_int4
+           and inv_attr_int5 = @inv_attr_int5
+           and inv_attr_flt1 = @inv_attr_flt1
+           and inv_attr_flt2 = @inv_attr_flt2
+           and inv_attr_flt3 = @inv_attr_flt3
+           and inv_attr_dte1 = @inv_attr_dte1
+           and inv_attr_dte2 = @inv_attr_dte2
+           and cstms_cnsgnmnt_id = @cstms_cnsgnmnt_id
+           and rttn_id = @rttn_id
+           and cstms_bond_flg = @cstms_bond_flg
+           and dty_stmp_flg = @dty_stmp_flg
+           and lot_sts = @lot_sts
+    }
+} catch(-1403)
+]]>
+</local-syntax>
+</command>
