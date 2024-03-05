@@ -15,7 +15,7 @@ get client in clause for user
         pckwrk_view.ordlin,
         pckwrk_view.prtnum,
         sum(pckwrk_view.pckqty / invdtl.untcas) as stgqty,
-        invdtl.expire_dte,
+        convert(varchar, invdtl.expire_dte, 111) as expire_dte,
         invdtl.inv_attr_str1
    from pckwrk_view
    join invdtl
