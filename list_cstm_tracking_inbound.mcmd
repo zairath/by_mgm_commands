@@ -38,11 +38,13 @@ get client in clause for user
         trlr.dispatch_dte as check_out_time,
         'INBOUND' as activity,
         rcvlin.client_id as clientid_inbound,
+        adrmst.adrnam as client_name,
         rcvtrk.trknum as inbound_shipment,
         rcvlin.supnum as supp_nam,
         sum(rcvlin.rcvqty) as qty_rcv,
         count(distinct rcvlin.revlvl) as inb_pall,
         rcvinv.invdte as create_dte,
+        rcvinv.mod_usr_id as crte_by,
         max(rcvlin.mod_usr_id) as gr_by
    from trlr
    join dscmst dc1
@@ -56,6 +58,10 @@ get client in clause for user
    join rcvinv
      on rcvinv.trknum = rcvtrk.trknum
     and rcvinv.wh_id = rcvtrk.wh_id
+   join client
+     on client.client_id = rcvinv.client_id
+   join adrmst
+     on adrmst.adr_id = client.adr_id
    join rcvlin
      on rcvinv.trknum = rcvlin.trknum
     and rcvinv.wh_id = rcvlin.wh_id
@@ -75,10 +81,13 @@ get client in clause for user
         trlr.dispatch_dte,
         rcvlin.client_id,
         rcvtrk.trknum,
+        adrmst.adrnam,
         rcvlin.supnum,
         rcvinv.invdte,
+        adrmst.adrnam,
         trlr.trlr_id,
-        rcvlin.mod_usr_id]
+        rcvlin.mod_usr_id,
+        rcvinv.mod_usr_id]
 ]]>
 </local-syntax>
 </command>
