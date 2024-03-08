@@ -1,0 +1,116 @@
+<command>
+  <name>list cstm tracking outbound</name>
+  <description>list cstm tracking outbound</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+   and @+start_date
+   and @+end_date
+|
+[select trlr.trlr_num as license_plate,
+        dc1.lngdsc as type_truck,
+        trlr.driver_nam as driver_name,
+        dc2.lngdsc as truck_status,
+        min(case when trlract.trlr_stat = 'CI' and trlract.actcod in ('TCHKIN', 'TCHG') then trlract.trndte
+            end) as check_in_time,
+        min(case when trlract.trlr_stat = 'O' and trlract.actcod in ('TCLOSE', 'TCHG') then trlract.trndte
+            end) as gate_in_outbound,
+        min(case when trlract.trlr_stat = 'LDG' and trlract.trlr_cod = 'SHIP' and trlract.actcod = 'TLDG' then trlract.trndte
+            end) as start_activity_outbound,
+        min(case when trlract.trlr_stat = 'C' and trlract.trlr_cod = 'SHIP' and trlract.actcod in ('TCLOSE', 'TCHG') then trlract.trndte
+            end) as finish_activity_outbound,
+        trlr.close_dte as get_out_time,
+        trlr.dispatch_dte as check_out_time,
+        'OUTBOUND' as activity,
+        min(case when car_move.car_move_id is not null then ord_line.prt_client_id
+            end) as clientid_outbound,
+        adrmst.adrnam client_name,
+        min(case when car_move.car_move_id is not null then ord_line.ordnum
+            end) as order_num,
+        ad.adrnam as ship_to_address,
+        pv.schbat as wave_num,
+        pv.pckqty as qty_order,
+        pv.adddte as create_do,
+        shipment.alcdte allocate_date,
+        pv.pckdte as start_pick,
+        shipment.stgdte as finish_pick,
+        pv.last_upd_user_id as Create_by,
+        pv.last_pck_usr_id as pick_by
+   from trlr
+   join dscmst dc1
+     on dc1.colnam = 'trlr_typ'
+    and dc1.colval = trlr.trlr_typ
+   join dscmst dc2
+     on dc2.colnam = 'trlr_stat'
+    and dc2.colval = trlr.trlr_stat
+   join carhdr
+     on carhdr.carcod = trlr.carcod
+   join trlract
+     on trlract.trlr_id = trlr.trlr_id
+    and trlract.trlr_num = trlr.trlr_num
+   join car_move
+     on car_move.trlr_id = trlr.trlr_id
+   join stop
+     on stop.car_move_id = car_move.car_move_id
+   left
+   join shipment
+     on shipment.stop_id = stop.stop_id
+   join shipment_line
+     on shipment_line.ship_id = shipment.ship_id
+   join ord_line
+     on shipment_line.ordnum = ord_line.ordnum
+   join pckwrk_view pv
+     on pv.ordnum = shipment_line.ordnum
+    and pv.ordlin = shipment_line.ordlin
+    and pv.wh_id = shipment_line.wh_id
+   join dlytrn dt
+     on dt.ordnum = pv.ordnum
+    and dt.client_id = pv.client_id
+    and dt.wh_id = pv.wh_id
+    and dt.actcod = 'LSTPCK'
+    and dt.frstol = pv.srcloc
+   left
+   join adrmst ad
+     on ad.adr_id = ord_line.st_adr_id
+   left
+   join client
+     on client.client_id = ord_line.client_id
+   left
+   join adrmst
+     on adrmst.adr_id = client.adr_id
+  where trlr.trlr_stat <> 'EX'
+    and trlr.trlr_cod = 'SHIP'
+    and @+trlr.stoloc_wh_id
+    and trlr.arrdte between @start_date:date
+    and @end_date:date
+    and @+pv.client_id
+  group by trlr_seal1,
+        adrmst.adrnam,
+        dc1.lngdsc,
+        dc2.lngdsc,
+        carhdr.carnam,
+        ad.adrnam,
+        pv.adddte,
+        pv.pckdte,
+        shipment.stgdte,
+        shipment.alcdte,
+        pv.schbat,
+        pv.ordnum,
+        pv.pckqty,
+        pv.last_pck_usr_id,
+        pv.last_upd_user_id,
+        shipment_line.picked_qty,
+        trlr.trlr_num,
+        trlr.driver_lic_num,
+        trlr.driver_nam,
+        trlr.trlr_broker,
+        trlr.trlr_ref,
+        trlr.close_dte,
+        trlr.dispatch_dte,
+        trlr.trlr_cod]
+]]>
+</local-syntax>
+</command>
