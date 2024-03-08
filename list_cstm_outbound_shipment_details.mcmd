@@ -66,9 +66,33 @@ get client in clause for user
                    or pvw.pck_uom is null then 'FULL-PALLET'
                    else 'NON-FULL-PALLET'
                    end as out_categories*/
-                case when pvw.pck_uom = 'PL' then 'FULL-PALLET'
-                     when pvw.pck_uom is null then 'FULL-PALLET'
-                     else 'NON-FULL-PALLET'
+                /*case when pvw.pck_uom = 'PL' then 'FULL-PALLET'
+                   when pvw.pck_uom is null then 'FULL-PALLET'
+                   else 'NON-FULL-PALLET'
+                   end as out_categories,*/
+                case when (pvw.pck_uom = 'PL' or pvw.pck_uom is null)
+                 and not exists(select invdtl_hist.rcvkey
+                                  from invdtl_hist
+                                 where invdtl_hist.rcvkey = inv.rcvkey
+                                 group by invdtl_hist.rcvkey
+                                having count(invdtl_hist.rcvkey) > 1) then 'FULL-PALLET'
+                     when (pvw.pck_uom = 'PL' or pvw.pck_uom is null)
+                 and exists(select invdtl_hist.rcvkey
+                              from invdtl_hist
+                             where invdtl_hist.rcvkey = inv.rcvkey
+                             group by invdtl_hist.rcvkey
+                            having count(invdtl_hist.rcvkey) > 1) then 'NON-FULL-PALLET'
+                     when (pvw.pck_uom <> 'PL' or pvw.pck_uom is not null)
+                 and not exists(select invdtl_hist.rcvkey
+                                  from invdtl_hist
+                                 where invdtl_hist.rcvkey = inv.rcvkey
+                                 group by invdtl_hist.rcvkey
+                                having count(invdtl_hist.rcvkey) > 1) then 'FULL-PALLET'
+                     when exists(select invdtl_hist.rcvkey
+                                   from invdtl_hist
+                                  where invdtl_hist.rcvkey = inv.rcvkey
+                                  group by invdtl_hist.rcvkey
+                                 having count(invdtl_hist.rcvkey) > 1) then 'NON-FULL-PALLET'
                 end as out_categories
            from prtmst_view
            join ord_line
