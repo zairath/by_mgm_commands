@@ -85,7 +85,7 @@ get client in clause for user
            and trlract.trlr_cod = 'SHIP'
            and trlract.actcod in ('TCLOSE', 'TCHG')
            order by trlract.trlract_id asc) as finish_activity_outbound,*/
-        min(case when car_move.car_move_id is not null then ord_line.prt_client_id
+        min(case when outbound.car_move_id is not null then outbound.client_id
             end) as clientid_outbound,
         /*(select top 1adrmst.client_id
            from trlract
@@ -97,7 +97,7 @@ get client in clause for user
            and trlract.trlr_stat = 'C'
            and trlract.trlr_cod = 'SHIP'
            and trlract.actcod in ('TCLOSE', 'TCHG')) as clientid_outbound,*/
-        min(case when car_move.car_move_id is not null then car_move.car_move_id
+        min(case when outbound.car_move_id is not null then outbound.car_move_id
             end) as outbound_load,
         /*(select top 1stop.car_move_id
            from trlract
@@ -109,8 +109,8 @@ get client in clause for user
            and trlract.trlr_stat = 'C'
            and trlract.trlr_cod = 'SHIP'
            and trlract.actcod in ('TCLOSE', 'TCHG')) as outbound_load,*/
-        (round(sum(cast(shipment_line.inloadqty as float)) / sum(cast(ord_line.ordqty as float)) * 100, 2)) as Load_Percentage,
-        min(case when rcvtrk.trknum is not null then rcvlin.client_id
+        (round(sum(cast(outbound.inloadqty as float)) / sum(cast(outbound.ordqty as float)) * 100, 2)) as Load_Percentage,
+        min(case when inbound.trknum is not null then inbound.client_id
             end) as clientid_inbound,
         /*(select top 1rcvinv.client_id
            from trlract
@@ -120,7 +120,7 @@ get client in clause for user
            and trlract.trlr_stat = 'R'
            and trlract.trlr_cod = 'RCV'
            and trlract.actcod = 'TCHG') as clientid_inbound,*/
-        min(case when rcvtrk.trknum is not null then rcvtrk.trknum
+        min(case when inbound.trknum is not null then inbound.trknum
             end) as inbound_shipment,
         /*(select top 1rcvinv.trknum
            from rcvinv
@@ -128,7 +128,7 @@ get client in clause for user
            where trlract.trlr_stat = 'R'
            and trlract.trlr_cod = 'RCV'
            and trlract.actcod = 'TCHG') as inbound_shipment*/
-        (round(sum(cast(rcvlin.rcvqty as float)) / sum(cast(rcvlin.expqty as float)) * 100, 2)) as Unload_Percentage
+        (round(sum(cast(inbound.rcvqty as float)) / sum(cast(inbound.expqty as float)) * 100, 2)) as Unload_Percentage
    from trlr
    join dscmst dc1
      on dc1.colnam = 'trlr_typ'
@@ -143,30 +143,40 @@ get client in clause for user
    join trlract
      on trlract.trlr_id = trlr.trlr_id
     and trlract.trlr_num = trlr.trlr_num
-   left
-   join car_move
-     on car_move.trlr_id = trlr.trlr_id
-   left
-   join stop
-     on stop.car_move_id = car_move.car_move_id
-   left
-   join shipment
-     on shipment.stop_id = stop.stop_id
-   left
-   join shipment_line
-     on shipment_line.ship_id = shipment.ship_id
-   left
-   join ord_line
-     on shipment_line.ordnum = ord_line.ordnum
-   left
-   join rcvtrk
-     on rcvtrk.trlr_id = trlract.trlr_id
-   left
-   join rcvinv
-     on rcvinv.trknum = rcvtrk.trknum
-   left
-   join rcvlin
-     on rcvinv.trknum = rcvlin.trknum
+   left outer
+   join (select car_move.trlr_id,
+                car_move.car_move_id,
+                sum(shipment_line.inloadqty) inloadqty,
+                sum(ord_line.ordqty) ordqty,
+                ord_line.client_id
+           from car_move
+           join stop
+             on stop.car_move_id = car_move.car_move_id
+           join shipment
+             on shipment.stop_id = stop.stop_id
+           join shipment_line
+             on shipment_line.ship_id = shipment.ship_id
+           join ord_line
+             on shipment_line.ordnum = ord_line.ordnum
+          group by car_move.trlr_id,
+                car_move.car_move_id,
+                ord_line.client_id) outbound
+     on outbound.trlr_id = trlr.trlr_id
+   left outer
+   join (select rcvtrk.trlr_id,
+                sum(rcvlin.rcvqty) rcvqty,
+                sum(rcvlin.expqty) expqty,
+                rcvtrk.trknum,
+                rcvinv.client_id
+           from rcvtrk
+           join rcvinv
+             on rcvinv.trknum = rcvtrk.trknum
+           join rcvlin
+             on rcvinv.trknum = rcvlin.trknum
+          group by rcvtrk.trlr_id,
+                rcvtrk.trknum,
+                rcvinv.client_id) inbound
+     on inbound.trlr_id = trlr.trlr_id
   where trlr.trlr_stat <> 'EX'
     and @+trlr.stoloc_wh_id
     and trlr.arrdte between @start_date:date
@@ -182,7 +192,7 @@ get client in clause for user
         trlr.trlr_ref,
         trlr.close_dte,
         trlr.dispatch_dte,
-        trlr.trlr_cod];
+        trlr.trlr_cod]
 ]]>
 </local-syntax>
 </command>
