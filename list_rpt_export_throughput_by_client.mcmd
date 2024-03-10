@@ -167,8 +167,8 @@
      on dcf.colval = prtmst_view.prtfam
     and dcf.colnam = 'prtfam'
    join dscmst dcs
-     on dcs.colval = ar.arecod || '|' || locmst.wh_id
-    and dcs.colnam = 'arecod' || '|' || 'wh_id'
+     on dcs.colval = ar.arecod + '|' + locmst.wh_id
+    and dcs.colnam = 'arecod' + '|' + 'wh_id'
    left
    join client
      on client.client_id = prtmst_view.prt_client_id
@@ -266,7 +266,6 @@
      on sspdt.prt_client_id = prtmst_view.prt_client_id
     and sspdt.wh_id = prtmst_view.wh_id
   where prtmst_view.wh_id not in ('----', 'WMD1')
-    and prtmst_view.wh_id = '002'
   group by prtmst_view.wh_id,
         prtmst_view.prt_client_id,
         prtmst_view.prtnum,
