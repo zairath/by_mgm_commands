@@ -25,10 +25,10 @@ get client in clause for user
         trlr.close_dte as get_out_time,
         trlr.dispatch_dte as check_out_time,
         'OUTBOUND' as activity,
-        min(case when car_move.car_move_id is not null then ord_line.prt_client_id
+        min(case when car_move.car_move_id is not null then ord.client_id
             end) as clientid_outbound,
         adrmst.adrnam client_name,
-        min(case when car_move.car_move_id is not null then ord_line.ordnum
+        min(case when car_move.car_move_id is not null then ord.ordnum
             end) as order_num,
         ad.adrnam as ship_to_address,
         pv.schbat as wave_num,
@@ -55,30 +55,22 @@ get client in clause for user
      on car_move.trlr_id = trlr.trlr_id
    join stop
      on stop.car_move_id = car_move.car_move_id
-   left
    join shipment
      on shipment.stop_id = stop.stop_id
    join shipment_line
      on shipment_line.ship_id = shipment.ship_id
-   join ord_line
-     on shipment_line.ordnum = ord_line.ordnum
+    and shipment_line.wh_id = shipment.wh_id
+   join ord
+     on shipment_line.ordnum = ord.ordnum
+    and shipment_line.wh_id = ord.wh_id
    join pckwrk_view pv
-     on pv.ordnum = shipment_line.ordnum
-    and pv.ordlin = shipment_line.ordlin
+     on pv.ship_id = shipment_line.ship_id
+    and pv.ship_line_id = shipment_line.ship_line_id
     and pv.wh_id = shipment_line.wh_id
-   join dlytrn dt
-     on dt.ordnum = pv.ordnum
-    and dt.client_id = pv.client_id
-    and dt.wh_id = pv.wh_id
-    and dt.actcod = 'LSTPCK'
-    and dt.frstol = pv.srcloc
-   left
    join adrmst ad
-     on ad.adr_id = ord_line.st_adr_id
-   left
+     on ad.adr_id = ord.st_adr_id
    join client
-     on client.client_id = ord_line.client_id
-   left
+     on client.client_id = shipment_line.client_id
    join adrmst
      on adrmst.adr_id = client.adr_id
   where trlr.trlr_stat <> 'EX'
@@ -87,26 +79,19 @@ get client in clause for user
     and trlr.arrdte between @start_date:date
     and @end_date:date
     and @+pv.client_id
-  group by trlr_seal1,
-        adrmst.adrnam,
+  group by trlr.trlr_num,
         dc1.lngdsc,
-        dc2.lngdsc,
-        carhdr.carnam,
-        ad.adrnam,
-        shipment.stgdte,
-        shipment.alcdte,
-        pv.schbat,
-        pv.ordnum,
-        pv.last_pck_usr_id,
-        pv.last_upd_user_id,
-        trlr.trlr_num,
-        trlr.driver_lic_num,
         trlr.driver_nam,
-        trlr.trlr_broker,
-        trlr.trlr_ref,
+        dc2.lngdsc,
         trlr.close_dte,
         trlr.dispatch_dte,
-        trlr.trlr_cod]
+        adrmst.adrnam,
+        ad.adrnam,
+        pv.schbat,
+        shipment.alcdte,
+        shipment.stgdte,
+        pv.last_upd_user_id,
+        pv.last_pck_usr_id]
 ]]>
 </local-syntax>
 </command>
