@@ -1,0 +1,20 @@
+<command>
+  <name>list rpt printout soh throughput by client</name>
+  <description>list rpt printout soh throughput by client</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+|
+[select *
+   from soh_client_daily_throughput
+  where date_printed between @start_date:date
+    and @end_date:date
+    and @+wh_id
+    and @+client_id
+  order by date_printed asc]
+]]>
+</local-syntax>
+</command>
