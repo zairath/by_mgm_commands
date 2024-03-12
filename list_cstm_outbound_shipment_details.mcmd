@@ -69,30 +69,93 @@ get client in clause for user
                 /*case when pvw.pck_uom = 'PL' then 'FULL-PALLET'
                    when pvw.pck_uom is null then 'FULL-PALLET'
                    else 'NON-FULL-PALLET'
-                   end as out_categories,*/
+                   end as out_categories*/
+                /*case when (pvw.pck_uom = 'PL' or pvw.pck_uom is null)
+                   and not exists(select invdtl_hist.wrkref_dtl
+                   from invdtl_hist
+                   where invdtl_hist.rcvkey = (select top 1rcvkey
+                   from inventory_view ahy
+                   where ahy.prtnum = max(prtmst_view.prtnum)
+                   and ahy.prt_client_id = max(prtmst_view.prt_client_id)
+                   and ahy.wh_id = max(prtmst_view.wh_id))
+                   group by invdtl_hist.wrkref_dtl
+                   having count(invdtl_hist.wrkref_dtl) > 1) then 'FULL-PALLETs'
+                   when (pvw.pck_uom = 'PL' or pvw.pck_uom is null)
+                   and exists(select invdtl_hist.wrkref_dtl
+                   from invdtl_hist
+                   where invdtl_hist.rcvkey = (select top 1rcvkey
+                   from inventory_view ahy
+                   where ahy.prtnum = max(prtmst_view.prtnum)
+                   and ahy.prt_client_id = max(prtmst_view.prt_client_id)
+                   and ahy.wh_id = max(prtmst_view.wh_id))
+                   group by invdtl_hist.wrkref_dtl
+                   having count(invdtl_hist.wrkref_dtl) > 1) then 'NON-FULL-PALLET'
+                   when (pvw.pck_uom <> 'PL' or pvw.pck_uom is not null)
+                   and not exists(select invdtl_hist.wrkref_dtl
+                   from invdtl_hist
+                   where invdtl_hist.rcvkey = (select top 1rcvkey
+                   from inventory_view ahy
+                   where ahy.prtnum = max(prtmst_view.prtnum)
+                   and ahy.prt_client_id = max(prtmst_view.prt_client_id)
+                   and ahy.wh_id = max(prtmst_view.wh_id))
+                   group by invdtl_hist.wrkref_dtl
+                   having count(invdtl_hist.wrkref_dtl) > 1) then 'FULL-PALsaLET'
+                   when exists(select invdtl_hist.wrkref_dtl
+                   from invdtl_hist
+                   where invdtl_hist.rcvkey = (select top 1rcvkey
+                   from inventory_view ahy
+                   where ahy.prtnum = max(prtmst_view.prtnum)
+                   and ahy.prt_client_id = max(prtmst_view.prt_client_id)
+                   and ahy.wh_id = max(prtmst_view.wh_id))
+                   group by invdtl_hist.wrkref_dtl
+                   having count(invdtl_hist.wrkref_dtl) > 1) then 'NON-FULL-PALLET'
+                   end as out_categories, */
+                /*case when (pvw.pck_uom = 'PL' or pvw.pck_uom is null)
+                   and exists(select invdtl_hist.wrkref_dtl
+                   from invdtl_hist
+                   where invdtl_hist.revlvl = inv.revlvl
+                   group by invdtl_hist.wrkref_dtl
+                   having not count(distinct invdtl_hist.wrkref_dtl) > 1)
+                   and not exists(select ahy.rcvkey
+                   from inventory_view ahy
+                   where ahy.revlvl = inv.revlvl) then 'FULL-PALLETs'
+                   when (pvw.pck_uom = 'PL' or pvw.pck_uom is null)
+                   and exists(select invdtl_hist.wrkref_dtl
+                   from invdtl_hist
+                   where invdtl_hist.revlvl = inv.revlvl
+                   group by invdtl_hist.wrkref_dtl
+                   having count(distinct invdtl_hist.wrkref_dtl) > 1)
+                   and not exists(select ahy.rcvkey
+                   from inventory_view ahy
+                   where ahy.rcvkey = inv.rcvkey) then 'NON-FULL-PALLET'
+                   when (pvw.pck_uom <> 'PL' or pvw.pck_uom is not null)
+                   and exists(select invdtl_hist.wrkref_dtl
+                   from invdtl_hist
+                   where invdtl_hist.revlvl = inv.revlvl
+                   group by invdtl_hist.wrkref_dtl
+                   having not count(distinct invdtl_hist.wrkref_dtl) > 1)
+                   and not exists(select ahy.rcvkey
+                   from inventory_view ahy
+                   where ahy.revlvl = inv.revlvl) then 'FULL-PALsaLET'
+                   when exists(select invdtl_hist.wrkref_dtl
+                   from invdtl_hist
+                   where invdtl_hist.revlvl = inv.revlvl
+                   group by invdtl_hist.wrkref_dtl
+                   having count(distinct invdtl_hist.wrkref_dtl) > 1)
+                   and exists(select ahy.rcvkey
+                   from inventory_view ahy
+                   where ahy.rcvkey = inv.rcvkey) then 'NON-FULL-PALLET'
+                   end as out_categories */
                 case when (pvw.pck_uom = 'PL' or pvw.pck_uom is null)
-                 and not exists(select invdtl_hist.rcvkey
-                                  from invdtl_hist
-                                 where invdtl_hist.rcvkey = inv.rcvkey
-                                 group by invdtl_hist.rcvkey
-                                having count(invdtl_hist.rcvkey) > 1) then 'FULL-PALLET'
-                     when (pvw.pck_uom = 'PL' or pvw.pck_uom is null)
-                 and exists(select invdtl_hist.rcvkey
+                 and exists(select invdtl_hist.wrkref_dtl
                               from invdtl_hist
-                             where invdtl_hist.rcvkey = inv.rcvkey
-                             group by invdtl_hist.rcvkey
-                            having count(invdtl_hist.rcvkey) > 1) then 'NON-FULL-PALLET'
-                     when (pvw.pck_uom <> 'PL' or pvw.pck_uom is not null)
-                 and not exists(select invdtl_hist.rcvkey
-                                  from invdtl_hist
-                                 where invdtl_hist.rcvkey = inv.rcvkey
-                                 group by invdtl_hist.rcvkey
-                                having count(invdtl_hist.rcvkey) > 1) then 'FULL-PALLET'
-                     when exists(select invdtl_hist.rcvkey
-                                   from invdtl_hist
-                                  where invdtl_hist.rcvkey = inv.rcvkey
-                                  group by invdtl_hist.rcvkey
-                                 having count(invdtl_hist.rcvkey) > 1) then 'NON-FULL-PALLET'
+                             where invdtl_hist.revlvl = inv.revlvl
+                             group by invdtl_hist.wrkref_dtl
+                            having not count(distinct invdtl_hist.wrkref_dtl) > 1)
+                 and not exists(select ahy.rcvkey
+                                  from inventory_view ahy
+                                 where ahy.revlvl = inv.revlvl) then 'FULL-PALLET'
+                     else 'NON-FULL-PALLET'
                 end as out_categories
            from prtmst_view
            join ord_line
