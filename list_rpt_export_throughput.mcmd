@@ -1,0 +1,156 @@
+<command>
+  <name>list rpt export throughput</name>
+  <description>list rpt export throughput</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+[select DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE())) as date_printed,
+        zm.wh_id,
+        zm.wrkzon buildings,
+        dcs.lngdsc temp,
+        coalesce(max(sspdt.final_pallet), (select count(distinct ivw.revlvl)
+                                             from inventory_view ivw
+                                             join locmst lcmst
+                                               on lcmst.stoloc = ivw.stoloc
+                                              and lcmst.wh_id = ivw.wh_id
+                                            where lcmst.wrk_zone_id = zm.wrk_zone_id
+                                              and lcmst.arecod = ar.arecod
+                                              and lcmst.wh_id = zm.wh_id)) as 'init_pallet',
+        coalesce(coalesce(max(sspdt.final_weight), (select case when sum(ivw.catch_qty) > 0 then sum(ivw.catch_qty)
+                                                        when sum(ivw.catch_qty) < 1 then max(pdtl.netwgt) / 35.274 * floor(sum(ivw.untqty) / max(pdtl.untqty))
+                                                   end as counts
+                                              from inventory_view ivw
+                                              join prtmst_view pv
+                                                on pv.prtnum = ivw.prtnum
+                                               and pv.prt_client_id = ivw.prt_client_id
+                                               and pv.wh_id = ivw.wh_id
+                                              join prtftp_dtl pdtl
+                                                on pv.prtnum = pdtl.prtnum
+                                               and pv.wh_id = pdtl.wh_id
+                                               and pv.prt_client_id = pdtl.prt_client_id
+                                               and ivw.ftpcod = pdtl.ftpcod
+                                               and pdtl.uomcod = coalesce(pv.dspuom, pv.stkuom)
+                                              join locmst lcmst
+                                                on lcmst.stoloc = ivw.stoloc
+                                               and lcmst.wh_id = ivw.wh_id
+                                             where lcmst.wrk_zone_id = zm.wrk_zone_id
+                                               and lcmst.arecod = ar.arecod
+                                               and lcmst.wh_id = zm.wh_id)), cast(0 as numeric(15, 4))) as 'init_weight',
+        count(distinct inb.revlvl) as inbound_pallet,
+        coalesce(case when sum(inb.catch_qty) is not null then sum(inb.catch_qty)
+                      else cast(max(inb.netwgt) / 35.274 * floor(sum(inb.trnqty) / max(inb.untqty)) as numeric(15, 4))
+                      end, cast(0 as numeric(15, 4))) as inbound_weight, count(distinct out.revlvl) as outbound_pallet, coalesce(case when sum(out.catch_qty) is not null then sum(out.catch_qty) else cast(max(out.netwgt) / 35.274 * floor(sum(out.trnqty) / max(out.untqty)) as numeric(15, 4)) end, cast(0 as numeric(15, 4))) as outbound_weight,
+        coalesce(max(sspdt.final_pallet), (select count(distinct ivw.revlvl)
+                                             from inventory_view ivw
+                                             join locmst lcmst
+                                               on lcmst.stoloc = ivw.stoloc
+                                              and lcmst.wh_id = ivw.wh_id
+                                            where lcmst.wrk_zone_id = zm.wrk_zone_id
+                                              and lcmst.arecod = ar.arecod
+                                              and lcmst.wh_id = zm.wh_id)) + count(distinct inb.revlvl) - count(distinct out.revlvl) as final_pallet,
+        coalesce(coalesce(max(sspdt.final_weight), (select case when sum(ivw2.catch_qty) > 0 then sum(ivw2.catch_qty)
+                                                                when sum(ivw2.catch_qty) < 1 then max(pdtl2.netwgt) / 35.274 * floor(sum(ivw2.untqty) / max(pdtl2.untqty))
+                                                           end as counts
+                                                      from inventory_view ivw2
+                                                      join prtmst_view pv2
+                                                        on pv2.prtnum = ivw2.prtnum
+                                                       and pv2.prt_client_id = ivw2.prt_client_id
+                                                       and pv2.wh_id = ivw2.wh_id
+                                                      join prtftp_dtl pdtl2
+                                                        on pv2.prtnum = pdtl2.prtnum
+                                                       and pv2.wh_id = pdtl2.wh_id
+                                                       and pv2.prt_client_id = pdtl2.prt_client_id
+                                                       and ivw2.ftpcod = pdtl2.ftpcod
+                                                       and pdtl2.uomcod = coalesce(pv2.dspuom, pv2.stkuom)
+                                                      join locmst lcmst2
+                                                        on lcmst2.stoloc = ivw2.stoloc
+                                                       and lcmst2.wh_id = ivw2.wh_id
+                                                     where lcmst2.wrk_zone_id = zm.wrk_zone_id
+                                                       and lcmst2.arecod = ar.arecod
+                                                       and lcmst2.wh_id = zm.wh_id)), cast(0 as numeric(15, 4))) + coalesce(case when sum(inb.catch_qty) is not null then sum(inb.catch_qty)
+                                                                                                                                 else cast(max(inb.netwgt) / 35.274 * floor(sum(inb.trnqty) / max(inb.untqty)) as numeric(15, 4))
+                                                                                                                                 end, cast(0 as numeric(15, 4))) - coalesce(case when sum(out.catch_qty) is not null then sum(out.catch_qty)
+                                                                                                                                                                                 else cast(max(out.netwgt) / 35.274 * floor(sum(out.trnqty) / max(out.untqty)) as numeric(15, 4))
+                                                                                                                                                                                 end, cast(0 as numeric(15, 4))) as final_weight from locmst join aremst ar on ar.arecod = locmst.arecod and ar.wh_id = locmst.wh_id join zonmst zm on zm.wrk_zone_id = locmst.wrk_zone_id and zm.wh_id = locmst.wh_id join dscmst dcs on dcs.colval = ar.arecod + '|' + locmst.wh_id and dcs.colnam = 'arecod' + '|' + 'wh_id'
+                                                                                                                                                                              left
+                                                                                                                                                                              join (select dtin.revlvl,
+                                                                                                                                                                                           sum(dtin.trnqty) trnqty,
+                                                                                                                                                                                           sum(dtin.catch_qty) catch_qty,
+                                                                                                                                                                                           pdtl.netwgt,
+                                                                                                                                                                                           pdtl.untqty,
+                                                                                                                                                                                           dtin.to_arecod,
+                                                                                                                                                                                           dtin.tostol,
+                                                                                                                                                                                           dtin.wh_id
+                                                                                                                                                                                      from dlytrn dtin
+                                                                                                                                                                                      join prtftp_dtl pdtl
+                                                                                                                                                                                        on dtin.prtnum = pdtl.prtnum
+                                                                                                                                                                                       and dtin.wh_id = pdtl.wh_id
+                                                                                                                                                                                       and dtin.prt_client_id = pdtl.prt_client_id
+                                                                                                                                                                                       and pdtl.uomcod = dtin.uomcod
+                                                                                                                                                                                     where dtin.oprcod = 'UTR'
+                                                                                                                                                                                       and dtin.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
+                                                                                                                                                                                       and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))
+                                                                                                                                                                                     group by dtin.revlvl,
+                                                                                                                                                                                           pdtl.netwgt,
+                                                                                                                                                                                           pdtl.untqty,
+                                                                                                                                                                                           dtin.to_arecod,
+                                                                                                                                                                                           dtin.tostol,
+                                                                                                                                                                                           dtin.wh_id) inb
+                                                                                                                                                                                on inb.tostol = locmst.stoloc
+                                                                                                                                                                            and inb.to_arecod = locmst.arecod
+                                                                                                                                                                            and inb.wh_id = locmst.wh_id
+                                                                                                                                                                              left
+                                                                                                                                                                              join (select dtout.revlvl,
+                                                                                                                                                                                           sum(dtout.trnqty) trnqty,
+                                                                                                                                                                                           sum(dtout.catch_qty) catch_qty,
+                                                                                                                                                                                           pdtl.netwgt,
+                                                                                                                                                                                           pdtl.untqty,
+                                                                                                                                                                                           dtout.fr_arecod,
+                                                                                                                                                                                           dtout.frstol,
+                                                                                                                                                                                           dtout.wh_id
+                                                                                                                                                                                      from dlytrn dtout
+                                                                                                                                                                                      join prtftp_dtl pdtl
+                                                                                                                                                                                        on dtout.prtnum = pdtl.prtnum
+                                                                                                                                                                                       and dtout.wh_id = pdtl.wh_id
+                                                                                                                                                                                       and dtout.prt_client_id = pdtl.prt_client_id
+                                                                                                                                                                                       and pdtl.uomcod = dtout.uomcod
+                                                                                                                                                                                     where dtout.oprcod = 'UPK'
+                                                                                                                                                                                       and dtout.actcod = 'LSTPCK'
+                                                                                                                                                                                       and dtout.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
+                                                                                                                                                                                       and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))
+                                                                                                                                                                                     group by dtout.revlvl,
+                                                                                                                                                                                           pdtl.netwgt,
+                                                                                                                                                                                           pdtl.untqty,
+                                                                                                                                                                                           dtout.fr_arecod,
+                                                                                                                                                                                           dtout.frstol,
+                                                                                                                                                                                           dtout.wh_id) out
+                                                                                                                                                                                on out.frstol = locmst.stoloc
+                                                                                                                                                                            and out.fr_arecod = locmst.arecod
+                                                                                                                                                                            and out.wh_id = locmst.wh_id
+                                                                                                                                                                              left
+                                                                                                                                                                              join (select final_pallet,
+                                                                                                                                                                                           final_weight,
+                                                                                                                                                                                           wh_id,
+                                                                                                                                                                                           buildings,
+                                                                                                                                                                                           temp
+                                                                                                                                                                                      from soh_daily_throughput
+                                                                                                                                                                                     where date_printed = DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
+                                                                                                                                                                                     group by final_pallet,
+                                                                                                                                                                                           final_weight,
+                                                                                                                                                                                           wh_id,
+                                                                                                                                                                                           buildings,
+                                                                                                                                                                                           temp) sspdt
+                                                                                                                                                                                on sspdt.wh_id = locmst.wh_id
+                                                                                                                                                                            and sspdt.buildings = zm.wrkzon
+                                                                                                                                                                            and sspdt.temp = dcs.lngdsc
+                                                                                                                                                                             where locmst.stoflg = 1
+                                                                                                                                                                             group by zm.wh_id,
+                                                                                                                                                                                   zm.wrk_zone_id,
+                                                                                                                                                                                   ar.arecod,
+                                                                                                                                                                                   zm.wrkzon,
+                                                                                                                                                                                   dcs.lngdsc
+                                                                                                                                                                             order by zm.wh_id,
+                                                                                                                                                                                   zm.wrkzon asc]
+]]>
+</local-syntax>
+</command>
