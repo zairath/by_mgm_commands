@@ -45,7 +45,7 @@ get client in clause for user
         count(distinct rcvlin.revlvl) as inb_pall,
         rcvinv.invdte as create_dte,
         rcvinv.mod_usr_id as crte_by,
-        max(rcvlin.mod_usr_id) as gr_by
+        rcvlin.mod_usr_id as gr_by
    from trlr
    join dscmst dc1
      on dc1.colnam = 'trlr_typ'
@@ -58,14 +58,14 @@ get client in clause for user
    join rcvinv
      on rcvinv.trknum = rcvtrk.trknum
     and rcvinv.wh_id = rcvtrk.wh_id
-   join client
-     on client.client_id = rcvinv.client_id
-   join adrmst
-     on adrmst.adr_id = client.adr_id
    join rcvlin
      on rcvinv.trknum = rcvlin.trknum
     and rcvinv.wh_id = rcvlin.wh_id
     and rcvinv.client_id = rcvlin.client_id
+   join client
+     on client.client_id = rcvinv.client_id
+   join adrmst
+     on adrmst.adr_id = client.adr_id
   where trlr.trlr_stat <> 'EX'
     and trlr.trlr_cod = 'RCV'
     and rcvlin.seqnum <> 0
@@ -74,20 +74,19 @@ get client in clause for user
     and @end_date:date
     and @+rcvinv.client_id
   group by trlr.trlr_num,
+        trlr.trlr_id,
         dc1.lngdsc,
         trlr.driver_nam,
         dc2.lngdsc,
         trlr.close_dte,
         trlr.dispatch_dte,
         rcvlin.client_id,
-        rcvtrk.trknum,
         adrmst.adrnam,
+        rcvtrk.trknum,
         rcvlin.supnum,
         rcvinv.invdte,
-        adrmst.adrnam,
-        trlr.trlr_id,
-        rcvlin.mod_usr_id,
-        rcvinv.mod_usr_id]
+        rcvinv.mod_usr_id,
+        rcvlin.mod_usr_id]
 ]]>
 </local-syntax>
 </command>
