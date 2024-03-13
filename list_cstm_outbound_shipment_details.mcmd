@@ -147,11 +147,11 @@ get client in clause for user
                    where ahy.rcvkey = inv.rcvkey) then 'NON-FULL-PALLET'
                    end as out_categories */
                 case when (pvw.pck_uom = 'PL' or pvw.pck_uom is null)
-                 and exists(select invdtl_hist.wrkref_dtl
-                              from invdtl_hist
-                             where invdtl_hist.revlvl = inv.revlvl
-                             group by invdtl_hist.wrkref_dtl
-                            having not count(distinct invdtl_hist.wrkref_dtl) > 1)
+                 and (select case when count(distinct invdtl_hist.wrkref_dtl) > 1 then 'False'
+                                  else 'True'
+                             end as booleans
+                        from invdtl_hist
+                       where invdtl_hist.revlvl = inv.revlvl) = 'True'
                  and not exists(select ahy.rcvkey
                                   from inventory_view ahy
                                  where ahy.revlvl = inv.revlvl) then 'FULL-PALLET'
