@@ -32,7 +32,7 @@ get client in clause for user
             end) as order_num,
         ad.adrnam as ship_to_address,
         pv.schbat as wave_num,
-        sum(pv.pckqty) as qty_order,
+        max(pv.pckqty) as qty_order,
         max(pv.adddte) as create_do,
         shipment.alcdte allocate_date,
         min(pv.pckdte) as start_pick,
