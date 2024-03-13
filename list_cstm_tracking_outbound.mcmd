@@ -79,6 +79,7 @@ get client in clause for user
     and trlr.arrdte between @start_date:date
     and @end_date:date
     and @+pv.client_id
+    and @+ord.ordnum
   group by trlr.trlr_num,
         dc1.lngdsc,
         trlr.driver_nam,
