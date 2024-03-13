@@ -14,13 +14,13 @@ get client in clause for user
         dc1.lngdsc as type_truck,
         trlr.driver_nam as driver_name,
         dc2.lngdsc as truck_status,
-        min(case when trlract.trlr_stat = 'CI' and trlract.actcod in ('TCHKIN', 'TCHG') then trlract.trndte
+        min(case when trcts.trlr_stat = 'CI' and trcts.actcod in ('TCHKIN', 'TCHG') then trcts.trndte
             end) as check_in_time,
-        min(case when trlract.trlr_stat = 'O' and trlract.actcod in ('TCLOSE', 'TCHG') then trlract.trndte
+        min(case when trcts.trlr_stat = 'O' and trcts.actcod in ('TCLOSE', 'TCHG') then trcts.trndte
             end) as gate_in_outbound,
-        min(case when trlract.trlr_stat = 'LDG' and trlract.trlr_cod = 'SHIP' and trlract.actcod = 'TLDG' then trlract.trndte
+        min(case when trcts.trlr_stat = 'LDG' and trlr.trlr_cod = 'SHIP' and trcts.actcod = 'TLDG' then trcts.trndte
             end) as start_activity_outbound,
-        min(case when trlract.trlr_stat = 'C' and trlract.trlr_cod = 'SHIP' and trlract.actcod in ('TCLOSE', 'TCHG') then trlract.trndte
+        min(case when trcts.trlr_stat = 'C' and trlr.trlr_cod = 'SHIP' and trcts.actcod in ('TCLOSE', 'TCHG') then trcts.trndte
             end) as finish_activity_outbound,
         trlr.close_dte as get_out_time,
         trlr.dispatch_dte as check_out_time,
@@ -35,50 +35,51 @@ get client in clause for user
         max(pv.pckqty) as qty_order,
         max(pv.adddte) as create_do,
         shipment.alcdte allocate_date,
-        min(pv.pckdte) as start_pick,
+        pv.pckdte as start_pick,
         shipment.stgdte as finish_pick,
         pv.last_upd_user_id as Create_by,
         pv.last_pck_usr_id as pick_by
-   from trlr
+   from pckwrk_view pv
+   join shipment
+     on shipment.ship_id = pv.ship_id
+   join ord
+     on pv.ordnum = ord.ordnum
+   join adrmst ad
+     on ad.adr_id = ord.st_adr_id
+    and ad.adrtyp = 'CST'
+   join client
+     on client.client_id = ord.client_id
+   join adrmst
+     on adrmst.adr_id = client.adr_id
+    and adrmst.adrtyp = 'CLI'
+   join stop
+     on stop.stop_id = shipment.stop_id
+   join car_move
+     on car_move.car_move_id = stop.car_move_id
+   join trlr
+     on trlr.trlr_id = car_move.trlr_id
    join dscmst dc1
      on dc1.colnam = 'trlr_typ'
     and dc1.colval = trlr.trlr_typ
    join dscmst dc2
      on dc2.colnam = 'trlr_stat'
     and dc2.colval = trlr.trlr_stat
-   join carhdr
-     on carhdr.carcod = trlr.carcod
-   join trlract
-     on trlract.trlr_id = trlr.trlr_id
-    and trlract.trlr_num = trlr.trlr_num
-   join car_move
-     on car_move.trlr_id = trlr.trlr_id
-   join stop
-     on stop.car_move_id = car_move.car_move_id
-   join shipment
-     on shipment.stop_id = stop.stop_id
-   join shipment_line
-     on shipment_line.ship_id = shipment.ship_id
-    and shipment_line.wh_id = shipment.wh_id
-   join ord
-     on shipment_line.ordnum = ord.ordnum
-    and shipment_line.wh_id = ord.wh_id
-   join pckwrk_view pv
-     on pv.ship_id = shipment_line.ship_id
-    and pv.ship_line_id = shipment_line.ship_line_id
-    and pv.wh_id = shipment_line.wh_id
-   join adrmst ad
-     on ad.adr_id = ord.st_adr_id
-   join client
-     on client.client_id = shipment_line.client_id
-   join adrmst
-     on adrmst.adr_id = client.adr_id
+   join (select trct.trlr_stat,
+                trct.actcod,
+                trct.trndte,
+                trct.trlr_id
+           from trlract trct
+          group by trct.trlr_stat,
+                trct.actcod,
+                trct.trndte,
+                trct.trlr_id) trcts
+     on trcts.trlr_id = trlr.trlr_id
   where trlr.trlr_stat <> 'EX'
     and trlr.trlr_cod = 'SHIP'
     and @+trlr.stoloc_wh_id
     and trlr.arrdte between @start_date:date
     and @end_date:date
-    and @+pv.client_id
+    and @+ord.client_id
     and @+ord.ordnum
   group by trlr.trlr_num,
         dc1.lngdsc,
@@ -92,7 +93,8 @@ get client in clause for user
         shipment.alcdte,
         shipment.stgdte,
         pv.last_upd_user_id,
-        pv.last_pck_usr_id]
+        pv.last_pck_usr_id,
+        pv.pckdte]
 ]]>
 </local-syntax>
 </command>
