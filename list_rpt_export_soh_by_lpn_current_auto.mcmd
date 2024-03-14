@@ -1,0 +1,81 @@
+<command>
+  <name>list rpt export soh by lpn current auto</name>
+  <description>list rpt export soh by lpn current auto</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+[select DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE())) as date_printed,
+        ivw.wh_id,
+        ivw.stoloc,
+        ivw.lodnum,
+        ivw.subnum,
+        ivw.prtnum,
+        ivw.prt_client_id,
+        adrmst.adrnam as client_name,
+        ivw.revlvl,
+        ivw.inv_attr_str1 as batch_code,
+        ivw.inv_attr_str2 as reference_1,
+        ivw.inv_attr_str3 as reference_2,
+        pdc.lngdsc,
+        ivw.expire_dte,
+        ivw.untcas,
+        prtmst_view.stkuom,
+        prtmst_view.dspuom,
+        sum(ivw.untqty) as trn_in,
+        sum(ivw.untqty) / max(prtftp_dtl.untqty) as trn_in_ctn,
+        sum(ivw.catch_qty) as trn_in_catch_weight,
+        cast(max(prtftp_dtl.netwgt) / 35.274 *
+             case when prtmst_view.dspuom is null then sum(ivw.untqty)
+                  else sum(ivw.untqty) / max(prtftp_dtl.untqty)
+             end as numeric(15, 4)) as trn_in_ctn_weight,
+        GETDATE() as inserted_time,
+        'current_stock' as trantyp
+   from inventory_view ivw
+   join locmst
+     on locmst.stoloc = ivw.stoloc
+    and locmst.wh_id = ivw.wh_id
+   join prtmst_view
+     on ivw.wh_id = prtmst_view.wh_id
+    and ivw.prtnum = prtmst_view.prtnum
+    and ivw.prt_client_id = prtmst_view.prt_client_id
+   join prtdsc pdc
+     on pdc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and pdc.colval = ivw.prtnum + '|' + ivw.prt_client_id + '|' + ivw.wh_id
+    and pdc.locale_id = 'US_ENGLISH'
+   join prtftp_dtl
+     on ivw.prtnum = prtftp_dtl.prtnum
+    and ivw.wh_id = prtftp_dtl.wh_id
+    and ivw.prt_client_id = prtftp_dtl.prt_client_id
+    and ivw.ftpcod = prtftp_dtl.ftpcod
+    and prtftp_dtl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)
+   join client
+     on client.client_id = ivw.prt_client_id
+   join adrmst
+     on adrmst.client_id = ivw.prt_client_id
+    and adrmst.adr_id = client.adr_id
+    and adrmst.adrtyp = 'CLI'
+  where locmst.stoloc not like '%PERM%'
+    and locmst.stoloc not like '%TRL%'
+    and locmst.arecod not like '%OSTG%'
+    and locmst.stoflg = 1
+  group by ivw.prtnum,
+        ivw.prt_client_id,
+        ivw.wh_id,
+        ivw.stoloc,
+        ivw.lodnum,
+        ivw.subnum,
+        adrmst.adrnam,
+        ivw.revlvl,
+        ivw.inv_attr_str1,
+        ivw.inv_attr_str2,
+        ivw.inv_attr_str3,
+        pdc.lngdsc,
+        ivw.expire_dte,
+        ivw.untcas,
+        prtmst_view.stkuom,
+        prtmst_view.dspuom
+  order by ivw.wh_id,
+        ivw.prt_client_id]
+]]>
+</local-syntax>
+</command>

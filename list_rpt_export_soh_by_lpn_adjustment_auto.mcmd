@@ -1,0 +1,87 @@
+<command>
+  <name>list rpt export soh by lpn adjustment auto</name>
+  <description>list rpt export soh by lpn adjustment auto</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+[select DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE())) as date_printed,
+        dtrn.wh_id,
+        dtrn.frstol stoloc,
+        dtrn.lodnum,
+        dtrn.subnum,
+        dtrn.prtnum,
+        dtrn.prt_client_id,
+        adrmst.adrnam as client_name,
+        dtrn.revlvl,
+        dtrn.inv_attr_str1 as batch_code,
+        dtrn.inv_attr_str2 as reference_1,
+        dtrn.inv_attr_str3 as reference_2,
+        pdc.lngdsc,
+        dtrn.fr_value,
+        prtftp_dtl.untqty untcas,
+        prtmst_view.stkuom,
+        prtmst_view.dspuom,
+        sum(case when dtrn.actcod = 'INVDEL' then dtrn.trnqty *-1
+                 when dtrn.actcod = 'IDNTFY_AJ' then dtrn.trnqty *1
+            end) as trn_in,
+        sum(case when dtrn.actcod = 'INVDEL' then dtrn.trnqty / prtftp_dtl.untqty *-1
+                 when dtrn.actcod = 'IDNTFY_AJ' then dtrn.trnqty / prtftp_dtl.untqty *1
+            end) as trn_in_ctn,
+        sum(case when dtrn.actcod = 'INVDEL' then dtrn.catch_qty *-1
+                 when dtrn.actcod = 'IDNTFY_AJ' then dtrn.catch_qty *1
+            end) as trn_in_catch_weight,
+        cast(max(prtftp_dtl.netwgt) / 35.274 *
+             case when prtmst_view.dspuom is null then sum(case when dtrn.actcod = 'INVDEL' then dtrn.trnqty *-1
+                                                                when dtrn.actcod = 'IDNTFY_AJ' then dtrn.trnqty *1
+                                                           end)
+                  else sum(case when dtrn.actcod = 'INVDEL' then dtrn.trnqty *-1
+                                when dtrn.actcod = 'IDNTFY_AJ' then dtrn.trnqty *1
+                           end) / prtftp_dtl.untqty
+             end as numeric(15, 4)) trn_in_ctn_weight,
+        GETDATE() as inserted_time,
+        'adjustment' as trantyp
+   from dlytrn dtrn
+   join prtmst_view
+     on dtrn.wh_id = prtmst_view.wh_id
+    and dtrn.prtnum = prtmst_view.prtnum
+    and dtrn.prt_client_id = prtmst_view.prt_client_id
+   join prtdsc pdc
+     on pdc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and pdc.colval = dtrn.prtnum + '|' + dtrn.prt_client_id + '|' + dtrn.wh_id
+    and pdc.locale_id = 'US_ENGLISH'
+   join prtftp_dtl
+     on dtrn.prtnum = prtftp_dtl.prtnum
+    and dtrn.wh_id = prtftp_dtl.wh_id
+    and dtrn.prt_client_id = prtftp_dtl.prt_client_id
+    and dtrn.ftpcod = prtftp_dtl.ftpcod
+    and prtftp_dtl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)
+   join client
+     on client.client_id = dtrn.prt_client_id
+   join adrmst
+     on adrmst.client_id = dtrn.prt_client_id
+    and adrmst.adr_id = client.adr_id
+    and adrmst.adrtyp = 'CLI'
+  where dtrn.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
+    and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))
+    and dtrn.oprcod = 'INVADJ'
+  group by dtrn.prtnum,
+        dtrn.prt_client_id,
+        dtrn.wh_id,
+        dtrn.frstol,
+        dtrn.lodnum,
+        dtrn.subnum,
+        adrmst.adrnam,
+        dtrn.revlvl,
+        dtrn.inv_attr_str1,
+        dtrn.inv_attr_str2,
+        dtrn.inv_attr_str3,
+        pdc.lngdsc,
+        dtrn.fr_value,
+        prtftp_dtl.untqty,
+        prtmst_view.stkuom,
+        prtmst_view.dspuom
+  order by dtrn.wh_id,
+        dtrn.prt_client_id]
+]]>
+</local-syntax>
+</command>
