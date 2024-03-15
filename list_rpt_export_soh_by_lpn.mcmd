@@ -7,12 +7,13 @@
 get client in clause for user
  where usr_id = nvl(@usr_id, @@usr_id)
    and @+wh_id
+   and trantyp = @rpttrantyp
 |
 [select *
    from soh_lpn_daily_tran
   where date_printed between @start_date:date
     and @end_date:date
-    and trantyp = @rpttrantyp
+    and @+trantyp
     and @+wh_id
     and @+prt_client_id
   order by date_printed asc]
