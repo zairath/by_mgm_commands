@@ -73,6 +73,7 @@ get client in clause for user
         av.subnum,
         av.dtlnum,
         av.inv_attr_str1 as batch_code,
+        av.expire_dte,
         av.inv_attr_str2 as reference_1,
         av.revlvl,
         case when max(av.catch_qty) < max(phd.app_catch_qty) then sum(av.catch_qty)
@@ -192,6 +193,7 @@ get client in clause for user
         av.subnum,
         av.dtlnum,
         av.inv_attr_str1,
+        av.expire_dte,
         av.inv_attr_str2,
         av.revlvl
   order by phh.schbat,
