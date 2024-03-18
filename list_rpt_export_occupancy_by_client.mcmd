@@ -5,124 +5,78 @@
   <local-syntax>
 <![CDATA[
 [select DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE())) as date_printed,
-        occupance_datas.wh_id,
-        occupance_datas.buildings,
-        occupance_datas.client_id,
-        occupance_datas.client_name,
-        occupance_datas.temperature,
-        occupance_datas.item_family_desc,
-        max(occupance_datas.used_capacity) used_capacity
-   from (SELECT locmst.wh_id AS wh_id,
-                wrkdsc.lngdsc AS buildings,
-                inv.prt_client_id AS client_id,
-                adrmst.adrnam AS client_name,
-                aredsc.lngdsc AS temperature,
-                famdsc.lngdsc AS item_family_desc,
-                CASE WHEN aremst.bldg_id IN ('B1', 'B2', 'B3', 'B4', 'B5', 'B6') THEN count(distinct (inv.revlvl))
-                END AS used_capacity
-           from locmst
-           join aremst
-             on aremst.arecod = locmst.arecod
-            and aremst.wh_id = locmst.wh_id
-           join dscmst aredsc
-             on aredsc.colnam = 'arecod|wh_id'
-            and aredsc.colval = aremst.arecod + '|' + aremst.wh_id
-           join zonmst
-             on zonmst.wrk_zone_id = locmst.wrk_zone_id
-            and zonmst.wh_id = locmst.wh_id
-           join dscmst wrkdsc
-             on wrkdsc.colnam = 'wrkzon|wh_id'
-            and wrkdsc.colval = zonmst.wrkzon + '|' + zonmst.wh_id
-           join inventory_view inv
-             on inv.wh_id = locmst.wh_id
-            and inv.stoloc = locmst.stoloc
-           join prtmst_view pmv
-             on pmv.prtnum = inv.prtnum
-            and pmv.prt_client_id = inv.prt_client_id
-            and pmv.wh_id = inv.wh_id
-           join dscmst famdsc
-             on famdsc.colnam = 'prtfam'
-            and famdsc.colval = pmv.prtfam
-           join client
-             on client.client_id = inv.prt_client_id
-           join adrmst
-             on adrmst.adr_id = client.adr_id
-            and adrmst.adrtyp = 'CLI'
-          where aremst.arecod not in ('B1-OTH-SER', 'B2-OTH-SER', 'OTH-SERV')
-            and zonmst.wrkare in ('WASTOR', 'WADMG')
-          group by locmst.wh_id,
-                wrkdsc.lngdsc,
-                aredsc.lngdsc,
-                inv.prt_client_id,
-                adrmst.adrnam,
-                famdsc.lngdsc,
-                aremst.bldg_id
-         union all
-         select locmst.wh_id as wh_id,
-                wrkdsc.lngdsc as buildings,
-                inv.prt_client_id as client_id,
-                adrmst.adrnam as client_name,
-                aredsc.lngdsc as temperature,
-                famdsc.lngdsc as item_family_desc,
-                count(distinct inv.revlvl) as used_capacity
-           from locmst
-           join aremst
-             on aremst.arecod = locmst.arecod
-            and aremst.wh_id = locmst.wh_id
-           join dscmst aredsc
-             on aredsc.colnam = 'arecod|wh_id'
-            and aredsc.colval = aremst.arecod + '|' + aremst.wh_id
-           join zonmst
-             on zonmst.wrk_zone_id = locmst.wrk_zone_id
-            and zonmst.wh_id = locmst.wh_id
-           join dscmst wrkdsc
-             on wrkdsc.colnam = 'wrkzon|wh_id'
-            and wrkdsc.colval = zonmst.wrkzon + '|' + zonmst.wh_id
-           left outer
-           join inventory_view inv
-             on inv.wh_id = locmst.wh_id
-            and inv.stoloc = locmst.stoloc
-           left outer
-           join prtmst_view pmv
-             on pmv.prtnum = inv.prtnum
-            and pmv.prt_client_id = inv.prt_client_id
-            and pmv.wh_id = inv.wh_id
-           left outer
-           join pckwrk_view pv
-             on pv.prtnum = inv.prtnum
-            and pv.prt_client_id = inv.prt_client_id
-            and pv.wh_id = inv.wh_id
-            and pv.ship_line_id = inv.ship_line_id
-           left outer
-           join dscmst famdsc
-             on famdsc.colnam = 'prtfam'
-            and famdsc.colval = pmv.prtfam
-           left outer
-           join client
-             on client.client_id = inv.prt_client_id
-           left outer
-           join adrmst
-             on adrmst.client_id = client.client_id
-            and adrmst.adr_id = client.adr_id
-            and adrmst.adrtyp = 'CLI'
-          where aremst.arecod not in ('B1-OTH-SER', 'B2-OTH-SER', 'OTH-SERV')
-            and zonmst.wrkare = 'WASHIP'
-            and (pv.pck_uom = 'PL' or pv.pck_uom is null)
-          group by locmst.wh_id,
-                wrkdsc.lngdsc,
-                aredsc.lngdsc,
-                inv.prt_client_id,
-                adrmst.adrnam,
-                famdsc.lngdsc,
-                aremst.bldg_id) occupance_datas
-  group by occupance_datas.wh_id,
-        occupance_datas.buildings,
-        occupance_datas.client_id,
-        occupance_datas.client_name,
-        occupance_datas.temperature,
-        occupance_datas.item_family_desc
-  order by occupance_datas.wh_id,
-        occupance_datas.buildings]
+        locmst.wh_id as wh_id,
+        wrkdsc.lngdsc as buildings,
+        inv.prt_client_id as client_id,
+        adrmst.adrnam as client_name,
+        aredsc.lngdsc as temperature,
+        famdsc.lngdsc as item_family_desc,
+        CASE WHEN aremst.bldg_id IN ('B1', 'B2', 'B3', 'B4', 'B5', 'B6')
+         and zonmst.wrkare in ('WASTOR', 'WADMG') THEN
+             case when max(locmst.locsts) <> 'E' then count(distinct locmst.stoloc)
+                  else 0
+             end
+             WHEN zonmst.wrkare = 'WASHIP'
+         and (max(pv.pck_uom) = 'PL' or max(pv.pck_uom) is null) THEN count(distinct inv.revlvl)
+             ELSE
+             case when max(locmst.locsts) <> 'E' then count(distinct locmst.stoloc)
+                  else 0
+             end
+        END AS used_capacity
+   from locmst
+   left
+   join inventory_view inv
+     on inv.wh_id = locmst.wh_id
+    and inv.stoloc = locmst.stoloc
+   left
+   join prtmst_view pmv
+     on pmv.prtnum = inv.prtnum
+    and pmv.prt_client_id = inv.prt_client_id
+    and pmv.wh_id = inv.wh_id
+   left
+   join pckwrk_view pv
+     on pv.prtnum = inv.prtnum
+    and pv.prt_client_id = inv.prt_client_id
+    and pv.wh_id = inv.wh_id
+    and pv.ship_line_id = inv.ship_line_id
+   left
+   join aremst
+     on aremst.arecod = locmst.arecod
+    and aremst.wh_id = locmst.wh_id
+   left
+   join dscmst aredsc
+     on aredsc.colnam = 'arecod|wh_id'
+    and aredsc.colval = aremst.arecod + '|' + locmst.wh_id
+   left
+   join zonmst
+     on zonmst.wrk_zone_id = locmst.wrk_zone_id
+    and zonmst.wh_id = locmst.wh_id
+   left
+   join dscmst wrkdsc
+     on wrkdsc.colnam = 'wrkzon|wh_id'
+    and wrkdsc.colval = zonmst.wrkzon + '|' + locmst.wh_id
+   left
+   join dscmst famdsc
+     on famdsc.colnam = 'prtfam'
+    and famdsc.colval = pmv.prtfam
+   left
+   join client
+     on client.client_id = inv.prt_client_id
+   left
+   join adrmst
+     on adrmst.adr_id = client.adr_id
+    and adrmst.adrtyp = 'CLI'
+  where zonmst.wrkare in ('WASTOR', 'WADMG', 'WASHIP')
+    and locmst.arecod not in ('B1-OTH-SER', 'B2-OTH-SER', 'OTH-SERV')
+  group by locmst.wh_id,
+        wrkdsc.lngdsc,
+        aredsc.lngdsc,
+        zonmst.wrkare,
+        locmst.arecod,
+        inv.prt_client_id,
+        adrmst.adrnam,
+        famdsc.lngdsc,
+        aremst.bldg_id]
 ]]>
 </local-syntax>
 </command>
