@@ -75,7 +75,8 @@ if (@oprcod = 'LPCK')
                 decode(a.pck_uom, NULL, max(b.dspuom), a.pck_uom) pck_uom,
                 coalesce(max(a.inv_attr_str1), max(ivww.inv_attr_str1)) inv_attr_str1,
                 coalesce(max(a.inv_attr_str2), max(ivww.inv_attr_str2)) inv_attr_str2,
-                coalesce(max(a.inv_attr_str3), max(ivww.inv_attr_str3)) inv_attr_str3
+                coalesce(max(a.inv_attr_str3), max(ivww.inv_attr_str3)) inv_attr_str3,
+                coalesce(max(a.expire_dte), max(ivww.expire_dte)) expire_dte
            from pckwrk_view a
            LEFT
            JOIN dscmst f
@@ -225,7 +226,8 @@ if (@oprcod = 'LPCK')
                 decode(a.pck_uom, NULL, max(b.dspuom), a.pck_uom) pck_uom,
                 coalesce(max(a.inv_attr_str1), max(ivww.inv_attr_str1)) inv_attr_str1,
                 coalesce(max(a.inv_attr_str2), max(ivww.inv_attr_str2)) inv_attr_str2,
-                coalesce(max(a.inv_attr_str3), max(ivww.inv_attr_str3)) inv_attr_str3
+                coalesce(max(a.inv_attr_str3), max(ivww.inv_attr_str3)) inv_attr_str3,
+                coalesce(max(a.expire_dte), max(ivww.expire_dte)) expire_dte
            from pckwrk_view a
            LEFT
            JOIN dscmst f
