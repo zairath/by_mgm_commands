@@ -1,0 +1,86 @@
+<command>
+  <name>list cstm portal outbound api</name>
+  <description>list cstm portal outbound api</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and @+wh_id
+   and @+start_date
+   and @+end_date
+|
+[select o.ordnum,
+        o.client_id,
+        dc.lngdsc as ship_status,
+        c_adr.adrnam as client_name,
+        CASE WHEN o.ordtyp = 'C' THEN 'Customer Outbound Orders'
+             WHEN o.ordtyp = 'C1' THEN 'Customer Outbound Orders Non-Billing'
+             WHEN o.ordtyp = 'D' THEN 'Distribution Outbound Order'
+             WHEN o.ordtyp = 'T' THEN 'Transfer Orders'
+             WHEN o.ordtyp = 'V' THEN 'Vendor (supplier) returns'
+             ELSE null
+        END as ordtyp,
+        COUNT(*) as order_line,
+        adr.adr_id,
+        adr.adrnam,
+        adr.adrcty,
+        SUM(CASE WHEN shpl.linsts != 'B' THEN ol.ordqty
+                 ELSE 0
+            END) as order_qty,
+        shp.alcdte as alloc_date,
+        shp.stgdte as stage_date,
+        shp.loddte as load_date,
+        round((CAST((SUM(shpl.inpqty) + SUM(shpl.stgqty) + SUM(shpl.shpqty)) as float) / CAST(SUM(CASE WHEN shpl.linsts != 'B' THEN ol.ordqty
+                                                                                                       ELSE 0
+                                                                                                  END) as float)) * 100, 2) as allocated_percentage,
+        round((CAST(SUM(shpl.picked_qty) as float) / CAST(SUM(CASE WHEN shpl.linsts != 'B' THEN ol.ordqty
+                                                                   ELSE 0
+                                                              END) as float)) * 100, 2) as picked_percentage,
+        round((CAST((SUM(shpl.instgqty) + SUM(shpl.inloadqty)) as float) / CAST(SUM(CASE WHEN shpl.linsts != 'B' THEN ol.ordqty
+                                                                                         ELSE 0
+                                                                                    END) as float)) * 100, 2) as staged_percentage,
+        round((CAST(SUM(shpl.inloadqty) as float) / CAST(SUM(CASE WHEN shpl.linsts != 'B' THEN ol.ordqty
+                                                                  ELSE 0
+                                                             END) as float)) * 100, 2) as loaded_percentage
+   from ord o
+   join client c
+     on c.client_id = o.client_id
+   join adrmst c_adr
+     on c_adr.adr_id = c.adr_id
+   left
+   join ord_line ol
+     on ol.ordnum = o.ordnum
+   left
+   join shipment_line shpl
+     on shpl.ordnum = ol.ordnum
+    and shpl.ordlin = ol.ordlin
+    and shpl.ordsln = ol.ordsln
+    and shpl.linsts != 'B'
+   left
+   join shipment shp
+     on shp.ship_id = shpl.ship_id
+   join dscmst dc
+     on dc.colnam = 'shpsts'
+    and dc.colval = shp.shpsts
+   join adrmst as adr
+     on o.st_adr_id = adr.adr_id
+  where o.wh_id = @wh_id
+    and @+o.ordnum
+    and o.adddte between @start_date:date
+    and @end_date:date
+    and @+o.client_id
+  group by o.ordnum,
+        o.client_id,
+        c_adr.adrnam,
+        o.ordtyp,
+        dc.lngdsc,
+        adr.adr_id,
+        adr.adrnam,
+        shp.alcdte,
+        shp.stgdte,
+        shp.loddte,
+        adr.adrcty]
+]]>
+</local-syntax>
+</command>
