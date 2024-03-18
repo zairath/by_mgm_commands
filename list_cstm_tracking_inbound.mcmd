@@ -14,6 +14,7 @@ get client in clause for user
         dc1.lngdsc as type_truck,
         trlr.driver_nam as driver_name,
         dc2.lngdsc as truck_status,
+        nvl(dc3.lngdsc, dc3.short_dsc) as rcvtrk_stat_dsc,
         (select top 1trndte
            from trlract
           where trlract.trlr_id = trlr.trlr_id
@@ -40,7 +41,8 @@ get client in clause for user
         rcvlin.client_id as clientid_inbound,
         adrmst.adrnam as client_name,
         rcvtrk.trknum as inbound_shipment,
-        rcvlin.supnum as supp_nam,
+        rcvlin.supnum as supp_code,
+        st.adrnam as sup_name,
         sum(rcvlin.rcvqty) as qty_rcv,
         count(distinct rcvlin.revlvl) as inb_pall,
         rcvinv.invdte as create_dte,
@@ -66,7 +68,19 @@ get client in clause for user
      on client.client_id = rcvinv.client_id
    join adrmst
      on adrmst.adr_id = client.adr_id
-  where trlr.trlr_stat <> 'EX'
+   join supmst s
+     on s.supnum = rcvlin.supnum
+    and s.client_id = rcvlin.client_id
+   join adrmst st
+     on st.adr_id = s.adr_id
+   join dscmst dc3
+     on dc3.colval = rcvtrk.rcvtrk_stat
+    and dc3.colnam = 'rcvtrk_stat'
+  where rcvtrk.rcvtrk_stat not in (select rcvtrk_stat
+                                     from rcvtrk
+                                    where rcvtrk_stat = 'CI'
+                                       or rcvtrk_stat = 'EX')
+    and trlr.trlr_stat <> 'EX'
     and trlr.trlr_cod = 'RCV'
     and rcvlin.seqnum <> 0
     and @+trlr.stoloc_wh_id
@@ -77,6 +91,9 @@ get client in clause for user
   group by trlr.trlr_num,
         trlr.trlr_id,
         dc1.lngdsc,
+        dc3.lngdsc,
+        dc3.short_dsc,
+        st.adrnam,
         trlr.driver_nam,
         dc2.lngdsc,
         trlr.close_dte,

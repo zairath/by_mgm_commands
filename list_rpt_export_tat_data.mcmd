@@ -87,6 +87,7 @@ get client in clause for user
            order by trlract.trlract_id asc) as finish_activity_outbound,*/
         min(case when outbound.car_move_id is not null then outbound.client_id
             end) as clientid_outbound,
+        outbound.adrnam as client_name_out,
         /*(select top 1adrmst.client_id
            from trlract
            join stop
@@ -112,6 +113,7 @@ get client in clause for user
         (round(sum(cast(outbound.inloadqty as float)) / sum(cast(outbound.ordqty as float)) * 100, 2)) as Load_Percentage,
         min(case when inbound.trknum is not null then inbound.client_id
             end) as clientid_inbound,
+        inbound.adrnam as client_name_inb,
         /*(select top 1rcvinv.client_id
            from trlract
            join rcvinv
@@ -148,7 +150,8 @@ get client in clause for user
                 car_move.car_move_id,
                 sum(shipment_line.inloadqty) inloadqty,
                 sum(ord_line.ordqty) ordqty,
-                ord_line.client_id
+                ord_line.client_id,
+                adr.adrnam
            from car_move
            join stop
              on stop.car_move_id = car_move.car_move_id
@@ -158,33 +161,47 @@ get client in clause for user
              on shipment_line.ship_id = shipment.ship_id
            join ord_line
              on shipment_line.ordnum = ord_line.ordnum
+           join client cli
+             on cli.client_id = ord_line.client_id
+           join adrmst adr
+             on adr.adr_id = cli.adr_id
           group by car_move.trlr_id,
                 car_move.car_move_id,
-                ord_line.client_id) outbound
+                ord_line.client_id,
+                adr.adrnam) outbound
      on outbound.trlr_id = trlr.trlr_id
    left outer
    join (select rcvtrk.trlr_id,
                 sum(rcvlin.rcvqty) rcvqty,
                 sum(rcvlin.expqty) expqty,
                 rcvtrk.trknum,
+                dr.adrnam,
                 rcvinv.client_id
            from rcvtrk
            join rcvinv
              on rcvinv.trknum = rcvtrk.trknum
            join rcvlin
              on rcvinv.trknum = rcvlin.trknum
+           join client cl
+             on cl.client_id = rcvinv.client_id
+           join adrmst dr
+             on dr.adr_id = cl.adr_id
           group by rcvtrk.trlr_id,
                 rcvtrk.trknum,
-                rcvinv.client_id) inbound
+                rcvinv.client_id,
+                dr.adrnam) inbound
      on inbound.trlr_id = trlr.trlr_id
   where trlr.trlr_stat <> 'EX'
     and @+trlr.stoloc_wh_id
     and trlr.arrdte between @start_date:date
     and @end_date:date
+    and (@+inbound.client_id or @+outbound.client_id)
   group by trlr_seal1,
         dc1.lngdsc,
         dc2.lngdsc,
         carhdr.carnam,
+        outbound.adrnam,
+        inbound.adrnam,
         trlr.trlr_num,
         trlr.driver_lic_num,
         trlr.driver_nam,
