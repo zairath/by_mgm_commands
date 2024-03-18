@@ -209,6 +209,7 @@
     and sspdt.buildings = zm.wrkzon
   where inventory_view.stoloc not like '%PERM%'
     and inventory_view.stoloc not like '%TRL%'
+    and locmst.stoflg = 1
   group by zm.wh_id,
         client.client_id,
         adrmst.adrnam,
