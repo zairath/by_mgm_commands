@@ -16,8 +16,16 @@ get client in clause for user
         pckwrk_view.prtnum,
         floor(sum(pckwrk_view.pckqty / invdtl.untcas)) as stgqty,
         convert(varchar, invdtl.expire_dte, 111) as expire_dte,
-        invdtl.inv_attr_str1
+        invdtl.inv_attr_str1,
+        sum(pckwrk_view.pckqty) as unitqty,
+        prtmst_view.stkuom,
+        floor(sum(pckwrk_view.pckqty / invdtl.untcas)) as ctnqty,
+        prtmst_view.dspuom
    from pckwrk_view
+   join prtmst_view
+     on prtmst_view.prtnum = pckwrk_view.prtnum
+    and prtmst_view.prt_client_id = pckwrk_view.prt_client_id
+    and prtmst_view.wh_id = pckwrk_view.wh_id
    join invdtl
      on invdtl.wrkref = pckwrk_view.wrkref
     and invdtl.wrkref_dtl = pckwrk_view.wrkref_dtl
@@ -29,7 +37,9 @@ get client in clause for user
         pckwrk_view.ordlin,
         pckwrk_view.prtnum,
         invdtl.expire_dte,
-        invdtl.inv_attr_str1]
+        invdtl.inv_attr_str1,
+        prtmst_view.stkuom,
+        prtmst_view.dspuom]
 ]]>
 </local-syntax>
 </command>
