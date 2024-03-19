@@ -119,11 +119,33 @@ if (@skip_it = 0)
            and rqst_state_cod = 'ACCEPTED'
            and @* catch(@?)
         |
+        if (@? = 0)
+        {
+            save session variable
+             where name = 'err'
+               and value = @?
+            |
+            save session variable
+             where name = "errmsg"
+               and value = 'Cannot create address.' || @?
+        }
+        |
         create web client
          where client_id = @client_id
            and wh_id = @wh_id
            and adr_id = @adr_id
            and @* catch(@?)
+        |
+        if (@? = 0)
+        {
+            save session variable
+             where name = 'err'
+               and value = @?
+            |
+            save session variable
+             where name = "errmsg"
+               and value = 'Cannot create client master.' || @?
+        }
         |
         save session variable
          where name = 'adr_id'
