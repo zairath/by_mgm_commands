@@ -116,8 +116,8 @@ if (@skip_it = 0)
            and last_name = @last_name
            and email_adr = @email_adr
            and web_adr = @web_adr
-           and rqst_state_cod = 'ACCEPTED'
-           and @* catch(@?)
+           and client_id = @client_id
+           and rqst_state_cod = 'ACCEPTED' catch(-942, -1403, 510)
         |
         if (@? = 0)
         {
@@ -134,7 +134,7 @@ if (@skip_it = 0)
          where client_id = @client_id
            and wh_id = @wh_id
            and adr_id = @adr_id
-           and @* catch(@?)
+           and @* catch(-942, -1403, 510)
         |
         if (@? = 0)
         {
