@@ -81,15 +81,15 @@ publish data
 |
 if (@skip_it = 0)
 {
-    [select client_id
+    [select client_id as check_client
        from client
-      where client_id = @client_id] catch(-1403)
+      where client_id = @client_id] catch(-942, -1403, 510)
     |
-    if (@? = 0)
+    if (@check_client is not null)
     {
         save session variable
          where name = 'err'
-           and value = @?
+           and value = '-1'
         |
         save session variable
          where name = "errmsg"
@@ -104,7 +104,7 @@ if (@skip_it = 0)
          where adr_id = @nxtnum
         |
         create address
-         where adr_id = @adr_id
+         where adr_ids = @adr_id
            and adrnam = @adrnam
            and adrtyp = 'CLI'
            and adrln1 = @adrln1
@@ -178,7 +178,7 @@ if (@errid != 0)
     }
     |
     publish data
-     where data = @data
+     where data = @client_id
        and message = @msg
 }
 else
