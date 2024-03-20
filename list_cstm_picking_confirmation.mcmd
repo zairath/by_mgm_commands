@@ -14,19 +14,22 @@ get client in clause for user
         pckwrk_view.ship_id,
         pckwrk_view.ordlin,
         pckwrk_view.prtnum,
-        floor(sum(pckwrk_view.pckqty / invdtl.untcas)) as stgqty,
+        floor(sum(pckwrk_view.pckqty) / max(invdtl.untcas)) as stgqty,
         convert(varchar, invdtl.expire_dte, 111) as expire_dte,
         invdtl.inv_attr_str1,
         sum(pckwrk_view.pckqty) as unitqty,
+        case when floor(sum(pckwrk_view.pckqty) / max(invdtl.untcas)) < 1 then sum(pckwrk_view.pckqty)
+             else mod(sum(invdtl.untqty), max(invdtl.untqty))
+        end as stockingqty,
         prtmst_view.stkuom,
-        floor(sum(pckwrk_view.pckqty / invdtl.untcas)) as ctnqty,
+        floor(sum(pckwrk_view.pckqty) / max(invdtl.untcas)) as displayqty,
         prtmst_view.dspuom
    from pckwrk_view
    join prtmst_view
      on prtmst_view.prtnum = pckwrk_view.prtnum
     and prtmst_view.prt_client_id = pckwrk_view.prt_client_id
     and prtmst_view.wh_id = pckwrk_view.wh_id
-   join invdtl
+   join invdtl_hist invdtl
      on invdtl.wrkref = pckwrk_view.wrkref
     and invdtl.wrkref_dtl = pckwrk_view.wrkref_dtl
   where ship_id = @ship_id
