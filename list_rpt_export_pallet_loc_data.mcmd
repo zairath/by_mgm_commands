@@ -9,6 +9,8 @@ get client in clause for user
    and wh_id = nvl(@wh_id, @@wh_id)
 |
 [select distinct locmst.stoloc,
+        rcvlin.supnum,
+        a.adrnam as sup_name,
         locmst.aisle_id,
         locmst.arecod,
         adr.adrnam,
@@ -94,6 +96,13 @@ get client in clause for user
    join rcvtrk
      on rcvtrk.trknum = rcvlin.trknum
     and rcvtrk.wh_id = locmst.wh_id
+   left
+   join supmst
+     on supmst.supnum = rcvlin.supnum
+    and supmst.client_id = rcvlin.client_id
+   left
+   join adrmst a
+     on a.adr_id = supmst.adr_id
    left
    join trlr
      on trlr.trlr_id = rcvtrk.trlr_id

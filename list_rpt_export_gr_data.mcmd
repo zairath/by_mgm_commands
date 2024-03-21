@@ -13,12 +13,13 @@ get client in clause for user
 [select rcvLineDtl.trknum as asn,
         rcvLineDtl.client_id as customer,
         rcvLineDtl.supnum,
+        rcvLineDtl.sup_name,
         rcvLineDtl.invnum as nomor_po,
         rcvLineDtl.wh_id,
         rcvLineDtl.prtnum,
         rcvLineDtl.stkuom,
         rcvLineDtl.prt_client_id,
-        rcvLineDtl.adrnam,
+        rcvLineDtl.cli_name,
         rcvLineDtl.trlr_num as container,
         rcvLineDtl.po_num,
         rcvLineDtl.invtyp,
@@ -150,7 +151,8 @@ get client in clause for user
                 invdtl.catch_qty as dtlcatchqty,
                 ddmst1.lngdsc as stkuom_lngdsc,
                 ddmst2.lngdsc as dspuom_lngdsc,
-                adrmst.adrnam,
+                a.adrnam as cli_name,
+                adr.adrnam as sup_name,
                 invdtl.dtlnum,
                 (select max(dlytrn.tostol)
                    from dlytrn
@@ -222,8 +224,13 @@ get client in clause for user
             and ddmst2.colval = prtmst_view.dspuom
            join client
              on client.client_id = prtmst_view.prt_client_id
-           join adrmst
-             on adrmst.adr_id = client.adr_id
+           join adrmst a
+             on a.adr_id = client.adr_id
+           join supmst
+             on supmst.supnum = rcvlin.supnum
+            and supmst.client_id = rcvlin.client_id
+           join adrmst adr
+             on adr.adr_id = supmst.adr_id
           where @+prtmst_view.prtnum
             and @+rcvlin.mandte:date
             and @+rcvlin.expire_dte:date
@@ -254,6 +261,7 @@ get client in clause for user
   group by rcvLineDtl.trknum,
         rcvLineDtl.client_id,
         rcvLineDtl.supnum,
+        rcvLineDtl.sup_name,
         rcvLineDtl.invnum,
         rcvLineDtl.wh_id,
         rcvLineDtl.prtnum,
@@ -261,7 +269,7 @@ get client in clause for user
         rcvLineDtl.rcvkey,
         rcvLineDtl.dspuom,
         rcvLineDtl.prt_client_id,
-        rcvLineDtl.adrnam,
+        rcvLineDtl.cli_name,
         rcvLineDtl.revlvl,
         rcvLineDtl.trlr_num,
         rcvLineDtl.po_num,
