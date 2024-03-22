@@ -85,9 +85,8 @@ if (@skip_it = 0)
     if (@upd_addr = 1)
     {
         [select adr_id @adrid
-           from adrmst
-          where client_id = @client_id
-            and adrtyp = 'CLI'] catch(-942, -1403, 510)
+           from client
+          where client_id = @client_id] catch(-942, -1403, 510)
         |
         [update adrmst
             set adrnam = @adrnam,
