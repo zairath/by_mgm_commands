@@ -104,6 +104,10 @@ if (@skip_it = 0)
         save session variable
          where name = 'adr_id'
            and value = @adrid
+        |
+        save session variable
+         where name = 'success_message'
+           and value = 'Client address was successfully updated!'
     }
     else
     {
@@ -176,6 +180,10 @@ if (@skip_it = 0)
             save session variable
              where name = 'adr_id'
                and value = @adr_id
+            |
+            save session variable
+             where name = 'success_message'
+               and value = 'Client was successfully created!'
         }
     }
 }
@@ -211,12 +219,18 @@ if (@errid != 0)
 else
 {
     get session variable
+     where name = 'success_message'
+    |
+    publish data
+     where success_message = @value
+    |
+    get session variable
      where name = 'adr_id'
     |
     publish data
      where client_id = @client_id
        and adr_id = @value
-       and message = 'Client was successfully created!'
+       and message = @success_message
 }
 ]]>
 </local-syntax>
