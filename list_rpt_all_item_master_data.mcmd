@@ -4,10 +4,13 @@
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
-[select prtmst.prtnum,
+[select prtmst.wh_id_tmpl,
+		prtmst.prtnum,
         prtdsc.lngdsc,
         prtmst.prt_client_id,
         prtmst.prtfam,
+        pf.prtfamgrp,
+        prtmst.prt_class_name,
         prtmst.dsp_prtnum,
         prtmst.age_pflnam,
         prtmst.lodlvl,
@@ -50,7 +53,11 @@
     and prtftp_dtl.wh_id = prtmst.wh_id_tmpl
    join prtdsc
      on (prtdsc.colval = /*=varchar(*/ prtmst.prtnum || '|' || prtmst.prt_client_id || '|' || prtmst.wh_id_tmpl /*=)*/)
-  where wh_id_tmpl = '----'
+   left
+   join prtfam pf
+     on pf.prtfam = prtmst.prtfam
+  where @+prtmst.wh_id_tmpl
+    and @+prtmst.prt_client_id
   order by prtmst.prt_client_id,
         prtmst.prtnum,
         prtftp_dtl.uomlvl asc]
