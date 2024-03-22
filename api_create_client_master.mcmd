@@ -26,6 +26,7 @@ publish data
    and last_name = upper(@last_name)
    and email_adr = @email_adr
    and web_adr = @web_adr
+   and upd_addr = @upd_addr
 |
 if (@client_id = '')
 {
@@ -81,75 +82,98 @@ publish data
 |
 if (@skip_it = 0)
 {
-    [select client_id as check_client
-       from client
-      where client_id = @client_id] catch(-942, -1403, 510)
-    |
-    if (@check_client is not null)
+    if (@upd_addr = 1)
     {
-        save session variable
-         where name = 'err'
-           and value = '-1'
+        [select adr_id @adrid
+           from adrmst
+          where client_id = @client_id
+            and adrtyp = 'CLI'] catch(-942, -1403, 510)
         |
-        save session variable
-         where name = "errmsg"
-           and value = 'Client exist, creation failed.' || @?
+        [update adrmst
+            set adrnam = @adrnam,
+                adrln1 = @adrln1,
+                adrln2 = @adrln2,
+                adrln3 = @adrln3,
+                adrcty = @adrcty,
+                phnnum = @phnnum,
+                first_name = @first_name,
+                last_name = @last_name,
+                email_adr = @email_adr,
+                web_adr = @web_adr
+          where adr_id = @adrid]
     }
     else
     {
-        generate next number
-         where numcod = 'adr_id'
+        [select client_id as check_client
+           from client
+          where client_id = @client_id] catch(-942, -1403, 510)
         |
-        publish data
-         where adr_id = @nxtnum
-        |
-        create address
-         where adr_ids = @adr_id
-           and adrnam = @adrnam
-           and adrtyp = 'CLI'
-           and adrln1 = @adrln1
-           and adrln2 = @adrln2
-           and adrln3 = @adrln3
-           and adrcty = @adrcty
-           and phnnum = @phnnum
-           and first_name = @first_name
-           and last_name = @last_name
-           and email_adr = @email_adr
-           and web_adr = @web_adr
-           and client_id = @client_id
-           and rqst_state_cod = 'ACCEPTED' catch(-942, -1403, 510)
-        |
-        if (@? = 0)
+        if (@check_client is not null)
         {
             save session variable
              where name = 'err'
-               and value = @?
+               and value = '-1'
             |
             save session variable
              where name = "errmsg"
-               and value = 'Cannot create address.' || @?
+               and value = 'Client exist, creation failed.' || @?
         }
-        |
-        create web client
-         where client_id = @client_id
-           and wh_id = @wh_id
-           and adr_id = @adr_id
-           and @* catch(-942, -1403, 510)
-        |
-        if (@? = 0)
+        else
         {
-            save session variable
-             where name = 'err'
-               and value = @?
+            generate next number
+             where numcod = 'adr_id'
+            |
+            publish data
+             where adr_id = @nxtnum
+            |
+            create address
+             where adr_ids = @adr_id
+               and adrnam = @adrnam
+               and adrtyp = 'CLI'
+               and adrln1 = @adrln1
+               and adrln2 = @adrln2
+               and adrln3 = @adrln3
+               and adrcty = @adrcty
+               and phnnum = @phnnum
+               and first_name = @first_name
+               and last_name = @last_name
+               and email_adr = @email_adr
+               and web_adr = @web_adr
+               and client_id = @client_id
+               and rqst_state_cod = 'ACCEPTED' catch(-942, -1403, 510)
+            |
+            if (@? = 0)
+            {
+                save session variable
+                 where name = 'err'
+                   and value = @?
+                |
+                save session variable
+                 where name = "errmsg"
+                   and value = 'Cannot create address.' || @?
+            }
+            |
+            create web client
+             where client_id = @client_id
+               and wh_id = @wh_id
+               and adr_id = @adr_id
+               and @* catch(-942, -1403, 510)
+            |
+            if (@? = 0)
+            {
+                save session variable
+                 where name = 'err'
+                   and value = @?
+                |
+                save session variable
+                 where name = "errmsg"
+                   and value = 'Cannot create client master.' || @?
+            }
             |
             save session variable
-             where name = "errmsg"
-               and value = 'Cannot create client master.' || @?
+             where name = 'adr_id'
+               and value = @adr_id
         }
-        |
-        save session variable
-         where name = 'adr_id'
-           and value = @adr_id
     }
 }
 |
