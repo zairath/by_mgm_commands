@@ -88,26 +88,39 @@ if (@skip_it = 0)
            from client
           where client_id = @client_id] catch(-942, -1403, 510)
         |
-        [update adrmst
-            set adrnam = @adrnam,
-                adrln1 = @adrln1,
-                adrln2 = @adrln2,
-                adrln3 = @adrln3,
-                adrcty = @adrcty,
-                phnnum = @phnnum,
-                first_name = @first_name,
-                last_name = @last_name,
-                email_adr = @email_adr,
-                web_adr = @web_adr
-          where adr_id = @adrid] catch(-942, -1403, 510)
-        |
-        save session variable
-         where name = 'adr_id'
-           and value = @adrid
-        |
-        save session variable
-         where name = 'success_message'
-           and value = 'Client address was successfully updated!'
+        if (@adrid is null)
+        {
+            save session variable
+             where name = 'err'
+               and value = '-1'
+            |
+            save session variable
+             where name = "errmsg"
+               and value = 'Client not exist, update address failed.' || @?
+        }
+        else
+        {
+            [update adrmst
+                set adrnam = @adrnam,
+                    adrln1 = @adrln1,
+                    adrln2 = @adrln2,
+                    adrln3 = @adrln3,
+                    adrcty = @adrcty,
+                    phnnum = @phnnum,
+                    first_name = @first_name,
+                    last_name = @last_name,
+                    email_adr = @email_adr,
+                    web_adr = @web_adr
+              where adr_id = @adrid] catch(-942, -1403, 510)
+            |
+            save session variable
+             where name = 'adr_id'
+               and value = @adrid
+            |
+            save session variable
+             where name = 'success_message'
+               and value = 'Client address was successfully updated!'
+        }
     }
     else
     {
