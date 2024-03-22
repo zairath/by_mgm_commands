@@ -84,7 +84,7 @@ if (@skip_it = 0)
 {
     if (@upd_addr = 1)
     {
-        [select adr_id @adrid
+        [select adr_id adrid
            from client
           where client_id = @client_id] catch(-942, -1403, 510)
         |
