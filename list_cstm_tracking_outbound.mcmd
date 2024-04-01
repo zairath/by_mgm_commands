@@ -30,6 +30,10 @@ get client in clause for user
         adrmst.adrnam client_name,
         min(case when car_move.car_move_id is not null then ord.ordnum
             end) as order_num,
+        min(case when car_move.car_move_id is not null then pv.ordlin
+            end) as order_line,
+        min(case when car_move.car_move_id is not null then pv.prtnum
+            end) as item_num,
         ad.adrnam as ship_to_address,
         pv.schbat as wave_num,
         max(pv.pckqty) as qty_order,
@@ -90,11 +94,16 @@ get client in clause for user
         adrmst.adrnam,
         ad.adrnam,
         pv.schbat,
+        pv.ordnum,
+		pv.prtnum,
+        pv.ordlin,
         shipment.alcdte,
         shipment.stgdte,
         pv.last_upd_user_id,
         pv.last_pck_usr_id,
-        pv.pckdte]
+        pv.pckdte
+  order by pv.schbat,
+        pv.ordnum asc]
 ]]>
 </local-syntax>
 </command>
