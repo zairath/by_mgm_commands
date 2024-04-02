@@ -20,7 +20,7 @@
                 ivw.prt_client_id,
                 convert(varchar, getdate() + 1, 111) as datetime,
                 prtfam.prtfamgrp as 'temp',
-                sum(cast(ivw.untqty as bigint)) as untqty,
+                sum(cast(ivw.untqty as bigint)) %max(prtftp_dtl.untqty) as untqty,
                 case when prtmst_view.dspuom is null then sum(cast(ivw.untqty as bigint))
                      else
                      case when prtmst_view.dspuom = 'KG' then cast((sum(ivw.untqty) * 0.001) as decimal(18, 5))
@@ -61,7 +61,7 @@
                 ivw.prt_client_id,
                 convert(varchar, getdate() + 1, 111) as datetime,
                 prtfam.prtfamgrp as 'temp',
-                sum(cast(ivw.untqty as bigint)) as untqty,
+                sum(cast(ivw.untqty as bigint)) %max(prtftp_dtl.untqty) as untqty,
                 case when prtmst_view.dspuom is null then sum(cast(ivw.untqty as bigint))
                      else
                      case when prtmst_view.dspuom = 'KG' then cast((sum(ivw.untqty) * 0.001) as decimal(18, 5))
