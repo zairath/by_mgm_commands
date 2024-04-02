@@ -1,0 +1,110 @@
+<command>
+  <name>list rpt export outbound order list</name>
+  <description>list rpt export outbound order list</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+|
+[select client_addr.adrnam as client_name,
+        ord.ordnum as order_number,
+        ord.wh_id as warehouse_id,
+        ord.client_id as ord_client_id,
+        ord.btcust,
+        ord.rtcust,
+        ord.stcust,
+        ord.ordtyp,
+        orddesc.lngdsc as ordtyp_desc,
+        ord.cponum,
+        ord_line.ordlin,
+        ord_line.prtnum,
+        prtdsc.lngdsc as item_desc,
+        ord_line.ordqty,
+        case when prtmst_view.dspuom is null then cast(ord_line.ordqty as bigint)
+             else
+             case when prtmst_view.dspuom = 'KG' then cast((ord_line.ordqty * 0.001) as decimal(18, 5))
+                  else cast(ord_line.ordqty as bigint) / prtftp_dtl.untqty
+             end
+        end as ordered_quantity,
+        prtmst_view.dspuom,
+        decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), mod(ord_line.ordqty, prtftp_dtl.untqty)) rem_untqty,
+        prtmst_view.stkuom,
+        ord_line.carcod,
+        st.adrnam as customer_name,
+        bt.adrln1 + bt.adrln2 + bt.adrln3 as bt_address,
+        st.adrln1 + st.adrln2 + st.adrln3 as st_address,
+        rt.adrln1 + rt.adrln2 + rt.adrln3 as rt_address,
+        st.adrcty
+   from ord
+   join ord_line
+     on ord_line.client_id = ord.client_id
+    and ord_line.ordnum = ord.ordnum
+    and ord_line.wh_id = ord.wh_id
+   join client
+     on client.client_id = ord.client_id
+   join adrmst client_addr
+     on client_addr.adr_id = client.adr_id
+    and client_addr.adrtyp = 'CLI'
+   join adrmst bt
+     on bt.adr_id = ord.bt_adr_id
+    and bt.adrtyp = 'CST'
+   join adrmst st
+     on st.adr_id = ord.st_adr_id
+    and st.adrtyp = 'CST'
+   join adrmst rt
+     on rt.adr_id = ord.rt_adr_id
+    and rt.adrtyp = 'CST'
+   join prtdsc
+     on prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and prtdsc.colval = ord_line.prtnum + '|' + ord_line.prt_client_id + '|' + ord_line.wh_id
+   join dscmst orddesc
+     on orddesc.colnam = 'ordtyp|wh_id'
+    and orddesc.colval = ord.ordtyp + '|' + ord.wh_id
+   join prtmst_view
+     on prtmst_view.prtnum = ord_line.prtnum
+    and prtmst_view.prt_client_id = ord_line.prt_client_id
+    and prtmst_view.wh_id = ord_line.wh_id
+   join prtftp_dtl
+     on prtmst_view.prtnum = prtftp_dtl.prtnum
+    and prtmst_view.wh_id = prtftp_dtl.wh_id
+    and prtmst_view.prt_client_id = prtftp_dtl.prt_client_id
+    and prtftp_dtl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)
+  where @+ord.ordnum
+    and @+ord.client_id
+    and @+ord.wh_id
+    and ord_line.shpqty < 1
+    and ord_line.cancelled_flg <> 1]
+|
+get outbound order status
+ where client_id = @ord_client_id#keep
+   and ordnum = @order_number#keep
+   and wh_id = @warehouse_id#keep
+|
+publish data
+ where order_status = @lngdsc
+   and client_name = @client_name
+   and client_id = @ord_client_id
+   and order_number = @order_number
+   and warehouse_id = @warehouse_id
+   and bill_to_customer = @btcust
+   and ship_to_customer = @stcust
+   and route_to_customer = @rtcust
+   and order_type = @ordtyp_desc
+   and customer_po_number = @cponum
+   and order_line = @ordlin
+   and item_number = @prtnum
+   and description_item = @item_desc
+   and order_unit_qty = @ordqty
+   and ordered_quantity = @ordered_quantity || ' ' || @dspuom
+   and remainder_ordered_quantity = @rem_untqty || ' ' || @stkuom
+   and carrier = @carcod
+   and customer_name = @customer_name
+   and bill_to_address = @bt_address
+   and ship_to_address = @st_address
+   and route_to_address = @rt_address
+   and ship_to_city = @adrcty
+]]>
+</local-syntax>
+</command>
