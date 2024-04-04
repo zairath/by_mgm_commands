@@ -151,10 +151,14 @@ get client in clause for user
                                   else 'True'
                              end as booleans
                         from invdtl_hist
-                       where invdtl_hist.revlvl = inv.revlvl) = 'True'
+                       where invdtl_hist.revlvl = inv.revlvl
+                         and invdtl_hist.prtnum = inv.prtnum
+                         and invdtl_hist.prt_client_id = inv.prt_client_id) = 'True'
                  and not exists(select ahy.rcvkey
                                   from inventory_view ahy
-                                 where ahy.revlvl = inv.revlvl) then 'FULL-PALLET'
+                                 where ahy.revlvl = inv.revlvl
+                                   and ahy.prtnum = inv.prtnum
+                                   and ahy.prt_client_id = inv.prt_client_id) then 'FULL-PALLET'
                      else 'NON-FULL-PALLET'
                 end as out_categories
            from prtmst_view
@@ -203,7 +207,9 @@ get client in clause for user
                         sum(invdtl_hist.catch_qty) catch_qty,
                         sum(invdtl_hist.untqty) untqty,
                         invdtl_hist.wrkref_dtl,
-                        invdtl_hist.rcvkey
+                        invdtl_hist.rcvkey,
+                        invdtl_hist.prtnum,
+                        invdtl_hist.prt_client_id
                    from invdtl_hist,
                         shipment_line
                   where shipment_line.ship_line_id = invdtl_hist.ship_line_id
@@ -221,7 +227,9 @@ get client in clause for user
                         invdtl_hist.catch_qty,
                         invdtl_hist.invsts,
                         invdtl_hist.wrkref_dtl,
-                        invdtl_hist.rcvkey) inv
+                        invdtl_hist.rcvkey,
+                        invdtl_hist.prtnum,
+                        invdtl_hist.prt_client_id) inv
              on (shipment_line.ship_line_id = inv.ship_line_id)
            left outer
            join (select alloc_rule_hdr.wh_id,
@@ -277,7 +285,9 @@ get client in clause for user
                 inv.revlvl,
                 pvw.pck_uom,
                 inv.rcvkey,
-                prtmst_view.lodlvl) outbound_datas
+                prtmst_view.lodlvl,
+                inv.prtnum,
+                inv.prt_client_id) outbound_datas
   group by outbound_datas.wh_id,
         outbound_datas.client_id,
         outbound_datas.datetime,
