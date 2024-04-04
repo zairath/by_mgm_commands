@@ -19,6 +19,7 @@ get client in clause for user
         inventory_view.subnum,
         inventory_view.prtnum,
         prtmst_view.prtfam,
+        pf.prtfamgrp,
         prtdsc.lngdsc,
         inventory_view.revlvl,
         inventory_view.untqty,
@@ -88,6 +89,9 @@ get client in clause for user
    join adrmst adr
      on adr.adr_id = cli.adr_id
     and adr.adrtyp = 'CLI'
+   left
+   join prtfam pf
+     on pf.prtfam = prtmst_view.prtfam
    left
    join rcvlin
      on rcvlin.rcvkey = inventory_view.rcvkey
