@@ -75,7 +75,22 @@ get client in clause for user
         trlr.dispatch_dte,
         av.lodnum,
         stop.car_move_id,
-        ptv.catch_unttyp
+        ptv.catch_unttyp,
+        case when (pv.pck_uom = 'PL' or pv.pck_uom is null)
+         and (select case when count(distinct invdtl_hist.wrkref_dtl) > 1 then 'False'
+                          else 'True'
+                     end as booleans
+                from invdtl_hist
+               where invdtl_hist.revlvl = av.revlvl
+                 and invdtl_hist.prtnum = av.prtnum
+                 and invdtl_hist.prt_client_id = av.prt_client_id) = 'True'
+         and not exists(select ahy.rcvkey
+                          from inventory_view ahy
+                         where ahy.revlvl = av.revlvl
+                           and ahy.prtnum = av.prtnum
+                           and ahy.prt_client_id = av.prt_client_id) then 'FULL-PALLET'
+             else 'NON-FULL-PALLET'
+        end as pallet_categories
    from pckwrk_view pv
    join ord o
      on o.ordnum = pv.ordnum
@@ -178,7 +193,10 @@ get client in clause for user
         ptv.dspuom,
         av.lodnum,
         stop.car_move_id,
-        ptv.catch_unttyp
+        ptv.catch_unttyp,
+        av.prtnum,
+        av.prt_client_id,
+        pv.pck_uom
   order by pv.schbat,
         rl.trknum]
 ]]>
