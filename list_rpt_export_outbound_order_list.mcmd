@@ -7,6 +7,8 @@
 get client in clause for user
  where usr_id = nvl(@usr_id, @@usr_id)
    and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+   and @+start_date
+   and @+end_date
 |
 [select client_addr.adrnam as client_name,
         ord.ordnum as order_number,
@@ -74,6 +76,8 @@ get client in clause for user
   where @+ord.ordnum
     and @+ord.client_id
     and @+ord.wh_id
+    and ord.adddte between @start_date:date
+    and @end_date:date
     and ord_line.shpqty < 1
     and ord_line.cancelled_flg <> 1]
 |
