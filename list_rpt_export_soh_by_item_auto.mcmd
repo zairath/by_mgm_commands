@@ -4,7 +4,7 @@
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
-select soh_item.*,
+[select soh_item.*,
         soh_item.init_untqty + soh_item.trn_in - soh_item.trn_out + soh_item.trn_adj as final_untqty,
         soh_item.init_carton + soh_item.trn_in_ctn - soh_item.trn_out_ctn + soh_item.trn_adj_ctn as final_carton,
         soh_item.init_catch_weight + soh_item.trn_in_catch_weight - soh_item.trn_out_catch_weight + soh_item.trn_adj_catch_weight as final_catch_weight,
@@ -279,6 +279,8 @@ select soh_item.*,
             and sidt.untcas = ivw.untcas
           where ivw.stoloc not like '%PERM%'
             and ivw.stoloc not like '%TRL%'
+            and ivw.prtnum = 'sample'
+            and ivw.prt_client_id = '003-00-03119-000'
           group by prtmst_view.prtnum,
                 prtmst_view.prt_client_id,
                 prtmst_view.wh_id,
