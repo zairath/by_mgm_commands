@@ -4,7 +4,7 @@
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
-[select soh_item.*,
+select soh_item.*,
         soh_item.init_untqty + soh_item.trn_in - soh_item.trn_out + soh_item.trn_adj as final_untqty,
         soh_item.init_carton + soh_item.trn_in_ctn - soh_item.trn_out_ctn + soh_item.trn_adj_ctn as final_carton,
         soh_item.init_catch_weight + soh_item.trn_in_catch_weight - soh_item.trn_out_catch_weight + soh_item.trn_adj_catch_weight as final_catch_weight,
@@ -151,18 +151,19 @@
                              and pvw_out.wh_id = prtmst_view.wh_id
                              and tr.close_dte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
                              and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_out_ctn_weight,
-                coalesce((select sum(case when dt_adj.actcod = 'INVDEL' then dt_adj.trnqty *-1
-                                          when dt_adj.actcod = 'IDNTFY_AJ' then dt_adj.trnqty *1
+                coalesce((select sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *-1
+                                          when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *1
+                                          when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.trnqty *1
                                      end) as trnqty
                             from dlytrn dt_adj
                            where dt_adj.prtnum = prtmst_view.prtnum
                              and dt_adj.prt_client_id = prtmst_view.prt_client_id
                              and dt_adj.wh_id = prtmst_view.wh_id
-                             and dt_adj.oprcod = 'INVADJ'
                              and dt_adj.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
                              and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_adj,
-                coalesce((select sum(case when dt_adj.actcod = 'INVDEL' then dt_adj.trnqty / pftl.untqty *-1
-                                          when dt_adj.actcod = 'IDNTFY_AJ' then dt_adj.trnqty / pftl.untqty *1
+                coalesce((select sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty / pftl.untqty *-1
+                                          when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty / pftl.untqty *1
+                                          when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.trnqty / pftl.untqty *1
                                      end) as trnqty
                             from dlytrn dt_adj
                            inner
@@ -175,22 +176,22 @@
                            where dt_adj.prtnum = prtmst_view.prtnum
                              and dt_adj.prt_client_id = prtmst_view.prt_client_id
                              and dt_adj.wh_id = prtmst_view.wh_id
-                             and dt_adj.oprcod = 'INVADJ'
                              and dt_adj.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
                              and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_adj_ctn,
-                coalesce((select sum(case when dt_adj.actcod = 'INVDEL' then dt_adj.catch_qty *-1
-                                          when dt_adj.actcod = 'IDNTFY_AJ' then dt_adj.catch_qty *1
+                coalesce((select sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.catch_qty *-1
+                                          when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.catch_qty *1
+                                          when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.catch_qty *1
                                      end) as trnqty
                             from dlytrn dt_adj
                            where dt_adj.prtnum = prtmst_view.prtnum
                              and dt_adj.prt_client_id = prtmst_view.prt_client_id
                              and dt_adj.wh_id = prtmst_view.wh_id
-                             and dt_adj.oprcod = 'INVADJ'
                              and dt_adj.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
                              and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_adj_catch_weight,
                 coalesce((select cast(max(prtftp_dtl.netwgt) / 35.274 *
-                                      case when prtmst_view.dspuom is null then sum(case when dt_adj.actcod = 'INVDEL' then dt_adj.trnqty *-1
-                                                                                         when dt_adj.actcod = 'IDNTFY_AJ' then dt_adj.trnqty *1
+                                      case when prtmst_view.dspuom is null then sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *-1
+                                                                                         when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *1
+                                                                                         when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.trnqty *1
                                                                                     end)
                                            else sum(case when dt_adj.actcod = 'INVDEL' then dt_adj.trnqty *-1
                                                          when dt_adj.actcod = 'IDNTFY_AJ' then dt_adj.trnqty *1
@@ -207,7 +208,6 @@
                            where dt_adj.prtnum = prtmst_view.prtnum
                              and dt_adj.prt_client_id = prtmst_view.prt_client_id
                              and dt_adj.wh_id = prtmst_view.wh_id
-                             and dt_adj.oprcod = 'INVADJ'
                              and dt_adj.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
                              and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_adj_ctn_weight,
                 case when prtmst_view.stkuom = prtmst_view.dspuom then cast(case when prtmst_view.dspuom is null then sum(ivw.untqty)
@@ -291,7 +291,7 @@
                 sidt.final_carton,
                 sidt.final_catch_weight,
                 sidt.final_carton_weight) soh_item
-  order by soh_item.prtnum asc]
+  order by soh_item.prtnum asc
 ]]>
 </local-syntax>
 </command>
