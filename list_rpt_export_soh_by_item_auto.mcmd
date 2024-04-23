@@ -291,7 +291,7 @@ select soh_item.*,
                 sidt.final_carton,
                 sidt.final_catch_weight,
                 sidt.final_carton_weight) soh_item
-  order by soh_item.prtnum asc
+  order by soh_item.prtnum asc]
 ]]>
 </local-syntax>
 </command>
