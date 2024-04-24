@@ -277,7 +277,7 @@ if (@oprcod = 'LPCK')
             and ivww.wh_id = a.wh_id
             and ivww.ftpcod = a.ftpcod
             and ivww.stoloc = a.srcloc
-            and (ivww.inv_attr_str1 = a.inv_attr_str1 or ivww.inv_attr_str2 = a.inv_attr_str2 or ivww.inv_attr_str3 = a.inv_attr_str3)
+             or (ivww.inv_attr_str1 = a.inv_attr_str1 or ivww.inv_attr_str2 = a.inv_attr_str2 or ivww.inv_attr_str3 = a.inv_attr_str3)
           where a.list_id is not null
             and @+d.ordnum
             and @+e.list_id
