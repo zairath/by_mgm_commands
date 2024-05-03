@@ -10,7 +10,8 @@ get client in clause for user
    and @+start_date
    and @+end_date
 |
-[select distinct trlr_seal1 as customer_order_number,
+[select distinct trlract.trndte as transaction_date,
+        trlr_seal1 as customer_order_number,
         dc1.lngdsc as type_truck,
         dc2.lngdsc as truck_status,
         carhdr.carnam as expedition,
@@ -209,7 +210,8 @@ get client in clause for user
         trlr.trlr_ref,
         trlr.close_dte,
         trlr.dispatch_dte,
-        trlr.trlr_cod
+        trlr.trlr_cod,
+        trlract.trndte
   order by trlract.trndte asc]
 ]]>
 </local-syntax>
