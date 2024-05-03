@@ -13,8 +13,7 @@ get client in clause for user
 |
 if (@api_flag = 1)
 {
-    [select distinct trlract.trndte as transaction_date,
-            trlr_seal1 as customer_order_number,
+    [select distinct trlr_seal1 as customer_order_number,
             dc1.lngdsc as type_truck,
             dc2.lngdsc as truck_status,
             carhdr.carnam as expedition,
@@ -200,7 +199,7 @@ if (@api_flag = 1)
         and @+trlr.stoloc_wh_id
         and trlr.arrdte between @start_date:date
         and @end_date:date
-        and (@+inbound.client_id or @+outbound.client_id) 
+        and (@+inbound.client_id or @+outbound.client_id)
       group by trlr_seal1,
             dc1.lngdsc,
             dc2.lngdsc,
@@ -214,14 +213,11 @@ if (@api_flag = 1)
             trlr.trlr_ref,
             trlr.close_dte,
             trlr.dispatch_dte,
-            trlr.trlr_cod,
-            trlract.trndte
-      order by trlract.trndte asc]
+            trlr.trlr_cod]
 }
 else
 {
-    [select distinct trlract.trndte as transaction_date,
-            trlr_seal1 as customer_order_number,
+    [select distinct trlr_seal1 as customer_order_number,
             dc1.lngdsc as type_truck,
             dc2.lngdsc as truck_status,
             carhdr.carnam as expedition,
@@ -420,9 +416,7 @@ else
             trlr.trlr_ref,
             trlr.close_dte,
             trlr.dispatch_dte,
-            trlr.trlr_cod,
-            trlract.trndte
-      order by trlract.trndte asc]
+            trlr.trlr_cod]
 }
 ]]>
 </local-syntax>
