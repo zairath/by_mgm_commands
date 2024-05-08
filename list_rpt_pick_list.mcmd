@@ -10,8 +10,8 @@ publish data
 get client in clause for user
  where usr_id = nvl(@usr_id, @@usr_id)
    and stoloc_wh_id = nvl(@wh_id, @@wh_id)
-   and date_from = nvl(@date_from, '20240508000000')
-   and date_to = nvl(@date_to, '20240508000000')
+   and @+date_from
+   and @+date_to
 |
 if (@oprcod = 'LPCK')
 {
@@ -288,7 +288,7 @@ if (@oprcod = 'LPCK')
              or (ivww.inv_attr_str1 = a.inv_attr_str1 or ivww.inv_attr_str2 = a.inv_attr_str2 or ivww.inv_attr_str3 = a.inv_attr_str3)
           where a.list_id is not null
             and @+d.ordnum
-            and @+e.list_id
+            and e.list_id = @list_id
             and @+d.wh_id
             and @+a.pcksts
             and a.wrktyp = 'P'
