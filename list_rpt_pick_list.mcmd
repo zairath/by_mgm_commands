@@ -228,14 +228,14 @@ if (@oprcod = 'LPCK')
                 coalesce(max(a.inv_attr_str2), max(ivww.inv_attr_str2)) inv_attr_str2,
                 coalesce(max(a.inv_attr_str3), max(ivww.inv_attr_str3)) inv_attr_str3,
                 cast(format((select top 1invsum.old_expire_dte
-                               from invsum
-                              inner
-                               join locmst
-                                 on invsum.stoloc = a.srcloc
-                                and invsum.wh_id = a.wh_id
-                              where invsum.prt_client_id = max(a.prt_client_id)
-                                and invsum.prtnum = a.prtnum
-                                and invsum.wh_id = a.wh_id), 'yyyyMMddHHmmss') as bigint) as expire_dte
+               from invsum
+              inner
+               join locmst
+                 on invsum.stoloc = a.srcloc
+                and invsum.wh_id = a.wh_id
+              where invsum.prt_client_id = max(a.prt_client_id)
+                and invsum.prtnum = a.prtnum
+                and invsum.wh_id = a.wh_id), 'yyyyMMddHHmmss') as nvarchar) as expire_dte
            from pckwrk_view a
            LEFT
            JOIN dscmst f
