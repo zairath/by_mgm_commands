@@ -213,7 +213,8 @@ if (@api_flag = 1)
             trlr.trlr_ref,
             trlr.close_dte,
             trlr.dispatch_dte,
-            trlr.trlr_cod]
+            trlr.trlr_cod
+      order by trlr.trlr_id asc]
 }
 else
 {
