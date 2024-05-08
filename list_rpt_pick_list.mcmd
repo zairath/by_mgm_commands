@@ -235,7 +235,7 @@ if (@oprcod = 'LPCK')
                                 and invsum.wh_id = a.wh_id
                               where invsum.prt_client_id = max(a.prt_client_id)
                                 and invsum.prtnum = a.prtnum
-                                and invsum.wh_id = a.wh_id), 'yyyyMMddHHmmss') as varchar) as expire_dte
+                                and invsum.wh_id = a.wh_id), 'yyyyMMddHHmmss') as text) as expire_dte
            from pckwrk_view a
            LEFT
            JOIN dscmst f
