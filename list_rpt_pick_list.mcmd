@@ -5,13 +5,13 @@
   <local-syntax>
 <![CDATA[
 publish data
- where date_from = @date_from
-   and date_to = @date_to
-   and oprcod = nvl(@oprcod, 'LPCK')
+ where oprcod = nvl(@oprcod, 'LPCK')
 |
 get client in clause for user
  where usr_id = nvl(@usr_id, @@usr_id)
    and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+   and date_from = nvl(@date_from, '20240508000000')
+   and date_to = nvl(@date_to, '20240508000000')
 |
 if (@oprcod = 'LPCK')
 {
