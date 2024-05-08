@@ -13,7 +13,8 @@ get client in clause for user
 |
 if (@api_flag = 1)
 {
-    [select distinct trlr_seal1 as customer_order_number,
+    [select distinct trlr.trlr_id,
+            trlr_seal1 as customer_order_number,
             dc1.lngdsc as type_truck,
             dc2.lngdsc as truck_status,
             carhdr.carnam as expedition,
@@ -200,7 +201,8 @@ if (@api_flag = 1)
         and trlr.arrdte between @start_date:date
         and @end_date:date
         and (@+inbound.client_id or @+outbound.client_id)
-      group by trlr_seal1,
+      group by trlr.trlr_id,
+            trlr_seal1,
             dc1.lngdsc,
             dc2.lngdsc,
             carhdr.carnam,
