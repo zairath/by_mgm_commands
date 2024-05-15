@@ -17,7 +17,9 @@
         dtrn.inv_attr_str2 as reference_1,
         dtrn.inv_attr_str3 as reference_2,
         pdc.lngdsc,
-        SUBSTRING(dtrn.to_value, CHARINDEX('|', dtrn.to_value, CHARINDEX('|', dtrn.to_value, CHARINDEX('|', dtrn.to_value, CHARINDEX('|', to_value, 0) + 1) + 1) + 1) + 1, CHARINDEX('|', dtrn.to_value + '|', CHARINDEX('|', dtrn.to_value, CHARINDEX('|', dtrn.to_value, CHARINDEX('|', dtrn.to_value, CHARINDEX('|', dtrn.to_value, 0) + 1) + 1) + 1) + 1) - CHARINDEX('|', dtrn.to_value, CHARINDEX('|', dtrn.to_value, CHARINDEX('|', dtrn.to_value, CHARINDEX('|', dtrn.to_value, 0) + 1) + 1) + 1) - 1) AS expire_dte,
+        case when LEN(dtrn.to_value) = 0 then null
+             else cast(SUBSTRING(SUBSTRING(dtrn.to_value, charindex('|', dtrn.to_value, charindex('|', dtrn.to_value, charindex('|', dtrn.to_value, charindex('|', dtrn.to_value, 0) + 1) + 1) + 1) + 1, charindex('|', dtrn.to_value + '|', charindex('|', dtrn.to_value, charindex('|', dtrn.to_value, charindex('|', dtrn.to_value, charindex('|', dtrn.to_value, 0) + 1) + 1) + 1) + 1) - charindex('|', dtrn.to_value, charindex('|', dtrn.to_value, charindex('|', dtrn.to_value, charindex('|', dtrn.to_value, 0) + 1) + 1) + 1) - 1), 1, 8) as datetime)
+        end as expire_dte,
         prtftp_dtl.untqty as untcas,
         prtmst_view.stkuom,
         prtmst_view.dspuom,
