@@ -47,6 +47,9 @@ if (@api_flag = 1)
             rcvlin.supnum as supp_code,
             st.adrnam as sup_name,
             sum(rcvlin.rcvqty) as qty_rcv,
+            cast(sum(rcvlin.rcvqty) / (select sum(expqty)
+                                         from rcvlin rlin
+                                        where rlin.trknum = rcvtrk.trknum) * 100 as float) as rec_percent,
             count(distinct rcvlin.revlvl) as inb_pall,
             rcvinv.invdte as create_dte
        from trlr
