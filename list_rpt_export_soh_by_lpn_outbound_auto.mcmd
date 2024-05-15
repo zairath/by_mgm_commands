@@ -25,11 +25,15 @@
         prtmst_view.dspuom,
         sum(dtrn.trnqty) as trn_in,
         sum(dtrn.trnqty) / max(prtftp_dtl.untqty) as trn_in_ctn,
-        sum(dtrn.catch_qty) as trn_in_catch_weight,
-        cast(max(prtftp_dtl.netwgt) / 35.274 *
-             case when prtmst_view.dspuom is null then sum(dtrn.trnqty)
-                  else sum(dtrn.trnqty) / max(prtftp_dtl.untqty)
-             end as numeric(15, 4)) as trn_in_ctn_weight,
+        case when max(prtmst_view.catch_unttyp) is not null then sum(dtrn.catch_qty)
+             else 0
+        end as trn_in_catch_weight,
+        case when max(prtmst_view.catch_unttyp) is null then cast(max(prtftp_dtl.netwgt) / 35.274 *
+                                                                  case when prtmst_view.dspuom is null then sum(dtrn.trnqty)
+                                                                       else sum(dtrn.trnqty) / max(prtftp_dtl.untqty)
+                                                                  end as numeric(15, 4))
+             else 0
+        end as trn_in_ctn_weight,
         SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time' as inserted_time,
         'outbound' as trantyp
    from dlytrn dtrn

@@ -4,7 +4,7 @@
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
-[select DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE())) as date_printed,
+[select DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time')) as date_printed,
         ivw.wh_id,
         ivw.stoloc,
         ivw.lodnum,
@@ -23,12 +23,16 @@
         prtmst_view.dspuom,
         sum(ivw.untqty) as trn_in,
         sum(ivw.untqty) / max(prtftp_dtl.untqty) as trn_in_ctn,
-        sum(ivw.catch_qty) as trn_in_catch_weight,
-        cast(max(prtftp_dtl.netwgt) / 35.274 *
-             case when prtmst_view.dspuom is null then sum(ivw.untqty)
-                  else sum(ivw.untqty) / max(prtftp_dtl.untqty)
-             end as numeric(15, 4)) as trn_in_ctn_weight,
-        GETDATE() as inserted_time,
+        case when max(prtmst_view.catch_unttyp) is not null then sum(ivw.catch_qty)
+             else 0
+        end as trn_in_catch_weight,
+        case when max(prtmst_view.catch_unttyp) is null then cast(max(prtftp_dtl.netwgt) / 35.274 *
+                                                                  case when prtmst_view.dspuom is null then sum(ivw.untqty)
+                                                                       else sum(ivw.untqty) / max(prtftp_dtl.untqty)
+                                                                  end as numeric(15, 4))
+             else 0
+        end as trn_in_ctn_weight,
+        SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time' as inserted_time,
         'inbound' as trantyp
    from inventory_view ivw
    join prtmst_view
@@ -63,8 +67,8 @@
     and rv_in.wh_id = ivw.wh_id
   where ivw.stoloc not like '%PERM%'
     and ivw.stoloc not like '%TRL%'
-    and rv_in.completed_date between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-    and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))
+    and rv_in.completed_date between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+    and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
   group by ivw.prtnum,
         ivw.prt_client_id,
         ivw.wh_id,

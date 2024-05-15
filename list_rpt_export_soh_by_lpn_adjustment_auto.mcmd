@@ -4,7 +4,7 @@
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
-[select DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE())) as date_printed,
+[select DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time')) as date_printed,
         dtrn.wh_id,
         dtrn.frstol stoloc,
         dtrn.lodnum,
@@ -27,17 +27,21 @@
         sum(case when dtrn.actcod = 'INVDEL' then dtrn.trnqty / prtftp_dtl.untqty *-1
                  when dtrn.actcod = 'IDNTFY_AJ' then dtrn.trnqty / prtftp_dtl.untqty *1
             end) as trn_in_ctn,
-        sum(case when dtrn.actcod = 'INVDEL' then dtrn.catch_qty *-1
-                 when dtrn.actcod = 'IDNTFY_AJ' then dtrn.catch_qty *1
-            end) as trn_in_catch_weight,
-        cast(max(prtftp_dtl.netwgt) / 35.274 *
-             case when prtmst_view.dspuom is null then sum(case when dtrn.actcod = 'INVDEL' then dtrn.trnqty *-1
-                                                                when dtrn.actcod = 'IDNTFY_AJ' then dtrn.trnqty *1
-                                                           end)
-                  else sum(case when dtrn.actcod = 'INVDEL' then dtrn.trnqty *-1
-                                when dtrn.actcod = 'IDNTFY_AJ' then dtrn.trnqty *1
-                           end) / prtftp_dtl.untqty
-             end as numeric(15, 4)) trn_in_ctn_weight,
+        case when max(prtmst_view.catch_unttyp) is not null then sum(case when dtrn.actcod = 'INVDEL' then dtrn.catch_qty *-1
+                                                                          when dtrn.actcod = 'IDNTFY_AJ' then dtrn.catch_qty *1
+                                                                     end)
+             else 0
+        end as trn_in_catch_weight,
+        case when max(prtmst_view.catch_unttyp) is null then cast(max(prtftp_dtl.netwgt) / 35.274 *
+                                                                  case when prtmst_view.dspuom is null then sum(case when dtrn.actcod = 'INVDEL' then dtrn.trnqty *-1
+                                                                                                                     when dtrn.actcod = 'IDNTFY_AJ' then dtrn.trnqty *1
+                                                                                                                end)
+                                                                       else sum(case when dtrn.actcod = 'INVDEL' then dtrn.trnqty *-1
+                                                                                     when dtrn.actcod = 'IDNTFY_AJ' then dtrn.trnqty *1
+                                                                                end) / prtftp_dtl.untqty
+                                                                  end as numeric(15, 4))
+             else 0
+        end as trn_in_ctn_weight,
         GETDATE() as inserted_time,
         'adjustment' as trantyp
    from dlytrn dtrn
@@ -61,8 +65,8 @@
      on adrmst.client_id = dtrn.prt_client_id
     and adrmst.adr_id = client.adr_id
     and adrmst.adrtyp = 'CLI'
-  where dtrn.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-    and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))
+  where dtrn.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+    and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
     and dtrn.oprcod = 'INVADJ'
   group by dtrn.prtnum,
         dtrn.prt_client_id,
