@@ -9,102 +9,203 @@ get client in clause for user
    and stoloc_wh_id = nvl(@wh_id, @@wh_id)
    and @+start_date
    and @+end_date
+   and @+api_flag
 |
-[select trlr.trlr_num as license_plate,
-        dc1.lngdsc as type_truck,
-        trlr.driver_nam as driver_name,
-        dc2.lngdsc as truck_status,
-        nvl(dc3.lngdsc, dc3.short_dsc) as rcvtrk_stat_dsc,
-        (select top 1trndte
-           from trlract
-          where trlract.trlr_id = trlr.trlr_id
-            and trlr_stat = 'CI'
-            and actcod in ('TCHKIN', 'TCHG')) as check_in_time,
-        (select top 1trndte
-           from trlract
-          where trlract.trlr_id = trlr.trlr_id
-            and trlr_stat = 'OR'
-            and actcod in ('TCHKIN', 'TCHG')) as gate_in_inbound,
-        (select top 1trndte
-           from trlract
-          where trlract.trlr_id = trlr.trlr_id
-            and trlr_stat = 'R'
-            and actcod = 'TCHG') as start_activity_inbound,
-        (select top 1trndte
-           from trlract
-          where trlract.trlr_id = trlr.trlr_id
-            and trlr_stat = 'C'
-            and actcod = 'TCHG') as finish_activity_inbound,
-        trlr.close_dte as get_out_time,
-        trlr.dispatch_dte as check_out_time,
-        'INBOUND' as activity,
-        rcvlin.client_id as clientid_inbound,
-        adrmst.adrnam as client_name,
-        rcvtrk.trknum as inbound_shipment,
-        rcvlin.supnum as supp_code,
-        st.adrnam as sup_name,
-        sum(rcvlin.rcvqty) as qty_rcv,
-        count(distinct rcvlin.revlvl) as inb_pall,
-        rcvinv.invdte as create_dte,
-        rcvinv.mod_usr_id as crte_by,
-        rcvlin.mod_usr_id as gr_by
-   from trlr
-   join dscmst dc1
-     on dc1.colnam = 'trlr_typ'
-    and dc1.colval = trlr.trlr_typ
-   join dscmst dc2
-     on dc2.colnam = 'trlr_stat'
-    and dc2.colval = trlr.trlr_stat
-   join rcvtrk
-     on rcvtrk.trlr_id = trlr.trlr_id
-   join rcvinv
-     on rcvinv.trknum = rcvtrk.trknum
-    and rcvinv.wh_id = rcvtrk.wh_id
-   join rcvlin
-     on rcvinv.trknum = rcvlin.trknum
-    and rcvinv.wh_id = rcvlin.wh_id
-    and rcvinv.client_id = rcvlin.client_id
-   join client
-     on client.client_id = rcvinv.client_id
-   join adrmst
-     on adrmst.adr_id = client.adr_id
-   join supmst s
-     on s.supnum = rcvlin.supnum
-    and s.client_id = rcvlin.client_id
-   join adrmst st
-     on st.adr_id = s.adr_id
-   join dscmst dc3
-     on dc3.colval = rcvtrk.rcvtrk_stat
-    and dc3.colnam = 'rcvtrk_stat'
-  where rcvtrk.rcvtrk_stat not in (select rcvtrk_stat
-                                     from rcvtrk
-                                    where rcvtrk_stat = 'CI'
-                                       or rcvtrk_stat = 'EX')
-    and trlr.trlr_stat <> 'EX'
-    and trlr.trlr_cod = 'RCV'
-    and rcvlin.seqnum <> 0
-    and @+trlr.stoloc_wh_id
-    and trlr.arrdte between @start_date:date
-    and @end_date:date
-    and @+rcvinv.client_id
-    and @+rcvinv.trknum
-  group by trlr.trlr_num,
-        trlr.trlr_id,
-        dc1.lngdsc,
-        dc3.lngdsc,
-        dc3.short_dsc,
-        st.adrnam,
-        trlr.driver_nam,
-        dc2.lngdsc,
-        trlr.close_dte,
-        trlr.dispatch_dte,
-        rcvlin.client_id,
-        adrmst.adrnam,
-        rcvtrk.trknum,
-        rcvlin.supnum,
-        rcvinv.invdte,
-        rcvinv.mod_usr_id,
-        rcvlin.mod_usr_id]
+if (@api_flag = 1)
+{
+    [select trlr.trlr_num as license_plate,
+            dc1.lngdsc as type_truck,
+            trlr.driver_nam as driver_name,
+            dc2.lngdsc as truck_status,
+            nvl(dc3.lngdsc, dc3.short_dsc) as rcvtrk_stat_dsc,
+            (select top 1trndte
+               from trlract
+              where trlract.trlr_id = trlr.trlr_id
+                and trlr_stat = 'CI'
+                and actcod in ('TCHKIN', 'TCHG')) as check_in_time,
+            (select top 1trndte
+               from trlract
+              where trlract.trlr_id = trlr.trlr_id
+                and trlr_stat = 'OR'
+                and actcod in ('TCHKIN', 'TCHG')) as gate_in_inbound,
+            (select top 1trndte
+               from trlract
+              where trlract.trlr_id = trlr.trlr_id
+                and trlr_stat = 'R'
+                and actcod = 'TCHG') as start_activity_inbound,
+            (select top 1trndte
+               from trlract
+              where trlract.trlr_id = trlr.trlr_id
+                and trlr_stat = 'C'
+                and actcod = 'TCHG') as finish_activity_inbound,
+            trlr.close_dte as get_out_time,
+            trlr.dispatch_dte as check_out_time,
+            'INBOUND' as activity,
+            rcvlin.client_id as clientid_inbound,
+            adrmst.adrnam as client_name,
+            rcvtrk.trknum as inbound_shipment,
+            rcvlin.supnum as supp_code,
+            st.adrnam as sup_name,
+            sum(rcvlin.rcvqty) as qty_rcv,
+            count(distinct rcvlin.revlvl) as inb_pall,
+            rcvinv.invdte as create_dte,
+            rcvinv.mod_usr_id as crte_by,
+            rcvlin.mod_usr_id as gr_by
+       from trlr
+       join dscmst dc1
+         on dc1.colnam = 'trlr_typ'
+        and dc1.colval = trlr.trlr_typ
+       join dscmst dc2
+         on dc2.colnam = 'trlr_stat'
+        and dc2.colval = trlr.trlr_stat
+       join rcvtrk
+         on rcvtrk.trlr_id = trlr.trlr_id
+       join rcvinv
+         on rcvinv.trknum = rcvtrk.trknum
+        and rcvinv.wh_id = rcvtrk.wh_id
+       join rcvlin
+         on rcvinv.trknum = rcvlin.trknum
+        and rcvinv.wh_id = rcvlin.wh_id
+        and rcvinv.client_id = rcvlin.client_id
+       join client
+         on client.client_id = rcvinv.client_id
+       join adrmst
+         on adrmst.adr_id = client.adr_id
+       join supmst s
+         on s.supnum = rcvlin.supnum
+        and s.client_id = rcvlin.client_id
+       join adrmst st
+         on st.adr_id = s.adr_id
+       join dscmst dc3
+         on dc3.colval = rcvtrk.rcvtrk_stat
+        and dc3.colnam = 'rcvtrk_stat'
+      where rcvtrk.rcvtrk_stat not in (select rcvtrk_stat
+                                         from rcvtrk
+                                        where rcvtrk_stat = 'EX')
+        and trlr.trlr_stat not in ('EX', 'D')
+        and trlr.trlr_cod = 'RCV'
+        and rcvlin.seqnum <> 0
+        and @+trlr.stoloc_wh_id
+        and trlr.arrdte between @start_date:date
+        and @end_date:date
+        and @+rcvinv.client_id
+        and @+rcvinv.trknum
+      group by trlr.trlr_num,
+            trlr.trlr_id,
+            dc1.lngdsc,
+            dc3.lngdsc,
+            dc3.short_dsc,
+            st.adrnam,
+            trlr.driver_nam,
+            dc2.lngdsc,
+            trlr.close_dte,
+            trlr.dispatch_dte,
+            rcvlin.client_id,
+            adrmst.adrnam,
+            rcvtrk.trknum,
+            rcvlin.supnum,
+            rcvinv.invdte,
+            rcvinv.mod_usr_id,
+            rcvlin.mod_usr_id]
+}
+else
+{
+    [select trlr.trlr_num as license_plate,
+            dc1.lngdsc as type_truck,
+            trlr.driver_nam as driver_name,
+            dc2.lngdsc as truck_status,
+            nvl(dc3.lngdsc, dc3.short_dsc) as rcvtrk_stat_dsc,
+            (select top 1trndte
+               from trlract
+              where trlract.trlr_id = trlr.trlr_id
+                and trlr_stat = 'CI'
+                and actcod in ('TCHKIN', 'TCHG')) as check_in_time,
+            (select top 1trndte
+               from trlract
+              where trlract.trlr_id = trlr.trlr_id
+                and trlr_stat = 'OR'
+                and actcod in ('TCHKIN', 'TCHG')) as gate_in_inbound,
+            (select top 1trndte
+               from trlract
+              where trlract.trlr_id = trlr.trlr_id
+                and trlr_stat = 'R'
+                and actcod = 'TCHG') as start_activity_inbound,
+            (select top 1trndte
+               from trlract
+              where trlract.trlr_id = trlr.trlr_id
+                and trlr_stat = 'C'
+                and actcod = 'TCHG') as finish_activity_inbound,
+            trlr.close_dte as get_out_time,
+            trlr.dispatch_dte as check_out_time,
+            'INBOUND' as activity,
+            rcvlin.client_id as clientid_inbound,
+            adrmst.adrnam as client_name,
+            rcvtrk.trknum as inbound_shipment,
+            rcvlin.supnum as supp_code,
+            st.adrnam as sup_name,
+            sum(rcvlin.rcvqty) as qty_rcv,
+            count(distinct rcvlin.revlvl) as inb_pall,
+            rcvinv.invdte as create_dte,
+            rcvinv.mod_usr_id as crte_by,
+            rcvlin.mod_usr_id as gr_by
+       from trlr
+       join dscmst dc1
+         on dc1.colnam = 'trlr_typ'
+        and dc1.colval = trlr.trlr_typ
+       join dscmst dc2
+         on dc2.colnam = 'trlr_stat'
+        and dc2.colval = trlr.trlr_stat
+       join rcvtrk
+         on rcvtrk.trlr_id = trlr.trlr_id
+       join rcvinv
+         on rcvinv.trknum = rcvtrk.trknum
+        and rcvinv.wh_id = rcvtrk.wh_id
+       join rcvlin
+         on rcvinv.trknum = rcvlin.trknum
+        and rcvinv.wh_id = rcvlin.wh_id
+        and rcvinv.client_id = rcvlin.client_id
+       join client
+         on client.client_id = rcvinv.client_id
+       join adrmst
+         on adrmst.adr_id = client.adr_id
+       join supmst s
+         on s.supnum = rcvlin.supnum
+        and s.client_id = rcvlin.client_id
+       join adrmst st
+         on st.adr_id = s.adr_id
+       join dscmst dc3
+         on dc3.colval = rcvtrk.rcvtrk_stat
+        and dc3.colnam = 'rcvtrk_stat'
+      where rcvtrk.rcvtrk_stat not in (select rcvtrk_stat
+                                         from rcvtrk
+                                        where rcvtrk_stat = 'CI'
+                                           or rcvtrk_stat = 'EX')
+        and trlr.trlr_stat <> 'EX'
+        and trlr.trlr_cod = 'RCV'
+        and rcvlin.seqnum <> 0
+        and @+trlr.stoloc_wh_id
+        and trlr.arrdte between @start_date:date
+        and @end_date:date
+        and @+rcvinv.client_id
+        and @+rcvinv.trknum
+      group by trlr.trlr_num,
+            trlr.trlr_id,
+            dc1.lngdsc,
+            dc3.lngdsc,
+            dc3.short_dsc,
+            st.adrnam,
+            trlr.driver_nam,
+            dc2.lngdsc,
+            trlr.close_dte,
+            trlr.dispatch_dte,
+            rcvlin.client_id,
+            adrmst.adrnam,
+            rcvtrk.trknum,
+            rcvlin.supnum,
+            rcvinv.invdte,
+            rcvinv.mod_usr_id,
+            rcvlin.mod_usr_id]
+}
 ]]>
 </local-syntax>
 </command>
