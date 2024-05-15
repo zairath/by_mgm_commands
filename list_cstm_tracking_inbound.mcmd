@@ -48,9 +48,7 @@ if (@api_flag = 1)
             st.adrnam as sup_name,
             sum(rcvlin.rcvqty) as qty_rcv,
             count(distinct rcvlin.revlvl) as inb_pall,
-            rcvinv.invdte as create_dte,
-            rcvinv.mod_usr_id as crte_by,
-            rcvlin.mod_usr_id as gr_by
+            rcvinv.invdte as create_dte
        from trlr
        join dscmst dc1
          on dc1.colnam = 'trlr_typ'
@@ -84,7 +82,6 @@ if (@api_flag = 1)
                                         where rcvtrk_stat = 'EX')
         and trlr.trlr_stat not in ('EX', 'D')
         and trlr.trlr_cod = 'RCV'
-        and rcvlin.seqnum <> 0
         and @+trlr.stoloc_wh_id
         and trlr.arrdte between @start_date:date
         and @end_date:date
@@ -104,9 +101,7 @@ if (@api_flag = 1)
             adrmst.adrnam,
             rcvtrk.trknum,
             rcvlin.supnum,
-            rcvinv.invdte,
-            rcvinv.mod_usr_id,
-            rcvlin.mod_usr_id]
+            rcvinv.invdte]
 }
 else
 {
