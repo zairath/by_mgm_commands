@@ -223,29 +223,33 @@ if (@oprcod = 'LPCK')
                 a.srcloc,
                 coalesce(a.revlvl, (select top 1revlvl
                                       from inventory_view
-                                     where inventory_view.prt_client_id = max(a.prt_client_id)
+                                     where inventory_view.prt_client_id = a.client_id
                                        and inventory_view.prtnum = a.prtnum
                                        and inventory_view.wh_id = a.wh_id
+                                       and inventory_view.stoloc = a.srcloc
                                      order by inventory_view.fifdte asc)) revlvl,
                 zm.wrkzon,
                 decode(a.pck_uom, NULL, max(b.dspuom), a.pck_uom) pck_uom,
-                coalesce(max(a.inv_attr_str1), (select top 1inv_attr_str3
+                coalesce(max(a.inv_attr_str1), (select top 1inv_attr_str1
                                                   from inventory_view
-                                                 where inventory_view.prt_client_id = max(a.prt_client_id)
+                                                 where inventory_view.prt_client_id = a.client_id
                                                    and inventory_view.prtnum = a.prtnum
                                                    and inventory_view.wh_id = a.wh_id
+                                                   and inventory_view.stoloc = a.srcloc
                                                  order by inventory_view.fifdte asc)) inv_attr_str1,
-                coalesce(max(a.inv_attr_str2), (select top 1inv_attr_str3
+                coalesce(max(a.inv_attr_str2), (select top 1inv_attr_str2
                                                   from inventory_view
-                                                 where inventory_view.prt_client_id = max(a.prt_client_id)
+                                                 where inventory_view.prt_client_id = a.client_id
                                                    and inventory_view.prtnum = a.prtnum
                                                    and inventory_view.wh_id = a.wh_id
+                                                   and inventory_view.stoloc = a.srcloc
                                                  order by inventory_view.fifdte asc)) inv_attr_str2,
                 coalesce(max(a.inv_attr_str3), (select top 1inv_attr_str3
                                                   from inventory_view
-                                                 where inventory_view.prt_client_id = max(a.prt_client_id)
+                                                 where inventory_view.prt_client_id = a.client_id
                                                    and inventory_view.prtnum = a.prtnum
                                                    and inventory_view.wh_id = a.wh_id
+                                                   and inventory_view.stoloc = a.srcloc
                                                  order by inventory_view.fifdte asc)) inv_attr_str3,
                 cast(format((select top 1invsum.old_expire_dte
                                from invsum
@@ -253,7 +257,7 @@ if (@oprcod = 'LPCK')
                                join locmst
                                  on invsum.stoloc = a.srcloc
                                 and invsum.wh_id = a.wh_id
-                              where invsum.prt_client_id = max(a.prt_client_id)
+                              where invsum.prt_client_id = a.client_id
                                 and invsum.prtnum = a.prtnum
                                 and invsum.wh_id = a.wh_id), 'yyyyMMddHHmmss') as nvarchar) as expire_dte
            from pckwrk_view a
