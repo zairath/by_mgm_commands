@@ -221,12 +221,32 @@ if (@oprcod = 'LPCK')
                 d.dlvnum as grab_id,
                 a.pcksts,
                 a.srcloc,
-                coalesce(a.revlvl, max(ivww.revlvl)) revlvl,
+                coalesce(a.revlvl, (select top 1revlvl
+                                      from inventory_view
+                                     where inventory_view.prt_client_id = max(a.prt_client_id)
+                                       and inventory_view.prtnum = a.prtnum
+                                       and inventory_view.wh_id = a.wh_id
+                                     order by inventory_view.fifdte asc)) revlvl,
                 zm.wrkzon,
                 decode(a.pck_uom, NULL, max(b.dspuom), a.pck_uom) pck_uom,
-                coalesce(max(a.inv_attr_str1), max(ivww.inv_attr_str1)) inv_attr_str1,
-                coalesce(max(a.inv_attr_str2), max(ivww.inv_attr_str2)) inv_attr_str2,
-                coalesce(max(a.inv_attr_str3), max(ivww.inv_attr_str3)) inv_attr_str3,
+                coalesce(max(a.inv_attr_str1), (select top 1inv_attr_str3
+                                                  from inventory_view
+                                                 where inventory_view.prt_client_id = max(a.prt_client_id)
+                                                   and inventory_view.prtnum = a.prtnum
+                                                   and inventory_view.wh_id = a.wh_id
+                                                 order by inventory_view.fifdte asc)) inv_attr_str1,
+                coalesce(max(a.inv_attr_str2), (select top 1inv_attr_str3
+                                                  from inventory_view
+                                                 where inventory_view.prt_client_id = max(a.prt_client_id)
+                                                   and inventory_view.prtnum = a.prtnum
+                                                   and inventory_view.wh_id = a.wh_id
+                                                 order by inventory_view.fifdte asc)) inv_attr_str2,
+                coalesce(max(a.inv_attr_str3), (select top 1inv_attr_str3
+                                                  from inventory_view
+                                                 where inventory_view.prt_client_id = max(a.prt_client_id)
+                                                   and inventory_view.prtnum = a.prtnum
+                                                   and inventory_view.wh_id = a.wh_id
+                                                 order by inventory_view.fifdte asc)) inv_attr_str3,
                 cast(format((select top 1invsum.old_expire_dte
                                from invsum
                               inner
@@ -279,13 +299,6 @@ if (@oprcod = 'LPCK')
             and q1.colnam = 'wh_id'
            join zonmst zm
              on zm.wrk_zone_id = a.src_wrk_zone_id
-           join inventory_view ivww
-             on ivww.prtnum = a.prtnum
-            and ivww.prt_client_id = a.prt_client_id
-            and ivww.wh_id = a.wh_id
-            and ivww.ftpcod = a.ftpcod
-            and ivww.stoloc = a.srcloc
-            and (ivww.inv_attr_str1 = a.inv_attr_str1 or ivww.inv_attr_str2 = a.inv_attr_str2 or ivww.inv_attr_str3 = a.inv_attr_str3 or 1 = 1)
           where a.list_id is not null
             and @+d.ordnum
             and e.list_id = @list_id
