@@ -171,55 +171,18 @@ if (@oprcod = 'LPCK')
     {
         [select a.wh_id,
                 zm.bldg_id,
-                q1.lngdsc warehouse,
-                a.client_id,
                 a.list_id,
                 REPLACE(a.list_id, 'LST', 'TOID') as toid,
-                a.oprcod,
                 REPLACE(a.oprcod, 'LPCK', 'PICKING LIST') as pcktyp,
-                q.lngdsc ordtyp,
                 a.schbat wave_number,
                 g.adrnam customer,
-                g.first_name as customer_name,
-                a.ftpcod,
-                g.adrln1 || ' ' || g.adrln2 || ' ' || g.adrln3 as customer_address,
-                g.phnnum as phone_number,
-                decode(max(b.dspuom), null, sum(a.pckqty), sum(a.pckqty) / max(h.untqty)) pick_qty,
-                (select sum(pckwrk_view.pckqty)
-                   from (select pckwrk_view.pckqty
-                           from pckwrk_view
-                           JOIN pcklst e
-                             on e.list_id = a.list_id
-                           JOIN ord d
-                             ON d.ordnum = max(a.ordnum)
-                          where pckwrk_view.list_id = e.list_id
-                            and pckwrk_view.ordnum = d.ordnum
-                            and pckwrk_view.pck_uom = a.pck_uom) pckwrk_view) as total_picks,
-                b.prtfam item_family,
+                decode(max(b.dspuom), null, (select sum(pvwv.pckqty)
+                                               from pckwrk_view pvwv
+                                              where pvwv.wrkref_dtl = max(a.wrkref_dtl)), (select sum(pvwv.pckqty)
+                                                                                             from pckwrk_view pvwv
+                                                                                            where pvwv.wrkref_dtl = max(a.wrkref_dtl)) / max(a.untcas)) pick_qty,
                 a.prtnum item_number,
                 c.lngdsc item_description,
-                b.stkuom,
-                (select count(pckwrk_view.prtnum)
-                   from (select pckwrk_view.prtnum
-                           from pckwrk_view
-                           JOIN pcklst e
-                             on e.list_id = a.list_id
-                           JOIN ord d
-                             ON d.ordnum = max(a.ordnum)
-                          where pckwrk_view.list_id = e.list_id
-                            and pckwrk_view.ordnum = d.ordnum) pckwrk_view) total_item,
-                nvl((select lngdsc
-                       from dscmst
-                      where dscmst.colval = b.stkuom
-                        and dscmst.colnam = 'uomcod'
-                        and dscmst.locale_id = nvl(@locale_id, @@locale_id)), (select short_dsc
-                                                                                 from dscmst
-                                                                                where dscmst.colval = b.stkuom
-                                                                                  and dscmst.colnam = 'uomcod'
-                                                                                  and dscmst.locale_id = nvl(@locale_id, @@locale_id))) uom,
-                e.totvol as total_volume,
-                d.dlvnum as grab_id,
-                a.pcksts,
                 a.srcloc,
                 coalesce(a.revlvl, (select top 1revlvl
                                       from inventory_view
@@ -228,7 +191,6 @@ if (@oprcod = 'LPCK')
                                        and inventory_view.wh_id = a.wh_id
                                        and inventory_view.stoloc = a.srcloc
                                      order by inventory_view.fifdte asc)) revlvl,
-                zm.wrkzon,
                 decode(a.pck_uom, NULL, max(b.dspuom), a.pck_uom) pck_uom,
                 coalesce(max(a.inv_attr_str1), (select top 1inv_attr_str1
                                                   from inventory_view
@@ -237,20 +199,6 @@ if (@oprcod = 'LPCK')
                                                    and inventory_view.wh_id = a.wh_id
                                                    and inventory_view.stoloc = a.srcloc
                                                  order by inventory_view.fifdte asc)) inv_attr_str1,
-                coalesce(max(a.inv_attr_str2), (select top 1inv_attr_str2
-                                                  from inventory_view
-                                                 where inventory_view.prt_client_id = a.client_id
-                                                   and inventory_view.prtnum = a.prtnum
-                                                   and inventory_view.wh_id = a.wh_id
-                                                   and inventory_view.stoloc = a.srcloc
-                                                 order by inventory_view.fifdte asc)) inv_attr_str2,
-                coalesce(max(a.inv_attr_str3), (select top 1inv_attr_str3
-                                                  from inventory_view
-                                                 where inventory_view.prt_client_id = a.client_id
-                                                   and inventory_view.prtnum = a.prtnum
-                                                   and inventory_view.wh_id = a.wh_id
-                                                   and inventory_view.stoloc = a.srcloc
-                                                 order by inventory_view.fifdte asc)) inv_attr_str3,
                 cast(format((select top 1invsum.old_expire_dte
                                from invsum
                               inner
@@ -261,32 +209,18 @@ if (@oprcod = 'LPCK')
                                 and invsum.prtnum = a.prtnum
                                 and invsum.wh_id = a.wh_id), 'yyyyMMddHHmmss') as nvarchar) as expire_dte
            from pckwrk_view a
-           LEFT
-           JOIN dscmst f
-             ON f.colval = a.res_uom
-            AND f.colnam = 'uomcod'
-           JOIN pcklst e
-             on e.list_id = a.list_id
+           join ord_line
+             on ord_line.ordnum = a.ordnum
+            and ord_line.ordlin = a.ordlin
+            and ord_line.wh_id = a.wh_id
+            and ord_line.prt_client_id = a.prt_client_id
+            and ord_line.prtnum = a.prtnum
            JOIN prtmst_view b
              ON b.prtnum = a.prtnum
-            and b.wh_id_tmpl = a.wh_id
+            and b.wh_id = a.wh_id
             and b.prt_client_id = a.prt_client_id
-           JOIN prtftp_dtl h
-             on b.prtnum = h.prtnum
-            and b.wh_id = h.wh_id
-            and b.prt_client_id = h.prt_client_id
-            and a.ftpcod = h.ftpcod
-            and h.uomcod = decode(a.pck_uom, NULL, b.dspuom, a.pck_uom)
-           JOIN ord d
-             ON d.ordnum = a.ordnum
-            and d.wh_id = a.wh_id
-           LEFT
-           JOIN ord_line_note j
-             on j.ordnum = a.ordnum
-            and j.ordlin = a.ordlin
-            and j.wh_id = a.wh_id
            JOIN client
-             on client.client_id = d.client_id
+             on client.client_id = a.prt_client_id
            JOIN adrmst g
              ON g.adr_id = client.adr_id
             and g.adrtyp = 'CLI'
@@ -294,53 +228,28 @@ if (@oprcod = 'LPCK')
              ON c.colval = /*=varchar(*/ a.prtnum || '|' || b.prt_client_id || '|' || b.wh_id_tmpl /*=)*/
             AND c.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
             AND c.locale_id = nvl(@locale_id, @@locale_id)
-           LEFT
-           JOIN dscmst q
-             ON q.colval = d.ordtyp || '|' || d.wh_id
-            and q.colnam = 'ordtyp|wh_id'
-           join dscmst q1
-             on q1.colval = a.wh_id
-            and q1.colnam = 'wh_id'
-           join zonmst zm
-             on zm.wrk_zone_id = a.src_wrk_zone_id
+           JOIN zonmst zm
+             ON zm.wrk_zone_id = a.src_wrk_zone_id
           where a.list_id is not null
-            and @+d.ordnum
-            and e.list_id = @list_id
-            and @+d.wh_id
+            and @+a.ordnum
+            and a.list_id = @list_id
+            and @+a.wh_id
             and @+a.pcksts
             and a.wrktyp = 'P'
             and a.oprcod = 'LPCK'
             and a.pcksts = 'R'
             and @*
           group by a.wh_id,
-                zm.bldg_id,
-                a.prtnum,
                 a.client_id,
+                zm.bldg_id,
                 a.list_id,
                 a.oprcod,
-                q.lngdsc,
                 a.schbat,
-                b.prtfam,
-                c.lngdsc,
-                f.lngdsc,
                 g.adrnam,
-                g.adrln1,
-                a.ftpcod,
-                g.adrln2,
-                g.adrln3,
-                g.phnnum,
-                b.stkuom,
-                e.totvol,
-                h.len,
-                h.wid,
-                h.hgt,
-                q1.lngdsc,
-                d.dlvnum,
-                g.first_name,
-                a.pcksts,
+                a.prtnum,
+                c.lngdsc,
                 a.srcloc,
                 a.revlvl,
-                zm.wrkzon,
                 a.pck_uom
           order by a.srcloc]
     }
