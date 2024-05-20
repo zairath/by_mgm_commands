@@ -180,7 +180,7 @@ if (@oprcod = 'LPCK')
                                                from pckwrk_view pvwv
                                               where pvwv.wrkref_dtl = max(a.wrkref_dtl)), (select sum(pvwv.pckqty)
                                                                                              from pckwrk_view pvwv
-                                                                                            where pvwv.wrkref_dtl = max(a.wrkref_dtl)) / max(a.untcas)) pick_qty,
+                                                                                            where pvwv.wrkref_dtl = max(a.wrkref_dtl)) / max(h.untqty)) pick_qty,
                 a.prtnum item_number,
                 c.lngdsc item_description,
                 a.srcloc,
@@ -219,6 +219,12 @@ if (@oprcod = 'LPCK')
              ON b.prtnum = a.prtnum
             and b.wh_id = a.wh_id
             and b.prt_client_id = a.prt_client_id
+           JOIN prtftp_dtl h
+             ON h.prtnum = b.prtnum
+            and h.prt_client_id = b.prt_client_id
+            and h.wh_id = b.wh_id
+            and a.ftpcod = h.ftpcod
+            and h.uomcod = decode(a.pck_uom, NULL, b.dspuom, a.pck_uom)
            JOIN client
              on client.client_id = a.prt_client_id
            JOIN adrmst g
