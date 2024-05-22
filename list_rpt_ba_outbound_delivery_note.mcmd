@@ -169,8 +169,7 @@ get client in clause for user
     and @+ord_line.late_dlvdte:date
     and @+prtmst_wh.cntdte:date
     and @+prtmst_view.moddte:date
-  order by shipment_line.ship_id,
-        shipment_line.ship_line_id]
+  order by prtdsc.lngdsc]
 ]]>
 </local-syntax>
 </command>
