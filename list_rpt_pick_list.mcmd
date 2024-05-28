@@ -176,11 +176,7 @@ if (@oprcod = 'LPCK')
                 REPLACE(a.oprcod, 'LPCK', 'PICKING LIST') as pcktyp,
                 a.schbat wave_number,
                 g.adrnam customer,
-                decode(max(b.dspuom), null, (select sum(pvwv.pckqty)
-                                               from pckwrk_view pvwv
-                                              where pvwv.wrkref_dtl = max(a.wrkref_dtl)), (select sum(pvwv.pckqty)
-                                                                                             from pckwrk_view pvwv
-                                                                                            where pvwv.wrkref_dtl = max(a.wrkref_dtl)) / max(h.untqty)) pick_qty,
+                decode(max(b.dspuom), null, sum(a.pckqty), sum(a.pckqty) / max(h.untqty)) pick_qty,
                 a.prtnum item_number,
                 c.lngdsc item_description,
                 a.srcloc,
