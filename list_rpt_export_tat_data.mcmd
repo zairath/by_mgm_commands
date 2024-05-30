@@ -26,6 +26,7 @@ if (@api_flag = 1)
             trlr.driver_nam as driver_name,
             trlr.trlr_broker as phone_number,
             coalesce(max(trlr.yard_loc), max(trlract.yard_loc)) yard_loc,
+            appt.stoloc as appointment_location,
             trlr.trlr_ref,
             min(case when trlract.trlr_stat = 'CI' and trlract.actcod in ('TCHKIN', 'TCHG') then trlract.trndte
                 end) as check_in_time,
@@ -195,6 +196,9 @@ if (@api_flag = 1)
                     rcvinv.client_id,
                     dr.adrnam) inbound
          on inbound.trlr_id = trlr.trlr_id
+       left outer
+       join appt
+         on appt.appt_id = trlr.appt_id
       where trlr.trlr_stat <> 'EX'
         and trlr.trlr_stat <> 'D'
         and @+trlr.stoloc_wh_id
@@ -215,7 +219,8 @@ if (@api_flag = 1)
             trlr.trlr_ref,
             trlr.close_dte,
             trlr.dispatch_dte,
-            trlr.trlr_cod
+            trlr.trlr_cod,
+            appt.stoloc
       order by trlr.trlr_id asc]
 }
 else
