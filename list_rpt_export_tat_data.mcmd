@@ -27,6 +27,8 @@ if (@api_flag = 1)
             trlr.trlr_broker as phone_number,
             coalesce(max(trlr.yard_loc), max(trlract.yard_loc)) yard_loc,
             appt.stoloc as appointment_location,
+            appt.start_dte as appointment_start_date,
+            appt.end_dte as appointment_end_date,
             trlr.trlr_ref,
             min(case when trlract.trlr_stat = 'CI' and trlract.actcod in ('TCHKIN', 'TCHG') then trlract.trndte
                 end) as check_in_time,
@@ -220,7 +222,9 @@ if (@api_flag = 1)
             trlr.close_dte,
             trlr.dispatch_dte,
             trlr.trlr_cod,
-            appt.stoloc
+            appt.stoloc,
+            appt.start_dte,
+            appt.end_dte
       order by trlr.trlr_id asc]
 }
 else
