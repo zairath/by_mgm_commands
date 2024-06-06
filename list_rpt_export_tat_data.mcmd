@@ -38,7 +38,9 @@ if (@api_flag = 1)
                and trlract.trlr_stat = 'CI'
                and trlract.actcod in ('TCHKIN', 'TCHG')
                order by trlract.trlract_id asc) as check_in_time,*/
-            trlr.close_dte as get_out_time,
+            min(case when trlract.trlr_stat = 'C' and trlract.actcod in ('TMOVE') then trlract.trndte
+                end) as get_out_time,
+            /*trlr.close_dte as get_out_time,*/
             trlr.dispatch_dte as check_out_time,
             min(case when trlract.trlr_stat = 'OR' and trlract.actcod in ('TCHKIN', 'TCHG') then trlract.trndte
                 end) as gate_in_inbound,
@@ -250,7 +252,9 @@ else
                and trlract.trlr_stat = 'CI'
                and trlract.actcod in ('TCHKIN', 'TCHG')
                order by trlract.trlract_id asc) as check_in_time,*/
-            trlr.close_dte as get_out_time,
+            min(case when trlract.trlr_stat = 'C' and trlract.actcod in ('TMOVE') then trlract.trndte
+                end) as get_out_time,
+            /*trlr.close_dte as get_out_time,*/
             trlr.dispatch_dte as check_out_time,
             min(case when trlract.trlr_stat = 'OR' and trlract.actcod in ('TCHKIN', 'TCHG') then trlract.trndte
                 end) as gate_in_inbound,
