@@ -68,7 +68,7 @@ if (@api_flag = 1)
                and trlract.trlr_cod = 'RCV'
                and trlract.actcod = 'TCHG'
                order by trlract.trlract_id asc) as finish_activity_inbound,*/
-            min(case when trlract.trlr_stat = 'O' and trlract.actcod in ('TCLOSE', 'TCHG') then trlract.trndte
+            min(case when trlract.trlr_stat = 'CI' and trlract.trlr_cod = 'SHIP' and trlract.actcod in ('TMOVE') then trlract.trndte
                 end) as gate_in_outbound,
             /*(select top 1trndte
                from trlract
@@ -282,7 +282,7 @@ else
                and trlract.trlr_cod = 'RCV'
                and trlract.actcod = 'TCHG'
                order by trlract.trlract_id asc) as finish_activity_inbound,*/
-            min(case when trlract.trlr_stat = 'O' and trlract.actcod in ('TCLOSE', 'TCHG') then trlract.trndte
+            min(case when trlract.trlr_stat = 'CI' and trlract.trlr_cod = 'SHIP' and trlract.actcod in ('TMOVE') then trlract.trndte
                 end) as gate_in_outbound,
             /*(select top 1trndte
                from trlract
