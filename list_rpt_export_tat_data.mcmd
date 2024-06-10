@@ -147,10 +147,8 @@ if (@api_flag = 1)
        join dscmst dc2
          on dc2.colnam = 'trlr_stat'
         and dc2.colval = trlr.trlr_stat
-       left
        join carhdr
          on carhdr.carcod = trlr.carcod
-       left
        join trlract
          on trlract.trlr_id = trlr.trlr_id
         and trlract.trlr_num = trlr.trlr_num
@@ -361,10 +359,8 @@ else
        join dscmst dc2
          on dc2.colnam = 'trlr_stat'
         and dc2.colval = trlr.trlr_stat
-       left
        join carhdr
          on carhdr.carcod = trlr.carcod
-       left
        join trlract
          on trlract.trlr_id = trlr.trlr_id
         and trlract.trlr_num = trlr.trlr_num
