@@ -4,294 +4,296 @@
   <type>Local Syntax</type>
   <local-syntax>
 <![CDATA[
-[select soh_item.*,
-        soh_item.init_untqty + soh_item.trn_in - soh_item.trn_out + soh_item.trn_adj as final_untqty,
-        soh_item.init_carton + soh_item.trn_in_ctn - soh_item.trn_out_ctn + soh_item.trn_adj_ctn as final_carton,
-        soh_item.init_catch_weight + soh_item.trn_in_catch_weight - soh_item.trn_out_catch_weight + soh_item.trn_adj_catch_weight as final_catch_weight,
-        soh_item.init_carton_weight + soh_item.trn_in_ctn_weight - soh_item.trn_out_ctn_weight + soh_item.trn_adj_ctn_weight as final_carton_weight
-   from (select DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE())) as date_printed,
-                prtmst_view.wh_id,
-                prtmst_view.prt_client_id,
-                adrmst.adrnam as client_name,
-                prtmst_view.prtnum,
-                pdc.lngdsc,
-                ivw.untcas,
-                prtmst_view.stkuom,
-                prtmst_view.dspuom,
-                coalesce(sidt.final_carton, sum(ivw.untqty)) as 'init_untqty',
-                coalesce(sidt.final_carton, sum(ivw.untqty) / max(prtftp_dtl.untqty)) as 'init_carton',
-                coalesce(sidt.final_catch_weight, sum(ivw.catch_qty)) as 'init_catch_weight',
-                coalesce(sidt.final_carton_weight, cast(max(prtftp_dtl.netwgt) / 35.274 *
-                                                        case when prtmst_view.dspuom is null then sum(ivw.untqty)
-                                                             else sum(ivw.untqty) / max(prtftp_dtl.untqty)
-                                                        end as numeric(15, 4))) as 'init_carton_weight',
-                coalesce((select sum(rc_in.rcvqty)
-                            from rcvlin rc_in
-                            join rcvinv rv_in
-                              on rv_in.trknum = rc_in.trknum
-                             and rv_in.client_id = rc_in.client_id
-                             and rv_in.supnum = rc_in.supnum
-                             and rv_in.invnum = rc_in.invnum
-                             and rv_in.wh_id = rc_in.wh_id
-                           where rc_in.prtnum = prtmst_view.prtnum
-                             and rc_in.prt_client_id = prtmst_view.prt_client_id
-                             and rc_in.wh_id = prtmst_view.wh_id
-                             and rc_in.revlvl = max(ivw.revlvl)
-                             and rv_in.completed_date between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-                             and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_in,
-                coalesce((select sum(rc_in.rcvqty) / max(prtftp_dtl.untqty)
-                            from rcvlin rc_in
-                            join rcvinv rv_in
-                              on rv_in.trknum = rc_in.trknum
-                             and rv_in.client_id = rc_in.client_id
-                             and rv_in.supnum = rc_in.supnum
-                             and rv_in.invnum = rc_in.invnum
-                             and rv_in.wh_id = rc_in.wh_id
-                           where rc_in.prtnum = prtmst_view.prtnum
-                             and rc_in.prt_client_id = prtmst_view.prt_client_id
-                             and rc_in.wh_id = prtmst_view.wh_id
-                             and rc_in.revlvl = max(ivw.revlvl)
-                             and rv_in.completed_date between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-                             and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_in_ctn,
-                coalesce((select sum(rc_in.rcv_catch_qty)
-                            from rcvlin rc_in
-                            join rcvinv rv_in
-                              on rv_in.trknum = rc_in.trknum
-                             and rv_in.client_id = rc_in.client_id
-                             and rv_in.supnum = rc_in.supnum
-                             and rv_in.invnum = rc_in.invnum
-                             and rv_in.wh_id = rc_in.wh_id
-                           where rc_in.prtnum = prtmst_view.prtnum
-                             and rc_in.prt_client_id = prtmst_view.prt_client_id
-                             and rc_in.wh_id = prtmst_view.wh_id
-                             and rc_in.revlvl = max(ivw.revlvl)
-                             and rv_in.completed_date between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-                             and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_in_catch_weight,
-                coalesce((select cast(max(prtftp_dtl.netwgt) / 35.274 *
-                                      case when prtmst_view.dspuom is null then sum(rc_in.rcvqty)
-                                           else sum(rc_in.rcvqty) / max(prtftp_dtl.untqty)
-                                      end as numeric(15, 4)) as ctn_weight
-                            from rcvlin rc_in
-                            join rcvinv rv_in
-                              on rv_in.trknum = rc_in.trknum
-                             and rv_in.client_id = rc_in.client_id
-                             and rv_in.supnum = rc_in.supnum
-                             and rv_in.invnum = rc_in.invnum
-                             and rv_in.wh_id = rc_in.wh_id
-                           where rc_in.prtnum = prtmst_view.prtnum
-                             and rc_in.prt_client_id = prtmst_view.prt_client_id
-                             and rc_in.wh_id = prtmst_view.wh_id
-                             and rc_in.revlvl = max(ivw.revlvl)
-                             and rv_in.completed_date between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-                             and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_in_ctn_weight,
-                coalesce((select sum(pvw_out.dtl_pckqty)
-                            from pckwrk_view pvw_out
-                            join shipment sl
-                              on sl.ship_id = pvw_out.ship_id
-                             and sl.wh_id = pvw_out.wh_id
-                            join stop st
-                              on st.stop_id = sl.stop_id
-                            join car_move cm
-                              on cm.car_move_id = st.car_move_id
-                            join trlr tr
-                              on tr.trlr_id = cm.trlr_id
-                           where pvw_out.prtnum = prtmst_view.prtnum
-                             and pvw_out.prt_client_id = prtmst_view.prt_client_id
-                             and pvw_out.wh_id = prtmst_view.wh_id
-                             and tr.close_dte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-                             and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_out,
-                coalesce((select sum(pvw_out.dtl_pckqty) / max(prtftp_dtl.untqty)
-                            from pckwrk_view pvw_out
-                            join shipment sl
-                              on sl.ship_id = pvw_out.ship_id
-                             and sl.wh_id = pvw_out.wh_id
-                            join stop st
-                              on st.stop_id = sl.stop_id
-                            join car_move cm
-                              on cm.car_move_id = st.car_move_id
-                            join trlr tr
-                              on tr.trlr_id = cm.trlr_id
-                           where pvw_out.prtnum = prtmst_view.prtnum
-                             and pvw_out.prt_client_id = prtmst_view.prt_client_id
-                             and pvw_out.wh_id = prtmst_view.wh_id
-                             and tr.close_dte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-                             and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_out_ctn,
-                coalesce((select sum(pvw_out.dtl_pck_catch_qty)
-                            from pckwrk_view pvw_out
-                            join shipment sl
-                              on sl.ship_id = pvw_out.ship_id
-                             and sl.wh_id = pvw_out.wh_id
-                            join stop st
-                              on st.stop_id = sl.stop_id
-                            join car_move cm
-                              on cm.car_move_id = st.car_move_id
-                            join trlr tr
-                              on tr.trlr_id = cm.trlr_id
-                           where pvw_out.prtnum = prtmst_view.prtnum
-                             and pvw_out.prt_client_id = prtmst_view.prt_client_id
-                             and pvw_out.wh_id = prtmst_view.wh_id
-                             and tr.close_dte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-                             and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_out_catch_weight,
-                coalesce((select cast(max(prtftp_dtl.netwgt) / 35.274 *
-                                      case when prtmst_view.dspuom is null then sum(pvw_out.dtl_pckqty)
-                                           else sum(pvw_out.dtl_pckqty) / max(prtftp_dtl.untqty)
-                                      end as numeric(15, 4)) as ctn_weight
-                            from pckwrk_view pvw_out
-                            join shipment sl
-                              on sl.ship_id = pvw_out.ship_id
-                             and sl.wh_id = pvw_out.wh_id
-                            join stop st
-                              on st.stop_id = sl.stop_id
-                            join car_move cm
-                              on cm.car_move_id = st.car_move_id
-                            join trlr tr
-                              on tr.trlr_id = cm.trlr_id
-                           where pvw_out.prtnum = prtmst_view.prtnum
-                             and pvw_out.prt_client_id = prtmst_view.prt_client_id
-                             and pvw_out.wh_id = prtmst_view.wh_id
-                             and tr.close_dte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-                             and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_out_ctn_weight,
-                coalesce((select sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *-1
-                                          when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *1
-                                          when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.trnqty *1
-                                     end) as trnqty
-                            from dlytrn dt_adj
-                           where dt_adj.prtnum = prtmst_view.prtnum
-                             and dt_adj.prt_client_id = prtmst_view.prt_client_id
-                             and dt_adj.wh_id = prtmst_view.wh_id
-                             and dt_adj.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-                             and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_adj,
-                coalesce((select sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty / pftl.untqty *-1
-                                          when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty / pftl.untqty *1
-                                          when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.trnqty / pftl.untqty *1
-                                     end) as trnqty
-                            from dlytrn dt_adj
-                           inner
-                            join prtftp_dtl pftl
-                              on pftl.prtnum = dt_adj.prtnum
-                             and pftl.ftpcod = dt_adj.ftpcod
-                             and pftl.prt_client_id = dt_adj.prt_client_id
-                             and pftl.wh_id = dt_adj.wh_id
-                             and pftl.uomcod = dt_adj.uomcod
-                           where dt_adj.prtnum = prtmst_view.prtnum
-                             and dt_adj.prt_client_id = prtmst_view.prt_client_id
-                             and dt_adj.wh_id = prtmst_view.wh_id
-                             and dt_adj.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-                             and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_adj_ctn,
-                coalesce((select sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.catch_qty *-1
-                                          when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.catch_qty *1
-                                          when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.catch_qty *1
-                                     end) as trnqty
-                            from dlytrn dt_adj
-                           where dt_adj.prtnum = prtmst_view.prtnum
-                             and dt_adj.prt_client_id = prtmst_view.prt_client_id
-                             and dt_adj.wh_id = prtmst_view.wh_id
-                             and dt_adj.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-                             and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_adj_catch_weight,
-                coalesce((select cast(max(prtftp_dtl.netwgt) / 35.274 *
-                                      case when prtmst_view.dspuom is null then sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *-1
-                                                                                         when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *1
-                                                                                         when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.trnqty *1
-                                                                                    end)
-                                           else sum(case when dt_adj.actcod = 'INVDEL' then dt_adj.trnqty *-1
-                                                         when dt_adj.actcod = 'IDNTFY_AJ' then dt_adj.trnqty *1
-                                                    end) / max(prtftp_dtl.untqty)
-                                      end as numeric(15, 4)) as ctn_weight
-                            from dlytrn dt_adj
-                           inner
-                            join prtftp_dtl pftl
-                              on pftl.prtnum = dt_adj.prtnum
-                             and pftl.ftpcod = dt_adj.ftpcod
-                             and pftl.prt_client_id = dt_adj.prt_client_id
-                             and pftl.wh_id = dt_adj.wh_id
-                             and pftl.uomcod = dt_adj.uomcod
-                           where dt_adj.prtnum = prtmst_view.prtnum
-                             and dt_adj.prt_client_id = prtmst_view.prt_client_id
-                             and dt_adj.wh_id = prtmst_view.wh_id
-                             and dt_adj.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-                             and DATEADD(dd, 0, DATEDIFF(dd, 0, GETDATE()))), cast(0 as nvarchar(30))) as trn_adj_ctn_weight,
-                case when prtmst_view.stkuom = prtmst_view.dspuom then cast(case when prtmst_view.dspuom is null then sum(ivw.untqty)
-                                                                                 else sum(ivw.untqty / prtftp_dtl.untqty)
-                                                                            end as varchar(12)) + ' ' + cast(case when prtmst_view.dspuom is null then prtmst_view.stkuom
-                                                                                                                  else prtmst_view.dspuom
-                                                                                                             end as varchar(12))
-                     else cast(case when prtmst_view.dspuom is null then sum(ivw.untqty)
-                                    else sum(ivw.untqty / prtftp_dtl.untqty)
-                               end as varchar(12)) + ' ' + cast(case when prtmst_view.dspuom is null then prtmst_view.stkuom
-                                                                     else prtmst_view.dspuom
-                                                                end as varchar(12)) + ' ' + cast(case when prtmst_view.dspuom is null then cast(null as int)
-                                                                                                      when prtmst_view.stkuom is null then cast(null as int)
-                                                                                                      else sum(ivw.untqty%prtftp_dtl.untqty)
-                                                                                                 end as varchar(12)) + ' ' + cast(case when prtmst_view.dspuom is null then null
-                                                                                                                                       when prtmst_view.stkuom is null then null
-                                                                                                                                       else prtmst_view.stkuom
-                                                                                                                                  end as varchar(12))
-                end as current_stock,
-                sum(ivw.catch_qty) as current_catch_weight,
-                cast(max(prtftp_dtl.netwgt) / 35.274 *
-                     case when prtmst_view.dspuom is null then sum(ivw.untqty)
-                          else sum(ivw.untqty / prtftp_dtl.untqty)
-                     end as numeric(15, 4)) as current_carton_weight,
-                GETDATE() as inserted_time
-           from prtmst_view
-           join prtdsc pdc
-             on pdc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
-            and pdc.colval = prtmst_view.prtnum + '|' + prtmst_view.prt_client_id + '|' + prtmst_view.wh_id_tmpl
-            and pdc.locale_id = 'US_ENGLISH'
-           join inventory_view ivw
-             on ivw.wh_id = prtmst_view.wh_id
-            and ivw.prtnum = prtmst_view.prtnum
-            and ivw.prt_client_id = prtmst_view.prt_client_id
-           join prtftp_dtl
-             on prtmst_view.prtnum = prtftp_dtl.prtnum
-            and prtmst_view.wh_id = prtftp_dtl.wh_id
-            and prtmst_view.prt_client_id = prtftp_dtl.prt_client_id
-            and ivw.ftpcod = prtftp_dtl.ftpcod
-            and prtftp_dtl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)
-           join client
-             on client.client_id = prtmst_view.prt_client_id
-           join adrmst
-             on adrmst.client_id = client.client_id
-            and adrmst.adr_id = client.adr_id
-            and adrmst.adrtyp = 'CLI'
-           left
-           join (select final_untqty,
-                        final_carton,
-                        final_catch_weight,
-                        final_carton_weight,
-                        prtnum,
-                        prt_client_id,
-                        wh_id,
-                        untcas
-                   from soh_item_daily_tran
-                  where date_printed = DATEADD(dd, 0, DATEDIFF(dd, 1, GETDATE()))
-                  group by final_untqty,
-                        final_carton,
-                        final_catch_weight,
-                        final_carton_weight,
-                        prtnum,
-                        prt_client_id,
-                        wh_id,
-                        untcas) sidt
-             on sidt.prtnum = prtmst_view.prtnum
-            and sidt.prt_client_id = prtmst_view.prt_client_id
-            and sidt.wh_id = prtmst_view.wh_id
-            and sidt.untcas = ivw.untcas
-          where ivw.stoloc not like '%PERM%'
-            and ivw.stoloc not like '%TRL%'
-          group by prtmst_view.prtnum,
-                prtmst_view.prt_client_id,
-                prtmst_view.wh_id,
-                adrmst.adrnam,
-                pdc.lngdsc,
-                ivw.untcas,
-                prtmst_view.dspuom,
-                prtmst_view.stkuom,
-                sidt.final_untqty,
-                sidt.final_carton,
-                sidt.final_catch_weight,
-                sidt.final_carton_weight) soh_item
-  order by soh_item.prtnum asc]
+[select DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time')) as date_printed,
+        prtmst_view.wh_id,
+        prtmst_view.prt_client_id,
+        adrmst.adrnam as client_name,
+        prtmst_view.prtnum,
+        pdc.lngdsc,
+        ivw.untcas,
+        prtmst_view.stkuom,
+        prtmst_view.dspuom,
+        coalesce(sidt.final_untqty, sum(ivw.untqty)) as 'init_untqty',
+        coalesce(sidt.final_carton, sum(ivw.untqty) / max(prtftp_dtl.untqty)) as 'init_carton',
+        coalesce(sidt.final_catch_weight, sum(ivw.catch_qty)) as 'init_catch_weight',
+        coalesce(sidt.final_carton_weight, cast(max(prtftp_dtl.netwgt) / 35.274 *
+                                                case when prtmst_view.dspuom is null then sum(ivw.untqty)
+                                                     else sum(ivw.untqty) / max(prtftp_dtl.untqty)
+                                                end as numeric(15, 4))) as 'init_carton_weight',
+        coalesce((select sum(rc_in.rcvqty)
+                    from rcvlin rc_in
+                    join rcvinv rv_in
+                      on rv_in.trknum = rc_in.trknum
+                     and rv_in.client_id = rc_in.client_id
+                     and rv_in.supnum = rc_in.supnum
+                     and rv_in.invnum = rc_in.invnum
+                     and rv_in.wh_id = rc_in.wh_id
+                   where rc_in.prtnum = prtmst_view.prtnum
+                     and rc_in.prt_client_id = prtmst_view.prt_client_id
+                     and rc_in.wh_id = prtmst_view.wh_id
+                     and rc_in.revlvl = max(ivw.revlvl)
+                     and rv_in.completed_date between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                     and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_in,
+        coalesce((select sum(rc_in.rcvqty) / max(prtftp_dtl.untqty)
+                    from rcvlin rc_in
+                    join rcvinv rv_in
+                      on rv_in.trknum = rc_in.trknum
+                     and rv_in.client_id = rc_in.client_id
+                     and rv_in.supnum = rc_in.supnum
+                     and rv_in.invnum = rc_in.invnum
+                     and rv_in.wh_id = rc_in.wh_id
+                   where rc_in.prtnum = prtmst_view.prtnum
+                     and rc_in.prt_client_id = prtmst_view.prt_client_id
+                     and rc_in.wh_id = prtmst_view.wh_id
+                     and rc_in.revlvl = max(ivw.revlvl)
+                     and rv_in.completed_date between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                     and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_in_ctn,
+        coalesce((select sum(rc_in.rcv_catch_qty)
+                    from rcvlin rc_in
+                    join rcvinv rv_in
+                      on rv_in.trknum = rc_in.trknum
+                     and rv_in.client_id = rc_in.client_id
+                     and rv_in.supnum = rc_in.supnum
+                     and rv_in.invnum = rc_in.invnum
+                     and rv_in.wh_id = rc_in.wh_id
+                   where rc_in.prtnum = prtmst_view.prtnum
+                     and rc_in.prt_client_id = prtmst_view.prt_client_id
+                     and rc_in.wh_id = prtmst_view.wh_id
+                     and rc_in.revlvl = max(ivw.revlvl)
+                     and rv_in.completed_date between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                     and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_in_catch_weight,
+        coalesce((select cast(max(prtftp_dtl.netwgt) / 35.274 *
+                              case when prtmst_view.dspuom is null then sum(rc_in.rcvqty)
+                                   else sum(rc_in.rcvqty) / max(prtftp_dtl.untqty)
+                              end as numeric(15, 4)) as ctn_weight
+                    from rcvlin rc_in
+                    join rcvinv rv_in
+                      on rv_in.trknum = rc_in.trknum
+                     and rv_in.client_id = rc_in.client_id
+                     and rv_in.supnum = rc_in.supnum
+                     and rv_in.invnum = rc_in.invnum
+                     and rv_in.wh_id = rc_in.wh_id
+                   where rc_in.prtnum = prtmst_view.prtnum
+                     and rc_in.prt_client_id = prtmst_view.prt_client_id
+                     and rc_in.wh_id = prtmst_view.wh_id
+                     and rc_in.revlvl = max(ivw.revlvl)
+                     and rv_in.completed_date between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                     and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_in_ctn_weight,
+        coalesce((select sum(pvw_out.dtl_pckqty)
+                    from pckwrk_view pvw_out
+                    join shipment sl
+                      on sl.ship_id = pvw_out.ship_id
+                     and sl.wh_id = pvw_out.wh_id
+                    join stop st
+                      on st.stop_id = sl.stop_id
+                    join car_move cm
+                      on cm.car_move_id = st.car_move_id
+                    join trlr tr
+                      on tr.trlr_id = cm.trlr_id
+                   where pvw_out.prtnum = prtmst_view.prtnum
+                     and pvw_out.prt_client_id = prtmst_view.prt_client_id
+                     and pvw_out.wh_id = prtmst_view.wh_id
+                     and tr.close_dte between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                     and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_out,
+        coalesce((select sum(pvw_out.dtl_pckqty) / max(prtftp_dtl.untqty)
+                    from pckwrk_view pvw_out
+                    join shipment sl
+                      on sl.ship_id = pvw_out.ship_id
+                     and sl.wh_id = pvw_out.wh_id
+                    join stop st
+                      on st.stop_id = sl.stop_id
+                    join car_move cm
+                      on cm.car_move_id = st.car_move_id
+                    join trlr tr
+                      on tr.trlr_id = cm.trlr_id
+                   where pvw_out.prtnum = prtmst_view.prtnum
+                     and pvw_out.prt_client_id = prtmst_view.prt_client_id
+                     and pvw_out.wh_id = prtmst_view.wh_id
+                     and tr.close_dte between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                     and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_out_ctn,
+        coalesce((select sum(pvw_out.dtl_pck_catch_qty)
+                    from pckwrk_view pvw_out
+                    join shipment sl
+                      on sl.ship_id = pvw_out.ship_id
+                     and sl.wh_id = pvw_out.wh_id
+                    join stop st
+                      on st.stop_id = sl.stop_id
+                    join car_move cm
+                      on cm.car_move_id = st.car_move_id
+                    join trlr tr
+                      on tr.trlr_id = cm.trlr_id
+                   where pvw_out.prtnum = prtmst_view.prtnum
+                     and pvw_out.prt_client_id = prtmst_view.prt_client_id
+                     and pvw_out.wh_id = prtmst_view.wh_id
+                     and tr.close_dte between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                     and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_out_catch_weight,
+        coalesce((select cast(max(prtftp_dtl.netwgt) / 35.274 *
+                              case when prtmst_view.dspuom is null then sum(pvw_out.dtl_pckqty)
+                                   else sum(pvw_out.dtl_pckqty) / max(prtftp_dtl.untqty)
+                              end as numeric(15, 4)) as ctn_weight
+                    from pckwrk_view pvw_out
+                    join shipment sl
+                      on sl.ship_id = pvw_out.ship_id
+                     and sl.wh_id = pvw_out.wh_id
+                    join stop st
+                      on st.stop_id = sl.stop_id
+                    join car_move cm
+                      on cm.car_move_id = st.car_move_id
+                    join trlr tr
+                      on tr.trlr_id = cm.trlr_id
+                   where pvw_out.prtnum = prtmst_view.prtnum
+                     and pvw_out.prt_client_id = prtmst_view.prt_client_id
+                     and pvw_out.wh_id = prtmst_view.wh_id
+                     and tr.close_dte between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                     and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_out_ctn_weight,
+        coalesce((select sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *-1
+                                  when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *1
+                                  when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.trnqty *1
+                             end) as trnqty
+                    from dlytrn dt_adj
+                   where dt_adj.prtnum = prtmst_view.prtnum
+                     and dt_adj.prt_client_id = prtmst_view.prt_client_id
+                     and dt_adj.wh_id = prtmst_view.wh_id
+                     and dt_adj.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                     and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_adj,
+        coalesce((select sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty / pftl.untqty *-1
+                                  when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty / pftl.untqty *1
+                                  when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.trnqty / pftl.untqty *1
+                             end) as trnqty
+                    from dlytrn dt_adj
+                   inner
+                    join prtftp_dtl pftl
+                      on pftl.prtnum = dt_adj.prtnum
+                     and pftl.ftpcod = dt_adj.ftpcod
+                     and pftl.prt_client_id = dt_adj.prt_client_id
+                     and pftl.wh_id = dt_adj.wh_id
+                     and pftl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)
+                   where dt_adj.prtnum = prtmst_view.prtnum
+                     and dt_adj.prt_client_id = prtmst_view.prt_client_id
+                     and dt_adj.wh_id = prtmst_view.wh_id
+                     and dt_adj.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                     and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_adj_ctn,
+        coalesce((select sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.catch_qty *-1
+                                  when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.catch_qty *1
+                                  when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.catch_qty *1
+                             end) as trnqty
+                    from dlytrn dt_adj
+                   where dt_adj.prtnum = prtmst_view.prtnum
+                     and dt_adj.prt_client_id = prtmst_view.prt_client_id
+                     and dt_adj.wh_id = prtmst_view.wh_id
+                     and dt_adj.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                     and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_adj_catch_weight,
+        coalesce((select cast(max(prtftp_dtl.netwgt) / 35.274 *
+                              case when prtmst_view.dspuom is null then sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *-1
+                                                                                 when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *1
+                                                                                 when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.trnqty *1
+                                                                            end)
+                                   else sum(case when dt_adj.actcod = 'INVDEL' then dt_adj.trnqty *-1
+                                                 when dt_adj.actcod = 'IDNTFY_AJ' then dt_adj.trnqty *1
+                                            end) / max(prtftp_dtl.untqty)
+                              end as numeric(15, 4)) as ctn_weight
+                    from dlytrn dt_adj
+                   inner
+                    join prtftp_dtl pftl
+                      on pftl.prtnum = dt_adj.prtnum
+                     and pftl.ftpcod = dt_adj.ftpcod
+                     and pftl.prt_client_id = dt_adj.prt_client_id
+                     and pftl.wh_id = dt_adj.wh_id
+                     and pftl.uomcod = dt_adj.uomcod
+                   where dt_adj.prtnum = prtmst_view.prtnum
+                     and dt_adj.prt_client_id = prtmst_view.prt_client_id
+                     and dt_adj.wh_id = prtmst_view.wh_id
+                     and dt_adj.trndte between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                     and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_adj_ctn_weight,
+        case when prtmst_view.stkuom = prtmst_view.dspuom then cast(case when prtmst_view.dspuom is null then sum(ivw.untqty)
+                                                                         else sum(ivw.untqty) / max(prtftp_dtl.untqty)
+                                                                    end as varchar(12)) + ' ' + cast(case when prtmst_view.dspuom is null then prtmst_view.stkuom
+                                                                                                          else prtmst_view.dspuom
+                                                                                                     end as varchar(12))
+             else cast(case when prtmst_view.dspuom is null then sum(ivw.untqty)
+                            else sum(ivw.untqty) / max(prtftp_dtl.untqty)
+                       end as varchar(12)) + ' ' + cast(case when prtmst_view.dspuom is null then prtmst_view.stkuom
+                                                             else prtmst_view.dspuom
+                                                        end as varchar(12)) + ' ' + cast(case when prtmst_view.dspuom is null then cast(null as int)
+                                                                                              when prtmst_view.stkuom is null then cast(null as int)
+                                                                                              else sum(ivw.untqty%prtftp_dtl.untqty)
+                                                                                         end as varchar(12)) + ' ' + cast(case when prtmst_view.dspuom is null then null
+                                                                                                                               when prtmst_view.stkuom is null then null
+                                                                                                                               else prtmst_view.stkuom
+                                                                                                                          end as varchar(12))
+        end as current_stock,
+        sum(ivw.catch_qty) as current_catch_weight,
+        cast(max(prtftp_dtl.netwgt) / 35.274 *
+             case when prtmst_view.dspuom is null then sum(ivw.untqty)
+                  else sum(ivw.untqty) / max(prtftp_dtl.untqty)
+             end as numeric(15, 4)) as current_carton_weight,
+        SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time' as inserted_time,
+        sum(ivw.untqty) as final_untqty,
+        sum(ivw.untqty) / max(prtftp_dtl.untqty) as final_carton,
+        sum(ivw.catch_qty) as final_catch_weight,
+        cast(max(prtftp_dtl.netwgt) / 35.274 *
+             case when prtmst_view.dspuom is null then sum(ivw.untqty)
+                  else sum(ivw.untqty) / max(prtftp_dtl.untqty)
+             end as numeric(15, 4)) as final_carton_weight
+   from prtmst_view
+   join prtdsc pdc
+     on pdc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and pdc.colval = prtmst_view.prtnum + '|' + prtmst_view.prt_client_id + '|' + prtmst_view.wh_id_tmpl
+    and pdc.locale_id = 'US_ENGLISH'
+   join inventory_view ivw
+     on ivw.wh_id = prtmst_view.wh_id
+    and ivw.prtnum = prtmst_view.prtnum
+    and ivw.prt_client_id = prtmst_view.prt_client_id
+   join prtftp_dtl
+     on prtmst_view.prtnum = prtftp_dtl.prtnum
+    and prtmst_view.wh_id = prtftp_dtl.wh_id
+    and prtmst_view.prt_client_id = prtftp_dtl.prt_client_id
+    and ivw.ftpcod = prtftp_dtl.ftpcod
+    and prtftp_dtl.uomcod = coalesce(prtmst_view.dspuom, prtmst_view.stkuom)
+   join client
+     on client.client_id = prtmst_view.prt_client_id
+   join adrmst
+     on adrmst.client_id = client.client_id
+    and adrmst.adr_id = client.adr_id
+    and adrmst.adrtyp = 'CLI'
+   left
+   join (select final_untqty,
+                final_carton,
+                final_catch_weight,
+                final_carton_weight,
+                prtnum,
+                prt_client_id,
+                wh_id,
+                untcas
+           from soh_item_daily_tran
+          where date_printed = DATEADD(dd, 0, DATEDIFF(dd, 2, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+          group by final_untqty,
+                final_carton,
+                final_catch_weight,
+                final_carton_weight,
+                prtnum,
+                prt_client_id,
+                wh_id,
+                untcas) sidt
+     on sidt.prtnum = prtmst_view.prtnum
+    and sidt.prt_client_id = prtmst_view.prt_client_id
+    and sidt.wh_id = prtmst_view.wh_id
+    and sidt.untcas = ivw.untcas
+  where ivw.stoloc not like '%PERM%'
+    and ivw.stoloc not like '%TRL%'
+  group by prtmst_view.prtnum,
+        prtmst_view.prt_client_id,
+        prtmst_view.wh_id,
+        adrmst.adrnam,
+        pdc.lngdsc,
+        ivw.untcas,
+        prtmst_view.dspuom,
+        prtmst_view.stkuom,
+        sidt.final_untqty,
+        sidt.final_carton,
+        sidt.final_catch_weight,
+        sidt.final_carton_weight
+  order by prtmst_view.prtnum asc]
 ]]>
 </local-syntax>
 </command>
