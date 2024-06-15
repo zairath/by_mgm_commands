@@ -63,7 +63,7 @@ get client in clause for user
                  and pdtl2.prtnum = max(rcvLineDtl.prtnum)
                  and pdtl2.prt_client_id = max(rcvLineDtl.prt_client_id)
                  and pdtl2.wh_id = max(rcvLineDtl.wh_id)
-                 and pdtl2.uomcod = nvl(max(rcvLineDtl.dspuom), max(rcvLineDtl.stkuom))) / 35.274 * decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.dtluntqty), max(rcvLineDtl.dtluntqty) / max(rcvLineDtl.untqty)) as decimal(10, 5)) as carton_weight,
+                 and pdtl2.uomcod = nvl(max(rcvLineDtl.dspuom), max(rcvLineDtl.stkuom))) / 35.274 * decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.dtluntqty), max(rcvLineDtl.dtluntqty) / max(rcvLineDtl.untqty)) as decimal(15, 4)) as carton_weight,
         case when rcvLineDtl.stkuom = max(rcvLineDtl.dspuom) then cast(rcvLineDtl.stkuom + ' = ' + max(stkuom_lngdsc) as varchar(50))
              else cast(rcvLineDtl.stkuom + ' = ' + max(stkuom_lngdsc) as varchar(50)) + ' & ' + cast(rcvLineDtl.dspuom + ' = ' + max(dspuom_lngdsc) as varchar(50))
         end as uom_lngdsc,
