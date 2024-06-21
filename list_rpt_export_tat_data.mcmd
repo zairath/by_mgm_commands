@@ -203,9 +203,8 @@ if (@api_flag = 1)
          on appt.appt_id = trlr.appt_id
       where trlr.trlr_stat <> 'EX'
         and trlr.trlr_stat <> 'D'
+        and trlr.yard_loc is not null
         and @+trlr.stoloc_wh_id
-        and trlr.arrdte between @start_date:date
-        and @end_date:date
         and (@+inbound.client_id or @+outbound.client_id)
       group by trlr.trlr_id,
             trlr_seal1,
