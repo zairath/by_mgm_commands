@@ -28,6 +28,9 @@ get client in clause for user
         SUM(CASE WHEN shpl.linsts != 'B' THEN ol.ordqty
                  ELSE 0
             END) as order_qty,
+        SUM(CASE WHEN shpl.linsts != 'B' THEN shpl.inloadqty
+                 ELSE 0
+            END) as load_qty,
         shp.alcdte as alloc_date,
         shp.stgdte as stage_date,
         shp.loddte as load_date,
