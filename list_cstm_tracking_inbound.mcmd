@@ -46,6 +46,7 @@ if (@api_flag = 1)
             rcvtrk.trknum as inbound_shipment,
             rcvlin.supnum as supp_code,
             st.adrnam as sup_name,
+            sum(rcvlin.expqty) as exp_rcv,
             sum(rcvlin.rcvqty) as qty_rcv,
             cast(sum(rcvlin.rcvqty) / (select sum(expqty)
                                          from rcvlin rlin
@@ -161,6 +162,7 @@ else
             rcvtrk.trknum as inbound_shipment,
             rcvlin.supnum as supp_code,
             st.adrnam as sup_name,
+            sum(rcvlin.expqty) as exp_rcv,
             sum(rcvlin.rcvqty) as qty_rcv,
             cast(sum(rcvlin.rcvqty) / (select sum(expqty)
                                          from rcvlin rlin
