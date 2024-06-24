@@ -216,7 +216,7 @@
                                                              else prtmst_view.dspuom
                                                         end as varchar(12)) + ' ' + cast(case when prtmst_view.dspuom is null then cast(null as int)
                                                                                               when prtmst_view.stkuom is null then cast(null as int)
-                                                                                              else sum(ivw.untqty%prtftp_dtl.untqty)
+                                                                                              else sum(ivw.untqty) %max(prtftp_dtl.untqty)
                                                                                          end as varchar(12)) + ' ' + cast(case when prtmst_view.dspuom is null then null
                                                                                                                                when prtmst_view.stkuom is null then null
                                                                                                                                else prtmst_view.stkuom
