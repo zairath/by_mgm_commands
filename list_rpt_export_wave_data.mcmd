@@ -34,7 +34,10 @@ get client in clause for user
         d.dispatch_dte,
         pw.pck_catch_qty,
         p.catch_unttyp,
-        p.catch_untwgt*pw.pck_catch_qty picked_weight,
+        cast(max(pdt.netwgt) / 35.274 *
+             case when p.dspuom is null then sum(pw.pckqty)
+                  else sum(pw.pckqty) / max(pdt.untqty)
+             end as numeric(15, 4)) as picked_weight,
         pw.pckqty total_picked_qty
    from pckwrk_view pw
    join dlytrn dt
@@ -48,6 +51,12 @@ get client in clause for user
      on p.wh_id_tmpl = pw.wh_id
     and p.prt_client_id = pw.client_id
     and p.prtnum = pw.prtnum
+   join prtftp_dtl pdt
+     on p.prtnum = pdt.prtnum
+    and p.wh_id_tmpl = pdt.wh_id
+    and p.prt_client_id = pdt.prt_client_id
+    and pw.ftpcod = pdt.ftpcod
+    and pdt.uomcod = coalesce(p.dspuom, p.stkuom)
    join prtdsc pd
      on pd.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
     and pd.colval = p.prtnum || '|' || p.prt_client_id || '|' || p.wh_id_tmpl
@@ -99,6 +108,7 @@ get client in clause for user
         pw.untcas,
         dt.frstol,
         pw.tot_cas_cnt,
+        p.dspuom,
         CASE WHEN (pw.pck_uom = 'PC') THEN dt.trnqty
              ELSE (pw.pckqty / NULLIF(pw.untcas, 0)) END,
              pw.pckdte,
