@@ -24,6 +24,7 @@ get client in clause for user
         rcvLineDtl.po_num,
         rcvLineDtl.invtyp,
         max(rcvLineDtl.expqty) expqty,
+        /**max(rcvLineDtl.expqty) expqty,**/
         max(rcvLineDtl.idnqty) idnqty,
         /**max(rcvLineDtl.rcvqty) rcvqty,**/
         max(rcvLineDtl.dtluntqty) rcvqty,
@@ -88,7 +89,17 @@ get client in clause for user
                 rcvlin.seqnum,
                 rcvlin.wh_id,
                 rcvlin.rcvkey,
-                rcvlin.expqty,
+                (select srcvlin.expqty
+                   from rcvlin srcvlin
+                  where srcvlin.trknum = rcvlin.trknum
+                    and srcvlin.client_id = rcvlin.client_id
+                    and srcvlin.invlin = rcvlin.invlin
+                    and srcvlin.invsln = rcvlin.invsln
+                    and srcvlin.prt_client_id = rcvlin.prt_client_id
+                    and srcvlin.prtnum = rcvlin.prtnum
+                    and srcvlin.wh_id = rcvlin.wh_id
+                    and srcvlin.seqnum = 0) as expqty,
+                /**rcvlin.expqty,**/
                 rcvlin.idnqty,
                 rcvlin.rcvqty,
                 rcvlin.rptqty,
