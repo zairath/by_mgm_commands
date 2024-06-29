@@ -31,7 +31,6 @@
                    where rc_in.prtnum = prtmst_view.prtnum
                      and rc_in.prt_client_id = prtmst_view.prt_client_id
                      and rc_in.wh_id = prtmst_view.wh_id
-                     and rc_in.revlvl = max(ivw.revlvl)
                      and rv_in.completed_date between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
                      and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_in,
         coalesce((select sum(rc_in.rcvqty) / max(prtftp_dtl.untqty)
@@ -45,7 +44,6 @@
                    where rc_in.prtnum = prtmst_view.prtnum
                      and rc_in.prt_client_id = prtmst_view.prt_client_id
                      and rc_in.wh_id = prtmst_view.wh_id
-                     and rc_in.revlvl = max(ivw.revlvl)
                      and rv_in.completed_date between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
                      and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_in_ctn,
         coalesce((select sum(rc_in.rcv_catch_qty)
@@ -59,7 +57,6 @@
                    where rc_in.prtnum = prtmst_view.prtnum
                      and rc_in.prt_client_id = prtmst_view.prt_client_id
                      and rc_in.wh_id = prtmst_view.wh_id
-                     and rc_in.revlvl = max(ivw.revlvl)
                      and rv_in.completed_date between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
                      and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_in_catch_weight,
         coalesce((select cast(max(prtftp_dtl.netwgt) / 35.274 *
@@ -76,7 +73,6 @@
                    where rc_in.prtnum = prtmst_view.prtnum
                      and rc_in.prt_client_id = prtmst_view.prt_client_id
                      and rc_in.wh_id = prtmst_view.wh_id
-                     and rc_in.revlvl = max(ivw.revlvl)
                      and rv_in.completed_date between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
                      and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_in_ctn_weight,
         coalesce((select sum(pvw_out.dtl_pckqty)
