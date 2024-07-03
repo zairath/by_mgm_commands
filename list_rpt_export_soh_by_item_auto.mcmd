@@ -144,7 +144,7 @@
                      and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_out_ctn_weight,
         coalesce((select sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *-1
                                   when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *1
-                                  when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.trnqty *1
+                                  when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' and dt_adj.movref = 'INTERNAL' then dt_adj.trnqty *1
                              end) as trnqty
                     from dlytrn dt_adj
                    where dt_adj.prtnum = prtmst_view.prtnum
@@ -154,7 +154,7 @@
                      and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_adj,
         coalesce((select sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty / pftl.untqty *-1
                                   when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty / pftl.untqty *1
-                                  when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.trnqty / pftl.untqty *1
+                                  when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' and dt_adj.movref = 'INTERNAL' then dt_adj.trnqty / pftl.untqty *1
                              end) as trnqty
                     from dlytrn dt_adj
                    inner
@@ -171,7 +171,7 @@
                      and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))), cast(0 as nvarchar(30))) as trn_adj_ctn,
         coalesce((select sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.catch_qty *-1
                                   when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.catch_qty *1
-                                  when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.catch_qty *1
+                                  when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' and dt_adj.movref = 'INTERNAL' then dt_adj.catch_qty *1
                              end) as trnqty
                     from dlytrn dt_adj
                    where dt_adj.prtnum = prtmst_view.prtnum
@@ -182,7 +182,7 @@
         coalesce((select cast(max(prtftp_dtl.netwgt) / 35.274 *
                               case when prtmst_view.dspuom is null then sum(case when dt_adj.actcod = 'INVDEL' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *-1
                                                                                  when dt_adj.actcod = 'IDNTFY_AJ' and dt_adj.oprcod = 'INVADJ' then dt_adj.trnqty *1
-                                                                                 when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' then dt_adj.trnqty *1
+                                                                                 when dt_adj.actcod = 'IDNTFY' and dt_adj.oprcod = 'UID' and dt_adj.movref = 'INTERNAL' then dt_adj.trnqty *1
                                                                             end)
                                    else sum(case when dt_adj.actcod = 'INVDEL' then dt_adj.trnqty *-1
                                                  when dt_adj.actcod = 'IDNTFY_AJ' then dt_adj.trnqty *1
