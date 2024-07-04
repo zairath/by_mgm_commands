@@ -76,7 +76,7 @@ if (@api_flag = 1)
                and trlract.trlr_stat = 'O'
                and trlract.actcod in ('TCLOSE', 'TCHG')
                order by trlract.trlract_id asc) as gate_in_outbound,*/
-            min(case when trlract.trlr_stat = 'LDG' and trlract.trlr_cod = 'SHIP' and trlract.actcod = 'TCHG' and trlract.mod_collst like '%live_load_flg = 1%' then trlract.trndte
+            min(case when trlract.trlr_cod = 'SHIP' and trlract.actcod = 'TCHG' and trlract.mod_collst like '%live_load_flg = 1%' then trlract.trndte
                 end) as start_activity_outbound,
             /*(select top 1trndte
                from trlract
@@ -287,7 +287,7 @@ else
                and trlract.trlr_stat = 'O'
                and trlract.actcod in ('TCLOSE', 'TCHG')
                order by trlract.trlract_id asc) as gate_in_outbound,*/
-            min(case when trlract.trlr_stat = 'LDG' and trlract.trlr_cod = 'SHIP' and trlract.actcod = 'TCHG' and trlract.mod_collst like '%live_load_flg = 1%' then trlract.trndte
+            min(case when trlract.trlr_cod = 'SHIP' and trlract.actcod = 'TCHG' and trlract.mod_collst like '%live_load_flg = 1%' then trlract.trndte
                 end) as start_activity_outbound,
             /*(select top 1trndte
                from trlract
