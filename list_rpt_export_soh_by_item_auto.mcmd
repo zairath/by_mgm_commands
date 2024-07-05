@@ -122,7 +122,49 @@
                         ivww1.stoloc,
                         ivww1.prtnum,
                         ivww1.prt_client_id,
-                        ivww1.wh_id) ivws
+                        ivww1.wh_id
+                 union
+                 select '0' as untqty,
+                        '0' as catch_qty,
+                        hivww.untcas,
+                        hivww.ftpcod,
+                        hivww.stoloc,
+                        hivww.prtnum,
+                        hivww.prt_client_id,
+                        hivww.wh_id
+                   from historical_inventory_view hivww
+                   join rcvlin rc_lin_ivww
+                     on rc_lin_ivww.rcvkey = hivww.rcvkey
+                   join rcvinv rc_inv_ivww
+                     on rc_inv_ivww.trknum = rc_lin_ivww.trknum
+                  where hivww.stoloc not like '%PERM%'
+                    and rc_inv_ivww.completed_date < DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                  group by hivww.untcas,
+                        hivww.ftpcod,
+                        hivww.stoloc,
+                        hivww.prtnum,
+                        hivww.prt_client_id,
+                        hivww.wh_id
+                 union
+                 select '0' as untqty,
+                        '0' as catch_qty,
+                        hivww1.untcas,
+                        hivww1.ftpcod,
+                        hivww1.stoloc,
+                        hivww1.prtnum,
+                        hivww1.prt_client_id,
+                        hivww1.wh_id
+                   from historical_inventory_view hivww1
+                  where hivww1.stoloc not like '%PERM%'
+                    and hivww1.rcvkey is null
+                    and hivww1.adddte between DATEADD(dd, 0, DATEDIFF(dd, 1, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                    and DATEADD(dd, 0, DATEDIFF(dd, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'SE Asia Standard Time'))
+                  group by hivww1.untcas,
+                        hivww1.ftpcod,
+                        hivww1.stoloc,
+                        hivww1.prtnum,
+                        hivww1.prt_client_id,
+                        hivww1.wh_id) ivws
           group by ivws.untcas,
                 ivws.ftpcod,
                 ivws.stoloc,
