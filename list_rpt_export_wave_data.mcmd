@@ -22,13 +22,14 @@ get client in clause for user
         dt.revlvl REVLVL,
         pw.inv_attr_str1 Batch_code,
         pw.inv_attr_str2 Reference1,
+        pw.inv_attr_str3 Reference2,
+        pw.inv_attr_str4 Reference3,
+        pw.inv_attr_str5 Reference4,
         pw.pck_uom UOM,
         pw.untcas Pack,
         dt.frstol Picked_Location,
         pw.tot_cas_cnt present_cnts,
-        CASE WHEN (pw.pck_uom = 'PC') THEN dt.trnqty
-             ELSE (pw.pckqty / NULLIF(pw.untcas, 0))
-        END AS CTNS,
+        pw.pckqty / NULLIF(pw.untcas, 0) AS CTNS,
         pw.pckdte,
         pw.last_pck_usr_id,
         d.dispatch_dte,
@@ -68,7 +69,8 @@ get client in clause for user
    join (select t.dispatch_dte,
                 sl.ordnum,
                 sl.wh_id,
-                sl.client_id
+                sl.client_id,
+                t.close_dte
            from shipment_line sl
            join shipment s
              on s.ship_id = sl.ship_id
@@ -83,14 +85,15 @@ get client in clause for user
           group by sl.ordnum,
                 t.dispatch_dte,
                 sl.wh_id,
-                sl.client_id) d
+                sl.client_id,
+                t.close_dte) d
      on d.ordnum = pw.ordnum
     and d.wh_id = pw.wh_id
     and d.client_id = pw.client_id
   where pw.wh_id = @wh_id
     and @+pw.client_id
-    and pw.pckdte > to_date(@start_date, 'YYYYMMDDHH24MISS')
-    and pw.pckdte < to_date(@end_date, 'YYYYMMDDHH24MISS')
+    and d.close_dte between to_date(@start_date, 'YYYYMMDDHH24MISS')
+    and to_date(@end_date, 'YYYYMMDDHH24MISS')
  /*and pw.ordnum = 'ORD000001D'
     and pw.prtnum = '1040601002'*/
   group by pw.schbat,
@@ -104,20 +107,22 @@ get client in clause for user
         dt.revlvl,
         pw.inv_attr_str1,
         pw.inv_attr_str2,
+        pw.inv_attr_str3,
+        pw.inv_attr_str4,
+        pw.inv_attr_str5,
         pw.pck_uom,
         pw.untcas,
         dt.frstol,
         pw.tot_cas_cnt,
         p.dspuom,
-        CASE WHEN (pw.pck_uom = 'PC') THEN dt.trnqty
-             ELSE (pw.pckqty / NULLIF(pw.untcas, 0)) END,
-             pw.pckdte,
-             pw.last_pck_usr_id,
-             d.dispatch_dte,
-             pw.pck_catch_qty,
-             p.catch_unttyp,
-             p.catch_untwgt*pw.pck_catch_qty,
-             pw.pckqty]
+        pw.pckqty / NULLIF(pw.untcas, 0),
+        pw.pckdte,
+        pw.last_pck_usr_id,
+        d.dispatch_dte,
+        pw.pck_catch_qty,
+        p.catch_unttyp,
+        p.catch_untwgt*pw.pck_catch_qty,
+        pw.pckqty]
 ]]>
 </local-syntax>
 </command>
