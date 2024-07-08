@@ -53,6 +53,8 @@ get client in clause for user
         inventory_view.inv_attr_str1 as batch_code,
         inventory_view.inv_attr_str2 as reference_1,
         inventory_view.inv_attr_str3 as reference_2,
+        inventory_view.inv_attr_str4 as reference_3,
+        inventory_view.inv_attr_str5 as reference_4,
         dtrn.usr_id as putaway_user,
         cast(prtftp_dtl.netwgt / 35.274 *
              case when prtmst_view.dspuom is null then inventory_view.untqty
