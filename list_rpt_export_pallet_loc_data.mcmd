@@ -48,6 +48,7 @@ get client in clause for user
         rcvtrk.mod_usr_id as create_user,
         rcvlin.mod_usr_id as gr_user,
         rcvlin.trknum,
+        rcvinv.invnum,
         trlr.trlr_num,
         sz_desc.lngdsc as storage_zone,
         inventory_view.inv_attr_str1 as batch_code,
@@ -98,6 +99,10 @@ get client in clause for user
    join rcvlin
      on rcvlin.rcvkey = inventory_view.rcvkey
     and rcvlin.wh_id = locmst.wh_id
+   left
+   join rcvinv
+     on rcvinv.trknum = rcvlin.trknum
+    and rcvinv.wh_id = rcvinv.wh_id
    left
    join rcvtrk
      on rcvtrk.trknum = rcvlin.trknum
