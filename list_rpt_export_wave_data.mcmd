@@ -16,7 +16,6 @@ get client in clause for user
         adrmst.adrnam as client_name,
         pw.ordnum ORD#,
         dt.lodnum LPN,
-        dt.subnum Sub_lpn,
         pw.prtnum SKU,
         pd.lngdsc Description,
         dt.revlvl REVLVL,
@@ -36,8 +35,8 @@ get client in clause for user
         pw.pck_catch_qty,
         p.catch_unttyp,
         cast(max(pdt.netwgt) / 35.274 *
-             case when p.dspuom is null then sum(pw.pckqty)
-                  else sum(pw.pckqty) / max(pdt.untqty)
+             case when p.dspuom is null then pw.pckqty
+                  else pw.pckqty / max(pdt.untqty)
              end as numeric(15, 4)) as picked_weight,
         pw.pckqty total_picked_qty
    from pckwrk_view pw
@@ -101,7 +100,6 @@ get client in clause for user
         adrmst.adrnam,
         pw.ordnum,
         dt.lodnum,
-        dt.subnum,
         pw.prtnum,
         pd.lngdsc,
         dt.revlvl,
