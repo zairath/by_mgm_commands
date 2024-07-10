@@ -114,7 +114,6 @@ get client in clause for user
     and av.prtnum = phd.prtnum
     and av.wh_id = phd.wh_id
     and av.prt_client_id = phd.prt_client_id
-    and av.ship_line_id = phd.ship_line_id
    left
    join rcvlin rl
      on rl.rcvkey = av.rcvkey
