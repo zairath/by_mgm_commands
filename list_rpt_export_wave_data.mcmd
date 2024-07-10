@@ -15,7 +15,8 @@ get client in clause for user
         pw.client_id,
         adrmst.adrnam as client_name,
         pw.ordnum ORD#,
-        dt.lodnum LPN,
+        av.lodnum LPN,
+        av.subnum Sub_lpn,
         pw.prtnum SKU,
         pd.lngdsc Description,
         dt.revlvl REVLVL,
@@ -26,19 +27,19 @@ get client in clause for user
         pw.inv_attr_str5 Reference4,
         pw.pck_uom UOM,
         pw.untcas Pack,
-        dt.frstol Picked_Location,
+        pw.srcloc Picked_Location,
         pw.tot_cas_cnt present_cnts,
-        pw.pckqty / NULLIF(pw.untcas, 0) AS CTNS,
+        av.untqty / NULLIF(pw.untcas, 0) AS CTNS,
         pw.pckdte,
         pw.last_pck_usr_id,
         d.dispatch_dte,
-        pw.pck_catch_qty,
+        av.catch_qty,
         p.catch_unttyp,
         cast(max(pdt.netwgt) / 35.274 *
-             case when p.dspuom is null then pw.pckqty
-                  else pw.pckqty / max(pdt.untqty)
+             case when p.dspuom is null then av.untqty
+                  else av.untqty / max(pdt.untqty)
              end as numeric(15, 4)) as picked_weight,
-        pw.pckqty total_picked_qty
+        av.untqty total_picked_qty
    from pckwrk_view pw
    join dlytrn dt
      on dt.ordnum = pw.ordnum
@@ -47,6 +48,13 @@ get client in clause for user
     and dt.actcod = 'LSTPCK'
     and dt.prtnum = pw.prtnum
     and dt.frstol = pw.srcloc
+   join all_inventory_view av
+     on av.ship_line_id = pw.ship_line_id
+    and av.wrkref = pw.wrkref
+    and av.wrkref_dtl = pw.wrkref_dtl
+    and av.prtnum = pw.prtnum
+    and av.wh_id = pw.wh_id
+    and av.prt_client_id = pw.prt_client_id
    join prtmst p
      on p.wh_id_tmpl = pw.wh_id
     and p.prt_client_id = pw.client_id
@@ -99,7 +107,8 @@ get client in clause for user
         pw.client_id,
         adrmst.adrnam,
         pw.ordnum,
-        dt.lodnum,
+        av.lodnum,
+        av.subnum,
         pw.prtnum,
         pd.lngdsc,
         dt.revlvl,
@@ -110,17 +119,17 @@ get client in clause for user
         pw.inv_attr_str5,
         pw.pck_uom,
         pw.untcas,
-        dt.frstol,
+        pw.srcloc,
         pw.tot_cas_cnt,
         p.dspuom,
-        pw.pckqty / NULLIF(pw.untcas, 0),
+        av.untqty / NULLIF(pw.untcas, 0),
         pw.pckdte,
         pw.last_pck_usr_id,
         d.dispatch_dte,
-        pw.pck_catch_qty,
+        av.catch_qty,
         p.catch_unttyp,
         p.catch_untwgt*pw.pck_catch_qty,
-        pw.pckqty]
+        av.untqty]
 ]]>
 </local-syntax>
 </command>
