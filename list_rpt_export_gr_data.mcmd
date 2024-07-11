@@ -91,7 +91,7 @@ get client in clause for user
                 rcvlin.seqnum,
                 rcvlin.wh_id,
                 rcvlin.rcvkey,
-                (select srcvlin.expqty
+                (select top 1srcvlin.expqty
                    from rcvlin srcvlin
                   where srcvlin.trknum = rcvlin.trknum
                     and srcvlin.client_id = rcvlin.client_id
