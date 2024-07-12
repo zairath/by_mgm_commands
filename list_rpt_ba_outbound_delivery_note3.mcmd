@@ -36,6 +36,10 @@ get client in clause for user
         inv.mandte,
         inv.expire_dte,
         inv.inv_attr_str1,
+        inv.inv_attr_str2,
+        inv.inv_attr_str3,
+        inv.inv_attr_str4,
+        inv.inv_attr_str5,
         inv.invsts,
         nvl(inv.catch_qty, 0) as catch_qty,
         prtmst_view.catch_unttyp,
@@ -52,7 +56,8 @@ get client in clause for user
         trlr.close_dte,
         b.adrnam as source_warehouse,
         dsctrlr.lngdsc as truck_type,
-        inv.subnum
+        inv.subnum,
+        inv.dtlnum
    from prtmst_view
    join ord_line
      on (prtmst_view.prt_client_id = ord_line.prt_client_id)
@@ -113,10 +118,15 @@ get client in clause for user
                 inventory_view.mandte,
                 inventory_view.expire_dte,
                 inventory_view.inv_attr_str1,
+                inventory_view.inv_attr_str2,
+                inventory_view.inv_attr_str3,
+                inventory_view.inv_attr_str4,
+                inventory_view.inv_attr_str5,
                 inventory_view.invsts,
                 inventory_view.catch_qty as catch_qty,
                 inventory_view.untqty as untqty,
-                inventory_view.subnum
+                inventory_view.subnum,
+                inventory_view.dtlnum
            from all_inventory_view as inventory_view,
                 shipment_line
           where shipment_line.ship_line_id = inventory_view.ship_line_id
@@ -129,10 +139,15 @@ get client in clause for user
                 inventory_view.mandte,
                 inventory_view.expire_dte,
                 inventory_view.inv_attr_str1,
+                inventory_view.inv_attr_str2,
+                inventory_view.inv_attr_str3,
+                inventory_view.inv_attr_str4,
+                inventory_view.inv_attr_str5,
                 inventory_view.catch_qty,
                 inventory_view.untqty,
                 inventory_view.invsts,
-                inventory_view.subnum) inv
+                inventory_view.subnum,
+                inventory_view.dtlnum) inv
      on (shipment_line.ship_line_id = inv.ship_line_id)
    left outer
    join (select alloc_rule_hdr.wh_id,
