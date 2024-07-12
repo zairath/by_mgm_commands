@@ -16,6 +16,7 @@ get client in clause for user
         phd.ordnum,
         o.cponum,
         adrmst.adrnam,
+        adrmst.adrln1 + ' ' + adrmst.adrln2 + ' ' + adrmst.adrln3 as ship_addr,
         adr_clt.adrnam as client_name,
         phh.srcloc,
         phh.prtnum,
@@ -75,6 +76,9 @@ get client in clause for user
         av.inv_attr_str1 as batch_code,
         av.expire_dte,
         av.inv_attr_str2 as reference_1,
+        av.inv_attr_str3 as reference_2,
+        av.inv_attr_str4 as reference_3,
+        av.inv_attr_str5 as reference_4,
         av.revlvl,
         case when max(av.catch_qty) < max(phd.app_catch_qty) then sum(av.catch_qty)
              else max(av.catch_qty)
@@ -155,6 +159,9 @@ get client in clause for user
         phd.ordnum,
         o.cponum,
         adrmst.adrnam,
+        adrmst.adrln1,
+        adrmst.adrln2,
+        adrmst.adrln3,
         adr_clt.adrnam,
         phh.srcloc,
         phh.prtnum,
@@ -203,6 +210,9 @@ get client in clause for user
         av.inv_attr_str1,
         av.expire_dte,
         av.inv_attr_str2,
+        av.inv_attr_str3,
+        av.inv_attr_str4,
+        av.inv_attr_str5,
         av.revlvl
   order by phh.schbat,
         rl.trknum]
