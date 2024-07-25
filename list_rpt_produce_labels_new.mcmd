@@ -1,0 +1,43 @@
+<command>
+  <name>list rpt produce labels new</name>
+  <description>This command for print LPN Label for SIF Client</description>
+  <type>Local Syntax</type>
+  <local-syntax>
+<![CDATA[
+get client in clause for user
+ where usr_id = nvl(@usr_id, @@usr_id)
+   and stoloc_wh_id = nvl(@wh_id, @@wh_id)
+|
+[select inventory_view.revlvl,
+        inventory_view.inv_attr_str1 as batch_code,
+        inventory_view.inv_attr_str2 as reference_1,
+        inventory_view.inv_attr_str3 as reference_2,
+        inventory_view.prtnum,
+        prtdsc.lngdsc,
+        case when prtmst_view.catch_unttyp is not null then sum(inventory_view.catch_qty)
+             else sum(inventory_view.untqty) / max(inventory_view.untcas)
+        end as quantity,
+        case when prtmst_view.catch_unttyp is not null then sum(inventory_view.untqty)
+             else sum(cast(inventory_view.inv_attr_str2 as bigint))
+        end as kantong
+   from inventory_view
+   join prtmst_view
+     on prtmst_view.prtnum = inventory_view.prtnum
+    and prtmst_view.prt_client_id = inventory_view.prt_client_id
+    and prtmst_view.wh_id = inventory_view.wh_id
+   join prtdsc
+     on prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
+    and prtdsc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/
+    and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
+  where @+inventory_view.wh_id
+    and inventory_view.lodnum = @lodnum
+  group by inventory_view.revlvl,
+        inventory_view.inv_attr_str1,
+        inventory_view.inv_attr_str2,
+        inventory_view.inv_attr_str3,
+        inventory_view.prtnum,
+        prtdsc.lngdsc,
+        prtmst_view.catch_unttyp]
+]]>
+</local-syntax>
+</command>
