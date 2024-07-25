@@ -29,7 +29,13 @@ get client in clause for user
      on prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
     and prtdsc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/
     and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
+   join rcvlin
+     on rcvlin.wh_id = inventory_view.wh_id
+    and rcvlin.rcvkey = inventory_view.rcvkey
+    and rcvlin.prtnum = inventory_view.prtnum
+    and rcvlin.prt_client_id = inventory_view.prt_client_id
   where @+inventory_view.wh_id
+    and @+rcvlin.trknum
     and inventory_view.lodnum = @lodnum
   group by inventory_view.revlvl,
         inventory_view.inv_attr_str1,
