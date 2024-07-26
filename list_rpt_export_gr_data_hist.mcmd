@@ -69,10 +69,10 @@ get client in clause for user
         case when rcvLineDtl.stkuom = max(rcvLineDtl.dspuom) then cast(rcvLineDtl.stkuom + ' = ' + max(stkuom_lngdsc) as varchar(50))
              else cast(rcvLineDtl.stkuom + ' = ' + max(stkuom_lngdsc) as varchar(50)) + ' & ' + cast(rcvLineDtl.dspuom + ' = ' + max(dspuom_lngdsc) as varchar(50))
         end as uom_lngdsc,
-        max(tostol) as putaway_location,
-        max(gr_user) as gr_user,
-        max(create_by_user) as create_by,
-        max(last_upd_user_id) as putaway_user,
+        max(rcvLineDtl.tostol) as putaway_location,
+        max(rcvLineDtl.gr_user) as gr_user,
+        max(rcvLineDtl.create_by_user) as create_by,
+        max(rcvLineDtl.last_upd_user_id) as putaway_user,
         rcvLineDtl.lodnum as lpn,
         count(distinct rcvLineDtl.lodnum) count_lpn,
         max(rcvLineDtl.untqty) as case_untqty
@@ -161,7 +161,6 @@ get client in clause for user
                 (select max(dlytrn.tostol)
                    from dlytrn
                   where invdtl_hist.revlvl = dlytrn.lodnum
-                    and invdtl_hist.subnum = dlytrn.subnum
                     and invdtl_hist.prtnum = dlytrn.prtnum
                     and invdtl_hist.prt_client_id = dlytrn.prt_client_id
                     and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
@@ -170,7 +169,6 @@ get client in clause for user
                 (select max(dlytrn.last_upd_user_id)
                    from dlytrn
                   where invdtl_hist.revlvl = dlytrn.lodnum
-                    and invdtl_hist.subnum = dlytrn.subnum
                     and invdtl_hist.prtnum = dlytrn.prtnum
                     and invdtl_hist.prt_client_id = dlytrn.prt_client_id
                     and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
@@ -179,7 +177,6 @@ get client in clause for user
                 (select max(dlytrn.lodnum)
                    from dlytrn
                   where invdtl_hist.revlvl = dlytrn.lodnum
-                    and invdtl_hist.subnum = dlytrn.subnum
                     and invdtl_hist.prtnum = dlytrn.prtnum
                     and invdtl_hist.prt_client_id = dlytrn.prt_client_id
                     and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
