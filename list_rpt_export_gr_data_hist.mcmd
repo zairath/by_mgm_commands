@@ -158,39 +158,18 @@ get client in clause for user
                 a.adrnam as cli_name,
                 adr.adrnam as sup_name,
                 invdtl_hist.dtlnum,
-                (select max(dlytrn.tostol)
-                   from dlytrn
-                  where invdtl_hist.revlvl = dlytrn.lodnum
-                    and invdtl_hist.prtnum = dlytrn.prtnum
-                    and invdtl_hist.prt_client_id = dlytrn.prt_client_id
-                    and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
-                    and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN', 'B1-RSTG', 'B2-RSTG')
-                    and dlytrn.tostol not like '%CHAMBER%') as tostol,
-                (select max(dlytrn.last_upd_user_id)
-                   from dlytrn
-                  where invdtl_hist.revlvl = dlytrn.lodnum
-                    and invdtl_hist.prtnum = dlytrn.prtnum
-                    and invdtl_hist.prt_client_id = dlytrn.prt_client_id
-                    and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
-                    and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN', 'B1-RSTG', 'B2-RSTG')
-                    and dlytrn.tostol not like '%CHAMBER%') as last_upd_user_id,
-                (select max(dlytrn.lodnum)
-                   from dlytrn
-                  where invdtl_hist.revlvl = dlytrn.lodnum
-                    and invdtl_hist.prtnum = dlytrn.prtnum
-                    and invdtl_hist.prt_client_id = dlytrn.prt_client_id
-                    and dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
-                    and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN', 'B1-RSTG', 'B2-RSTG')
-                    and dlytrn.tostol not like '%CHAMBER%') as lodnum
+                dlytrrn.tostol,
+                dlytrrn.last_upd_user_id,
+                dlytrrn.lodnum
            from prtmst_view
            join prtdsc
              on prtdsc.colnam = 'prtnum|prt_client_id|wh_id_tmpl'
             and prtdsc.colval = /*=varchar(*/ prtmst_view.prtnum || '|' || prtmst_view.prt_client_id || '|' || prtmst_view.wh_id_tmpl /*=)*/
             and prtdsc.locale_id = nvl(@locale_id, @@locale_id)
            join rcvlin
-             on prtmst_view.prtnum = rcvlin.prtnum
-            and prtmst_view.prt_client_id = rcvlin.prt_client_id
-            and prtmst_view.wh_id = rcvlin.wh_id
+             on rcvlin.prtnum = prtmst_view.prtnum
+            and rcvlin.prt_client_id = prtmst_view.prt_client_id
+            and rcvlin.wh_id = prtmst_view.wh_id
            join rcvtrk
              on rcvlin.trknum = rcvtrk.trknum
             and rcvlin.wh_id = rcvtrk.wh_id
@@ -200,18 +179,9 @@ get client in clause for user
            left outer
            join rcvinv
              on rcvlin.trknum = rcvinv.trknum
-            and rcvlin.supnum = rcvinv.supnum
-            and rcvlin.invnum = rcvinv.invnum
             and rcvlin.wh_id = rcvinv.wh_id
-            and rcvlin.client_id = rcvinv.client_id
            join invdtl_hist
              on invdtl_hist.rcvkey = rcvlin.rcvkey
-           join prtftp
-             on prtmst_view.prtnum = prtftp.prtnum
-            and prtmst_view.wh_id = prtftp.wh_id
-            and prtmst_view.prt_client_id = prtftp.prt_client_id
-            and invdtl_hist.ftpcod = prtftp.ftpcod
-             or prtftp.defftp_flg = decode(invdtl_hist.ftpcod, NULL, 1, cast(null as int))
            join prtftp_dtl pdt
              on pdt.prtnum = prtmst_view.prtnum
             and pdt.prt_client_id = prtmst_view.prt_client_id
@@ -227,11 +197,30 @@ get client in clause for user
              on client.client_id = prtmst_view.prt_client_id
            join adrmst a
              on a.adr_id = client.adr_id
+            and a.adrtyp = 'CLI'
            join supmst
              on supmst.supnum = rcvlin.supnum
             and supmst.client_id = rcvlin.client_id
            join adrmst adr
              on adr.adr_id = supmst.adr_id
+            and adr.adrtyp = 'SUP'
+           join (select dlytrn.tostol,
+                        dlytrn.lodnum,
+                        dlytrn.last_upd_user_id,
+                        dlytrn.prtnum,
+                        dlytrn.prt_client_id
+                   from dlytrn
+                  where dlytrn.actcod in ('RCV', 'FL_XFR_PTWY', 'FL_XFR', 'GENMOV', 'PUT_UNDR')
+                    and dlytrn.to_arecod in ('B1-AIRCON', 'B1-CHILLER', 'B1-DRY', 'B1-FROZEN', 'B2-AIRCON', 'B2-CHILLER', 'B2-DRY', 'B2-FROZEN', 'B1-RSTG', 'B2-RSTG')
+                    and dlytrn.tostol not like '%CHAMBER%'
+                  group by dlytrn.prtnum,
+                        dlytrn.prt_client_id,
+                        dlytrn.lodnum,
+                        dlytrn.last_upd_user_id,
+                        dlytrn.tostol) dlytrrn
+             on invdtl_hist.revlvl = dlytrrn.lodnum
+            and invdtl_hist.prtnum = dlytrrn.prtnum
+            and invdtl_hist.prt_client_id = dlytrrn.prt_client_id
           where @+prtmst_view.prtnum
             and @+rcvlin.mandte:date
             and @+rcvlin.expire_dte:date
