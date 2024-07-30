@@ -43,7 +43,7 @@ get client in clause for user
         case when max(rcvLineDtl.stkuom) = max(rcvLineDtl.dspuom) then cast(floor(max(rcvLineDtl.rcvqty / rcvLineDtl.untqty)) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom))
              else cast(floor(max(rcvLineDtl.rcvqty / rcvLineDtl.untqty)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, cast(null as int), max(rcvLineDtl.stkuom), cast(null as int), mod(max(rcvLineDtl.rcvqty), max(rcvLineDtl.untqty))) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, null, max(rcvLineDtl.stkuom), null, max(rcvLineDtl.stkuom))
         end as quantity_reported,
-        case when max(rcvLineDtl.stkuom) = 'GR' then cast(max(rcvLineDtl.rcvqty) as decimal(15, 5))
+        case when max(rcvLineDtl.stkuom) = 'GR' then cast(max(rcvLineDtl.rcvqty) / 1000.0 as decimal(10, 1))
              when rcvLineDtl.catch_unttyp is null then cast((select pdtl2.netwgt
                                                                from prtftp_dtl pdtl2
                                                               where pdtl2.ftpcod = max(rcvLineDtl.ftpcod)
