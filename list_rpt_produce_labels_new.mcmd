@@ -18,7 +18,7 @@ get client in clause for user
              else sum(inventory_view.untqty) / max(inventory_view.untcas)
         end as quantity,
         case when prtmst_view.catch_unttyp is not null then sum(inventory_view.untqty)
-             else sum(cast(inventory_view.inv_attr_str2 as bigint))
+             else sum(try_convert(decimal(15, 2), inventory_view.inv_attr_str2))
         end as kantong
    from inventory_view
    join prtmst_view
