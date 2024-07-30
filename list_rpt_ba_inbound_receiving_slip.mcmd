@@ -43,13 +43,16 @@ get client in clause for user
         case when max(rcvLineDtl.stkuom) = max(rcvLineDtl.dspuom) then cast(floor(max(rcvLineDtl.rcvqty / rcvLineDtl.untqty)) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom))
              else cast(floor(max(rcvLineDtl.rcvqty / rcvLineDtl.untqty)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.stkuom), max(rcvLineDtl.dspuom)) as varchar(12)) + ' ' + cast(decode(max(rcvLineDtl.dspuom), null, cast(null as int), max(rcvLineDtl.stkuom), cast(null as int), mod(max(rcvLineDtl.rcvqty), max(rcvLineDtl.untqty))) as varchar(12)) + ' ' + decode(max(rcvLineDtl.dspuom), null, null, max(rcvLineDtl.stkuom), null, max(rcvLineDtl.stkuom))
         end as quantity_reported,
-        cast((select pdtl2.netwgt
-                from prtftp_dtl pdtl2
-               where pdtl2.ftpcod = max(rcvLineDtl.ftpcod)
-                 and pdtl2.prtnum = max(rcvLineDtl.prtnum)
-                 and pdtl2.prt_client_id = max(rcvLineDtl.prt_client_id)
-                 and pdtl2.wh_id = max(rcvLineDtl.wh_id)
-                 and pdtl2.uomcod = nvl(max(rcvLineDtl.dspuom), max(rcvLineDtl.stkuom))) / 35.274 * decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.rcvqty), sum(rcvLineDtl.rcvqty) / max(rcvLineDtl.untqty)) as decimal(10, 2)) as carton_weight,
+        case when max(rcvLineDtl.stkuom) = 'GR' then cast(max(rcvLineDtl.rcvqty) as decimal(15, 5))
+             when rcvLineDtl.catch_unttyp is null then cast((select pdtl2.netwgt
+                                                               from prtftp_dtl pdtl2
+                                                              where pdtl2.ftpcod = max(rcvLineDtl.ftpcod)
+                                                                and pdtl2.prtnum = max(rcvLineDtl.prtnum)
+                                                                and pdtl2.prt_client_id = max(rcvLineDtl.prt_client_id)
+                                                                and pdtl2.wh_id = max(rcvLineDtl.wh_id)
+                                                                and pdtl2.uomcod = nvl(max(rcvLineDtl.dspuom), max(rcvLineDtl.stkuom))) / 35.274 * decode(max(rcvLineDtl.dspuom), null, max(rcvLineDtl.rcvqty), sum(rcvLineDtl.rcvqty) / max(rcvLineDtl.untqty)) as decimal(15, 5))
+             when rcvLineDtl.catch_unttyp is not null then cast(max(rcvLineDtl.rcv_catch_qty) as decimal(15, 5))
+        end as carton_weight,
         case when max(rcvLineDtl.stkuom) = max(rcvLineDtl.dspuom) then cast(max(rcvLineDtl.stkuom) + ' = ' + max(stkuom_lngdsc) as varchar(50))
              else cast(max(rcvLineDtl.stkuom) + ' = ' + max(stkuom_lngdsc) as varchar(50)) + ' & ' + cast(max(rcvLineDtl.dspuom) + ' = ' + max(dspuom_lngdsc) as varchar(50))
         end as uom_lngdsc
