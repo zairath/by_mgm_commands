@@ -46,13 +46,10 @@ get client in clause for user
         decode(prtmst_view.dspuom, null, prtmst_view.stkuom, prtmst_view.dspuom) dsp_untqty_uom,
         decode(prtmst_view.dspuom, null, cast(null as int), prtmst_view.stkuom, cast(null as int), mod(inv.untqty, prtftp_dtl.untqty)) rem_untqty,
         decode(prtmst_view.dspuom, null, null, prtmst_view.stkuom, null, prtmst_view.stkuom) rem_untqty_uom,
-        cast((select pdtl.netwgt
-                from prtftp_dtl pdtl
-               where pdtl.ftpcod = prtftp_dtl.ftpcod
-                 and pdtl.prtnum = prtftp_dtl.prtnum
-                 and pdtl.prt_client_id = prtftp_dtl.prt_client_id
-                 and pdtl.wh_id = prtftp_dtl.wh_id
-                 and pdtl.uomcod = nvl(prtmst_view.dspuom, prtmst_view.stkuom)) / 35.274 * decode(prtmst_view.dspuom, null, inv.untqty, inv.untqty / prtftp_dtl.untqty) as decimal(10, 2)) as carton_weight,
+        case when prtmst_view.stkuom = 'GR' then cast(inv.untqty / 1000.0 as decimal(10, 1))
+             when prtmst_view.catch_unttyp is null then cast(prtftp_dtl.untqty / 35.274 * decode(prtmst_view.dspuom, null, ord_line.shpqty, ord_line.shpqty / prtftp_dtl.untqty) as decimal(15, 5))
+             when prtmst_view.catch_unttyp is not null then cast(inv.catch_qty as decimal(15, 5))
+        end as carton_weight,
         (adrmst.adrln1 + adrmst.adrln2 + adrmst.adrln3) as alamat,
         adrmst.adrcty,
         adrmst.adrnam as nama_customer,
